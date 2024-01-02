@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ModelXantrexGT100250500">
+	<resultMap id="ModelXantrexGT100250500Map"
+		type="com.nwm.api.entities.ModelXantrexGT100250500Entity">
+		<result property="time" column="time" />
+		<result property="id_device" column="id_device" />
+		<result property="error" column="error" />
+		<result property="low_alarm" column="low_alarm" />
+		<result property="high_alarm" column="high_alarm" />
+		<result property="VAB" column="VAB" />
+		<result property="VBC" column="VBC" />
+		<result property="VCA" column="VCA" />
+		<result property="CurrentA" column="CurrentA" />
+		<result property="CurrentB" column="CurrentB" />
+		<result property="CurrentC" column="CurrentC" />
+		<result property="ReadPower" column="ReadPower" />
+		<result property="PVVoltage" column="PVVoltage" />
+		<result property="PVCurrent" column="PVCurrent" />
+		<result property="PVPower" column="PVPower" />
+		<result property="GridFrequency" column="GridFrequency" />
+		<result property="SystemState" column="SystemState" />
+		<result property="GoalState" column="GoalState" />
+		<result property="FaultCode" column="FaultCode" />
+		<result property="AccumulatedEnergy" column="AccumulatedEnergy" />
+		<result property="RMatrixTemp" column="RMatrixTemp" />
+		<result property="LMatrixTemp" column="LMatrixTemp" />
+		<result property="IntakeAirTemperature" column="IntakeAirTemperature" />
+		<result property="nvmActivePower" column="nvmActivePower" />
+		<result property="nvmActiveEnergy" column="nvmActiveEnergy" />
+		<result property="MeasuredProduction" column="MeasuredProduction" />
+		<result property="datatablename" column="datatablename" />
+		<result property="view_tablename" column="view_tablename" />
+		<result property="job_tablename" column="job_tablename" />
+			
+	</resultMap>
+
+	<insert id="insertModelXantrexGT100250500"
+		useGeneratedKeys="true" keyProperty="time">
+		INSERT INTO `${datatablename}`
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="time != null">
+				`time`,
+			</if>
+			<if test="id_device != 0.001">
+				`id_device`,
+			</if>
+			<if test="error != 0.001">
+				`error`,
+			</if>
+			<if test="low_alarm != 0.001">
+				`low_alarm`,
+			</if>
+			<if test="high_alarm != 0.001">
+				`high_alarm`,
+			</if>
+			<if test="VAB != 0.001">
+				`VAB`,
+			</if>
+			<if test="VBC != 0.001">
+				`VBC`,
+			</if>
+			<if test="VCA != 0.001">
+				`VCA`,
+			</if>
+			<if test="CurrentA != 0.001">
+				`CurrentA`,
+			</if>
+			<if test="CurrentB != 0.001">
+				`CurrentB`,
+			</if>
+			<if test="CurrentC != 0.001">
+				`CurrentC`,
+			</if>
+			<if test="ReadPower != 0.001">
+				`ReadPower`,
+			</if>
+			<if test="PVVoltage != 0.001">
+				`PVVoltage`,
+			</if>
+			<if test="PVCurrent != 0.001">
+				`PVCurrent`,
+			</if>
+			<if test="PVPower != 0.001">
+				`PVPower`,
+			</if>
+			<if test="GridFrequency != 0.001">
+				`GridFrequency`,
+			</if>
+			<if test="SystemState != 0.001">
+				`SystemState`,
+			</if>
+			<if test="GoalState != 0.001">
+				`GoalState`,
+			</if>
+			<if test="FaultCode != 0.001">
+				`FaultCode`,
+			</if>
+			<if test="AccumulatedEnergy != 0.001">
+				`AccumulatedEnergy`,
+			</if>
+			<if test="RMatrixTemp != 0.001">
+				`RMatrixTemp`,
+			</if>
+			<if test="LMatrixTemp != 0.001">
+				`LMatrixTemp`,
+			</if>
+			<if test="IntakeAirTemperature != 0.001">
+				`IntakeAirTemperature`,
+			</if>
+			<if test="nvmActivePower != 0.001">
+				`nvmActivePower`,
+			</if>
+			<if test="nvmActiveEnergy != 0.001">
+				`nvmActiveEnergy`,
+			</if>
+			<if test="MeasuredProduction != 0.001">
+				`MeasuredProduction`,
+			</if>
+			
+			
+			
+		</trim>
+
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="time != null">
+				#{time},
+			</if>
+			<if test="id_device != 0.001">
+				#{id_device},
+			</if>
+			<if test="error != 0.001">
+				#{error},
+			</if>
+			<if test="low_alarm != 0.001">
+				#{low_alarm},
+			</if>
+			<if test="high_alarm != 0.001">
+				#{high_alarm},
+			</if>
+			<if test="VAB != 0.001">
+				#{VAB},
+			</if>
+			<if test="VBC != 0.001">
+				#{VBC},
+			</if>
+			<if test="VCA != 0.001">
+				#{VCA},
+			</if>
+			<if test="CurrentA != 0.001">
+				#{CurrentA},
+			</if>
+			<if test="CurrentB != 0.001">
+				#{CurrentB},
+			</if>
+			<if test="CurrentC != 0.001">
+				#{CurrentC},
+			</if>
+			<if test="ReadPower != 0.001">
+				#{ReadPower},
+			</if>
+			<if test="PVVoltage != 0.001">
+				#{PVVoltage},
+			</if>
+			<if test="PVCurrent != 0.001">
+				#{PVCurrent},
+			</if>
+			<if test="PVPower != 0.001">
+				#{PVPower},
+			</if>
+			<if test="GridFrequency != 0.001">
+				#{GridFrequency},
+			</if>
+			<if test="SystemState != 0.001">
+				#{SystemState},
+			</if>
+			<if test="GoalState != 0.001">
+				#{GoalState},
+			</if>
+			<if test="FaultCode != 0.001">
+				#{FaultCode},
+			</if>
+			<if test="AccumulatedEnergy != 0.001">
+				#{AccumulatedEnergy},
+			</if>
+			<if test="RMatrixTemp != 0.001">
+				#{RMatrixTemp},
+			</if>
+			<if test="LMatrixTemp != 0.001">
+				#{LMatrixTemp},
+			</if>
+			<if test="IntakeAirTemperature != 0.001">
+				#{IntakeAirTemperature},
+			</if>
+			<if test="nvmActivePower != 0.001">
+				#{nvmActivePower},
+			</if>
+			<if test="nvmActiveEnergy != 0.001">
+				#{nvmActiveEnergy},
+			</if>
+			<if test="MeasuredProduction != 0.001">
+				#{MeasuredProduction},
+			</if>
+		</trim>
+
+		<trim prefix="ON DUPLICATE KEY UPDATE " suffix=""
+			suffixOverrides=",">
+			
+			<if test="id_device != 0.001">
+				`id_device` = #{id_device},
+			</if>
+			<if test="error != 0.001">
+				`error` = #{error},
+			</if>
+			<if test="low_alarm != 0.001">
+				`low_alarm` = #{low_alarm},
+			</if>
+			<if test="high_alarm != 0.001">
+				`high_alarm` = #{high_alarm},
+			</if>
+			<if test="VAB != 0.001">
+				`VAB` = #{VAB},
+			</if>
+			<if test="VBC != 0.001">
+				`VBC` = #{VBC},
+			</if>
+			<if test="VCA != 0.001">
+				`VCA` = #{VCA},
+			</if>
+			<if test="CurrentA != 0.001">
+				`CurrentA` = #{CurrentA},
+			</if>
+			<if test="CurrentB != 0.001">
+				`CurrentB` = #{CurrentB},
+			</if>
+			<if test="CurrentC != 0.001">
+				`CurrentC` = #{CurrentC},
+			</if>
+			<if test="ReadPower != 0.001">
+				`ReadPower` = #{ReadPower},
+			</if>
+			<if test="PVVoltage != 0.001">
+				`PVVoltage` = #{PVVoltage},
+			</if>
+			<if test="PVCurrent != 0.001">
+				`PVCurrent` = #{PVCurrent},
+			</if>
+			<if test="PVPower != 0.001">
+				`PVPower` = #{PVPower},
+			</if>
+			<if test="GridFrequency != 0.001">
+				`GridFrequency` = #{GridFrequency},
+			</if>
+			<if test="SystemState != 0.001">
+				`SystemState` = #{SystemState},
+			</if>
+			<if test="GoalState != 0.001">
+				`GoalState` = #{GoalState},
+			</if>
+			<if test="FaultCode != 0.001">
+				`FaultCode` = #{FaultCode},
+			</if>
+			<if test="AccumulatedEnergy != 0.001">
+				`AccumulatedEnergy` = #{AccumulatedEnergy},
+			</if>
+			<if test="RMatrixTemp != 0.001">
+				`RMatrixTemp` = #{RMatrixTemp},
+			</if>
+			<if test="LMatrixTemp != 0.001">
+				`LMatrixTemp` = #{LMatrixTemp},
+			</if>
+			<if test="IntakeAirTemperature != 0.001">
+				`IntakeAirTemperature` = #{IntakeAirTemperature},
+			</if>
+			<if test="nvmActivePower != 0.001">
+				`nvmActivePower` = #{nvmActivePower},
+			</if>
+			<if test="nvmActiveEnergy != 0.001">
+				`nvmActiveEnergy` = #{nvmActiveEnergy},
+			</if>
+			<if test="MeasuredProduction != 0.001">
+				`MeasuredProduction` = #{MeasuredProduction},
+			</if>
+			
+		</trim>
+	</insert>
+	
+	
+	
+	 <select id="getListTriggerFaultCode" resultType="Map" parameterType="String">
+		SELECT
+			l.id,
+			l.id_error,
+			l.id_device,
+			l.`status`,
+			DATE_FORMAT(l.start_date,'%Y-%m-%d %H:%i:%s') AS start_date,
+			DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i:%s') AS end_date			
+		FROM
+			`alert` l
+			LEFT JOIN error e ON e.id = l.id_error
+			WHERE l.`status` = 1
+			AND e.is_delete = 0 AND e.`status` = 1
+			AND l.is_delete = 0 AND l.id_device = #{id_device}
+			<if test="faultCodeLevel == 1">
+				AND l.id_error IN(
+				772, 773, 774, 775, 776, 777, 778, 779, 780, 781,
+				782, 783, 784, 785, 786, 787, 788, 789, 790, 791,
+				792, 793, 794, 795, 796, 797, 798, 799, 800, 801,
+				802, 803, 804, 805, 806, 807, 808, 809, 810, 811,
+				812, 813, 814, 815, 816, 817, 818, 819)
+			</if>
+			
+	</select>
+	
+	<select id="checkAlertWriteCode" resultType="com.nwm.api.entities.ModelXantrexGT100250500Entity">
+    	SELECT
+			SUM( t.FaultCode ) AS totalFaultCode
+		FROM
+			(
+			SELECT
+				IF(m.FaultCode > 0, 1, 0) AS FaultCode
+			FROM
+				${datatablename} m
+			WHERE
+				id_device = #{id_device}
+			ORDER BY
+				time DESC 
+			LIMIT 20
+			)t
+  	</select> 
+  	
+  	
+  	<select id="getLastRow" resultType="com.nwm.api.entities.ModelXantrexGT100250500Entity">
+		SELECT
+			dv.*,
+			s.enable_alert
+		FROM
+			${view_tablename} dv 
+			LEFT JOIN device d ON d.id = dv.id_device
+			LEFT JOIN site s ON s.id = d.id_site
+		WHERE
+			dv.id_device = #{id_device}
+		ORDER BY
+			dv.time DESC 
+			LIMIT 1
+	</select>
+
+</mapper> 

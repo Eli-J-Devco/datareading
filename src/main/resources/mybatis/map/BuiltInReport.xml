@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BuiltInReport">
+	<resultMap id="BuiltInReportMap" type="com.nwm.api.entities.ReportsEntity">
+		<result property="id" column="id" />
+		<result property="id_site" column="id_site" />
+		<result property="id_employee" column="id_employee" />
+		<result property="report_type" column="report_type" />
+		<result property="cadence_range" column="cadence_range" />
+		<result property="date_from" column="date_from" />
+		<result property="date_to" column="date_to" />
+		<result property="subscribers" column="subscribers" />
+		<result property="data_intervals" column="data_intervals" />
+		<result property="file_type" column="file_type" />
+		<result property="status" column="status" />
+		<result property="created_date" column="created_date" />
+		<result property="created_by" column="created_by" />
+		<result property="updated_date" column="updated_date" />
+		<result property="updated_by" column="updated_by" />
+	</resultMap>
+	
+	
+	<select id="getTableDataVirtual" resultType="String">
+		SELECT
+			s.table_data_virtual
+		FROM
+			site s
+		WHERE
+			s.`status` = 1 
+			AND s.is_delete = 0
+			AND s.id = #{id_site}
+	</select>
+	
+	<select id="getListSiteInReport" resultType="com.nwm.api.entities.SiteEntity">
+		SELECT
+			s.* 
+		FROM
+			site s 
+			LEFT JOIN site_employee_map sem ON sem.id_site = s.id
+		WHERE
+			sem.id_employee = 1
+			AND s.`status` = 1 
+			AND s.is_delete = 0
+			<if test="id_sites != null">
+				AND s.id IN  (
+					<foreach item="item" index="index" collection="ids" separator=",">
+						#{item}
+					</foreach>
+				)
+			</if>
+	</select>
+	
+	<select id="getDetailReport" resultType="com.nwm.api.entities.ViewReportEntity" parameterType="com.nwm.api.entities.ViewReportEntity" >
+		SELECT
+			r.id,
+			s.id AS id_site,
+			s.`name` AS site_name,
+			DATE_FORMAT(NOW(), '%m/%d/%Y') AS report_date,
+			s.ac_capacity,
+			s.dc_capacity,
+			"Normal" AS system_status,
+			r.cadence_range,
+			r.subscribers,
+			r.data_intervals,
+			CASE
+		    	WHEN r.type_report = 1 THEN CONCAT_WS( " " , s.`name`, "Solar Production Report") 
+		    	WHEN r.type_report = 2 THEN CONCAT_WS( " " , s.`name`, "Renewable Energy Credits") 
+		    
+		    ELSE s.`name`
+			END	AS report_name,
+			CONCAT_WS(', ', s.number, s.street, s.city, s.state, s.postal_code ) AS address
+		FROM
+			site s 
+			LEFT JOIN report r ON r.id_site = s.id
+		WHERE
+			s.id = #{id_site} AND r.id = #{id}
+	</select>
+	
+	<select id="getListDeviceTypeInverter" resultType="Map">
+		SELECT
+			d.id,
+			d.devicename,
+			d.devicename AS export_devicename,
+			d.datatablename,
+			d.id_site,
+			d.id_device_type
+		FROM
+			device d
+			LEFT JOIN device_type dt ON d.id_device_type = dt.id 
+		WHERE
+			dt.id = 1
+			AND d.id_site = #{id_site}
+			AND d.`status` = 1 
+			AND d.is_delete = 0
+		GROUP BY d.id_device_type
+	</select>
+	
+	
+	<select id="getDataEnergyAnnuallyReport" resultType="Map" >
+		SELECT
+			s.id,
+			s.id AS id_site,
+			s.`name`,
+			DATE_FORMAT( sdr.time, '%b-%Y' ) AS categories_time,
+			DATE_FORMAT( sdr.time, '%m-%Y' ) AS time_full,
+			DATE_FORMAT( sdr.time, '%Y-%m' ) AS time_format,
+			DATE_FORMAT( sdr.time, '%Y' ) AS year,
+			DATE_FORMAT( sdr.time, '%m' ) AS month_number,
+			DATE_FORMAT( sdr.time, '%b' ) AS month,
+			IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS chart_energy_kwh,
+			IFNULL(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
+			IFNULL(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 0.001) AS inverterEnergy
+			
+		FROM
+			site_data_report sdr 
+			LEFT JOIN device d ON d.id = sdr.id_device
+			LEFT JOIN site s ON s.id = d.id_site
+			LEFT JOIN time_zone t ON t.id = s.id_time_zone
+			
+		WHERE
+			s.`status` = 1
+			AND d.`status` = 1
+			AND s.is_delete = 0
+			AND d.is_delete = 0
+			AND s.id = #{id_site}
+			AND (sdr.time BETWEEN #{start_date} AND #{end_date})
+			GROUP BY s.id, DATE_FORMAT( sdr.time , "%Y-%m")
+			
+		
+	</select>
+	
+	
+	<select id="getInverterAvailability" resultType="Map" >
+		SELECT 
+			ROUND((SUM(t.InverterAvailability)/ DATE_FORMAT(LAST_DAY(t.time),'%d') ), 1) AS InverterAvailability,
+			t.time_full
+			FROM (
+			SELECT
+				sd.time,
+				ROUND(AVG(sd.InverterAvailability) * 100, 2) AS InverterAvailability,
+				DATE_FORMAT( sd.time, '%b-%Y') AS time_full
+			FROM
+				site_data_report sd
+				LEFT JOIN device d ON d.id = sd.id_device 
+			WHERE
+				d.id_site = #{id_site}
+				AND d.id_device_type = 1
+				AND (sd.time BETWEEN #{start_date} AND #{end_date})
+				GROUP BY sd.time
+		)t
+		GROUP BY t.time_full
+	</select>
+	
+	<select id="getMeterAvailability" resultType="Map" >
+		SELECT 
+			ROUND((SUM(t.InverterAvailability)/ DATE_FORMAT(LAST_DAY(t.time),'%d') ), 1) AS InverterAvailability,
+			t.time_full
+			FROM (
+			SELECT
+				sd.time,
+				ROUND(AVG(sd.InverterAvailability) * 100, 2) AS InverterAvailability,
+				DATE_FORMAT( sd.time, '%b-%Y') AS time_full
+			FROM
+				site_data_report sd
+				LEFT JOIN device d ON d.id = sd.id_device 
+			WHERE
+				d.id_site = #{id_site}
+				AND d.id_device_type = 3
+				AND (sd.time BETWEEN #{start_date} AND #{end_date})
+				GROUP BY sd.time
+		)t
+		GROUP BY t.time_full
+	</select>
+	
+	
+	<select id="getReportEnergyExpectations" resultType="Map" >
+		SELECT
+			* 
+		FROM
+			energy_expectations ee 
+		WHERE
+			ee.id_site = #{id_site}
+	</select>
+	
+	
+	
+	<select id="getDataAnnualTrendReport" resultType="Map" >
+		SELECT
+			DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%b-%y' ) AS time_format,
+			DATE_FORMAT( vir.time, '%b-%Y' ) AS categories_time,
+			IFNULL(ROUND(SUM(vir.nvmActiveEnergy), 0), 0) AS ActualGeneration,
+			IFNULL(ROUND(SUM(vir.expected_energy), 0), 0) AS ExpectedGeneration,
+			IFNULL(ROUND(AVG(vir.nvm_irradiance), 2), 0) AS POA,
+			
+			IFNULL( 
+			CASE
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site= s.id AND `year`=DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+			END
+			, 0) AS ModeledGeneration,
+			
+			IFNULL(ROUND( (SUM(vir.nvmActiveEnergy) / SUM(vir.expected_energy)) * 100, 1), 0) AS ExpectedGenerationIndex,
+			
+			IFNULL(
+			ROUND( (SUM(vir.nvmActiveEnergy) / 
+				CASE
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site= s.id AND `year`=DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+				END) * 100, 1)
+			, 0)
+			AS ModeledGenerationIndex,
+			s.name
+		FROM
+			${table_data_virtual} vir
+			LEFT JOIN device d ON d.id = vir.id_device
+			LEFT JOIN site s ON s.id = d.id_site 
+			LEFT JOIN time_zone t ON t.id = s.id_time_zone
+		WHERE
+			d.`status` = 1 
+			AND d.is_delete = 0 
+			AND s.`status` = 1 
+			AND d.is_delete = 0 
+			AND s.id = #{id_site}
+			AND (CONVERT_TZ( vir.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
+			AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+			
+			GROUP BY time_format
+	</select>
+	
+	
+	<select id="getListDeviceTypeMeter" resultType="Map">
+		SELECT
+			d.id,
+			d.devicename,
+			d.devicename AS export_devicename,
+			d.datatablename,
+			d.id_site,
+			d.id_device_type
+		FROM
+			device d
+			LEFT JOIN device_type dt ON d.id_device_type = dt.id 
+		WHERE
+			dt.id = 3 
+			AND d.id_site = #{id_site}
+			AND d.`status` = 1 
+			AND d.is_delete = 0
+		GROUP BY d.id_device_type
+	</select>
+	
+	
+	
+	<select id="getMonthlyTrendBuitInReport" resultType="Map" >
+		SELECT
+				t.time_format,
+				t.time_full,
+				t.name,
+				IFNULL(ROUND(SUM( t.monthlyProduction)), 0.001)  AS monthlyProduction
+				
+			FROM
+				(
+					<foreach collection="groupDevices" item="item" index="index" separator="union all">
+						SELECT
+							dv.time,
+							s.name,
+							<if test="data_intervals == 1">
+								FROM_UNIXTIME(((UNIX_TIMESTAMP(CONVERT_TZ( dv.time, '+00:00', t.`offset` )) DIV 300)*300), '%Y-%m-%d %H:%i') AS time_format,
+								FROM_UNIXTIME(((UNIX_TIMESTAMP(CONVERT_TZ( dv.time, '+00:00', t.`offset` )) DIV 300)*300), '%m/%d/%Y %H:%i:00') AS time_full,
+							</if>
+							<if test="data_intervals == 2">
+								FROM_UNIXTIME(((UNIX_TIMESTAMP(CONVERT_TZ( dv.time, '+00:00', t.`offset` )) DIV 900)*900), '%Y-%m-%d %H:%i') AS time_format,
+								FROM_UNIXTIME(((UNIX_TIMESTAMP(CONVERT_TZ( dv.time, '+00:00', t.`offset` )) DIV 900)*900), '%m/%d/%Y %H:%i:00') AS time_full,
+							</if>
+							
+							IFNULL(SUM(dv.MeasuredProduction), 0) AS monthlyProduction 
+						FROM
+							${item.datatablename} dv
+							LEFT JOIN device d ON d.id = dv.id_device
+							LEFT JOIN site s ON s.id = d.id_site 
+							LEFT JOIN time_zone t ON t.id = s.id_time_zone
+						WHERE
+							s.id = #{item.id_site}
+							AND d.id_device_type = #{item.id_device_type}
+							AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
+							AND s.`status` = 1 
+							AND d.`status` = 1 
+							AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+						GROUP BY
+							d.id, time_format
+			      </foreach>
+				) t 
+			GROUP BY
+				t.time_format
+	</select>
+	
+	<select id="getDataWeeklyTrendReport" resultType="Map" >
+		SELECT
+			DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
+			DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m/%d/%Y' ) AS categories_time,
+			IFNULL(ROUND(SUM(vir.nvmActiveEnergy), 0), 0) AS ActualGeneration,
+			IFNULL(ROUND(SUM(vir.expected_energy), 0), 0) AS ExpectedGeneration,
+			IFNULL(ROUND(AVG(vir.nvm_irradiance), 2), 0) AS POA,
+			
+			IFNULL( 
+				ROUND(
+					CASE
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '12' then ROUND((SELECT en.dec FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					END / DAYOFMONTH(LAST_DAY( CONVERT_TZ( vir.time, '+00:00', t.`offset` ) ))
+				, 0)
+			, 0) AS ModeledGeneration,
+			
+			IFNULL(ROUND( (SUM(vir.nvmActiveEnergy) / SUM(vir.expected_energy)) * 100, 1), 0) AS ExpectedGenerationIndex,
+			
+			IFNULL(
+				ROUND( (SUM(vir.nvmActiveEnergy) / 
+					CASE
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+						 when DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%m' ) = '12' then ROUND((SELECT en.dec FROM energy_expectations en WHERE en.id_site= s.id AND `year`= DATE_FORMAT( CONVERT_TZ( vir.time, '+00:00', t.`offset` ), '%Y' )))
+					END * DAYOFMONTH(LAST_DAY( CONVERT_TZ( vir.time, '+00:00', t.`offset` ) )) ) * 100
+				, 1)
+			, 0) AS ModeledGenerationIndex,
+			s.name
+		FROM
+			${table_data_virtual} vir
+			LEFT JOIN device d ON d.id = vir.id_device
+			LEFT JOIN site s ON s.id = d.id_site 
+			LEFT JOIN time_zone t ON t.id = s.id_time_zone
+		WHERE
+			d.`status` = 1 
+			AND d.is_delete = 0 
+			AND s.`status` = 1 
+			AND d.is_delete = 0 
+			AND s.id = #{id_site}
+			AND (CONVERT_TZ( vir.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
+			AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+		GROUP BY time_format
+	</select>
+	
+</mapper>
