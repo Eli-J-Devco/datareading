@@ -200,7 +200,6 @@ public class UploadFilesController extends BaseController {
 			@RequestParam(name = "FILETIME", required = false) String filetime) {
 
 //		public String message = " ";
-		System.out.println("serialnumber: " + serialnumber);
 
 		try {
 
@@ -247,7 +246,6 @@ public class UploadFilesController extends BaseController {
 								Path pathLogUplad = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
 										Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "." + timeStamp
 										+ ".log");
-								System.out.println("pathLogUplad: " + pathLogUplad);
 								
 								Files.write(pathLogUplad, bytes);
 								fileName = "bm-" + modbusdevice  + "-" + unique + "." + timeStamp + ".log";
@@ -259,7 +257,6 @@ public class UploadFilesController extends BaseController {
 						
 						// Get list device by SERIALNUMBER
 						if (!serialnumber.isEmpty() && exists) {
-							System.out.println("!serialnumber.isEmpty() && exists");
 							
 							File readFile = new File(root.resolve(fileName).toString());
 							FileReader fr = new FileReader(readFile); // reads the file
@@ -1908,7 +1905,6 @@ public class UploadFilesController extends BaseController {
 											ModelElkorProductionMeterService serviceModelElkorP = new ModelElkorProductionMeterService();
 											// Check insert database status
 											while ((line = br.readLine()) != null) {
-												System.out.println("model_elkor_production_meter");
 												sb.append(line); // appends line to string buffer
 												sb.append("\n"); // line feed
 												// Convert string to array
@@ -1991,17 +1987,16 @@ public class UploadFilesController extends BaseController {
 														
 														
 														File logFile = new File(root.resolve(fileName).toString());
-														System.out.println("login file: " + logFile);
-//														if(logFile.delete()){  
-//														}
-//														
-//														Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
-//																Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
-//																+ timeStamp + ".log.gz");
-//														File logGzFile = new File(path.toString());
-//														
-//														if(logGzFile.delete()) {     
-//														}		
+														if(logFile.delete()){  
+														}
+														
+														Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
+																Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
+																+ timeStamp + ".log.gz");
+														File logGzFile = new File(path.toString());
+														
+														if(logGzFile.delete()) {     
+														}		
 													}  
 													catch(Exception e){  
 														e.printStackTrace();  
@@ -5468,7 +5463,6 @@ public class UploadFilesController extends BaseController {
 						
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
-						System.out.println("IOException: " + e);
 						e.printStackTrace();
 					}
 
