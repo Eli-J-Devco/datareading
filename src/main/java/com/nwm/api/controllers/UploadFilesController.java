@@ -259,6 +259,8 @@ public class UploadFilesController extends BaseController {
 						
 						// Get list device by SERIALNUMBER
 						if (!serialnumber.isEmpty() && exists) {
+							System.out.println("!serialnumber.isEmpty() && exists");
+							
 							File readFile = new File(root.resolve(fileName).toString());
 							FileReader fr = new FileReader(readFile); // reads the file
 							BufferedReader br = new BufferedReader(fr); // creates a buffering character input stream
