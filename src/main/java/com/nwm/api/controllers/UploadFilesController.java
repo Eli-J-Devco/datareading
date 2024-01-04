@@ -247,6 +247,8 @@ public class UploadFilesController extends BaseController {
 								Path pathLogUplad = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
 										Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "." + timeStamp
 										+ ".log");
+								System.out.println("pathLogUplad: " + pathLogUplad);
+								
 								Files.write(pathLogUplad, bytes);
 								fileName = "bm-" + modbusdevice  + "-" + unique + "." + timeStamp + ".log";
 								break;
