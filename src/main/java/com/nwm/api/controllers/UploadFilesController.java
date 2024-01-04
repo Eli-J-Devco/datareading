@@ -1903,6 +1903,7 @@ public class UploadFilesController extends BaseController {
 											ModelElkorProductionMeterService serviceModelElkorP = new ModelElkorProductionMeterService();
 											// Check insert database status
 											while ((line = br.readLine()) != null) {
+												System.out.println("model_elkor_production_meter");
 												sb.append(line); // appends line to string buffer
 												sb.append("\n"); // line feed
 												// Convert string to array
@@ -1982,17 +1983,20 @@ public class UploadFilesController extends BaseController {
 													
 													try  
 													{ 
+														
+														
 														File logFile = new File(root.resolve(fileName).toString());
-														if(logFile.delete()){  
-														}
-														
-														Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
-																Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
-																+ timeStamp + ".log.gz");
-														File logGzFile = new File(path.toString());
-														
-														if(logGzFile.delete()) {     
-														}		
+														System.out.println("login file: " + logFile);
+//														if(logFile.delete()){  
+//														}
+//														
+//														Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
+//																Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
+//																+ timeStamp + ".log.gz");
+//														File logGzFile = new File(path.toString());
+//														
+//														if(logGzFile.delete()) {     
+//														}		
 													}  
 													catch(Exception e){  
 														e.printStackTrace();  
