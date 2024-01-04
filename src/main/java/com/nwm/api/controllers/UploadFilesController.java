@@ -5140,11 +5140,11 @@ public class UploadFilesController extends BaseController {
 							
 						} else {
 							// File not exits
-							message = "\nSUCCESS\n";
+							message = "\nFAILURE\n";
 						}
 						
 					} catch (Exception e) {
-						message = "\nSUCCESS\n";
+						message = "\nFAILURE\n";
 						// TODO Auto-generated catch block
 //						e.printStackTrace();
 					}finally{}
@@ -5153,7 +5153,7 @@ public class UploadFilesController extends BaseController {
 				message = "\nSUCCESS\n";
 			} else {
 //				message = "Mode type test " + mode + " not supported by this sample script.";
-				message = "\nSUCCESS\n";
+				message = "\nFAILURE\n";
 				
 			}
 			
@@ -5459,6 +5459,7 @@ public class UploadFilesController extends BaseController {
 						
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
+						System.out.println("IOException: " + e);
 						e.printStackTrace();
 					}
 
