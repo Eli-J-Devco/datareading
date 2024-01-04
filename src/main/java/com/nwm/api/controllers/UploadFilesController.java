@@ -200,6 +200,7 @@ public class UploadFilesController extends BaseController {
 			@RequestParam(name = "FILETIME", required = false) String filetime) {
 
 //		public String message = " ";
+		System.out.println("serialnumber: " + serialnumber);
 
 		try {
 
