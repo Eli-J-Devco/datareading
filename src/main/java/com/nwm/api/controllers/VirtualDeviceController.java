@@ -157,7 +157,6 @@ public class VirtualDeviceController extends BaseController {
 						siteItem.setStart_date(dateFormat.format(cal.getTime()) + " 00:00:00");
 						siteItem.setEnd_date(dateFormat.format(cal.getTime()) + " 23:59:59");
 						
-						System.out.println(dateFormat.format(cal.getTime()) );
 						
 						List<?> dataPower = service.getDataPower(siteItem);
 						
