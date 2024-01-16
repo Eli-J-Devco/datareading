@@ -53,10 +53,12 @@ import com.nwm.api.entities.ModelIMTSolarTmodulClass8006Entity;
 import com.nwm.api.entities.ModelIVTSolaronEXTEntity;
 import com.nwm.api.entities.ModelJanitzaUmg604proEntity;
 import com.nwm.api.entities.ModelKippZonenRT1Class8009Entity;
+import com.nwm.api.entities.ModelLeviton70D48000Entity;
 import com.nwm.api.entities.ModelLufftClass8020Entity;
 import com.nwm.api.entities.ModelLufftWS501UMBWeatherEntity;
 import com.nwm.api.entities.ModelMeterIon8600Entity;
 import com.nwm.api.entities.ModelMeterIon8600V1Entity;
+import com.nwm.api.entities.ModelMeterIon8600V2Entity;
 import com.nwm.api.entities.ModelPVMet100Entity;
 import com.nwm.api.entities.ModelPVPInverterEntity;
 import com.nwm.api.entities.ModelPVPowered3550260500kwInverterEntity;
@@ -107,10 +109,12 @@ import com.nwm.api.services.ModelIMTSolarTmodulClass8006Service;
 import com.nwm.api.services.ModelIVTSolaronEXTService;
 import com.nwm.api.services.ModelJanitzaUmg604proService;
 import com.nwm.api.services.ModelKippZonenRT1Class8009Service;
+import com.nwm.api.services.ModelLeviton70D48000Service;
 import com.nwm.api.services.ModelLufftClass8020Service;
 import com.nwm.api.services.ModelLufftWS501UMBWeatherService;
 import com.nwm.api.services.ModelMeterIon8600Service;
 import com.nwm.api.services.ModelMeterIon8600V1Service;
+import com.nwm.api.services.ModelMeterIon8600V2Service;
 import com.nwm.api.services.ModelPVMet100Service;
 import com.nwm.api.services.ModelPVPInverterService;
 import com.nwm.api.services.ModelPVPowered3550260500kwInverterService;
@@ -3757,7 +3761,7 @@ public class UploadFilesController extends BaseController {
 																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
 																pd.getWriteMethod().invoke(dataModelIon, scaledValue);
 																if (slug.equals("kWTot")) dataModelIon.setNvmActivePower(scaledValue);
-																if (slug.equals("kWhDelRec")) dataModelIon.setNvmActiveEnergy(scaledValue);
+																if (slug.equals("kWhRec")) dataModelIon.setNvmActiveEnergy(scaledValue);
 															}
 														}
 														
@@ -3898,6 +3902,105 @@ public class UploadFilesController extends BaseController {
 //														}
 														
 														serviceModelIonV1.insertModelMeterIon8600V1(dataModelIonV1);
+
+														// low production alert
+														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
+															item.setLast_updated(deviceUpdateE.getLast_updated());
+															serviceD.checkLowProduction(item);
+														}
+														
+														try  
+														{ 
+															File logFile = new File(root.resolve(fileName).toString());
+															if(logFile.delete()){  
+															}
+															
+															Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
+																	Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
+																	+ timeStamp + ".log.gz");
+															File logGzFile = new File(path.toString());
+															
+															if(logGzFile.delete()) {  
+															}		
+														}  
+														catch(Exception e){  
+															e.printStackTrace();  
+														}
+													}
+												}
+												
+												break;
+												
+											case "model_meter_ion_8600v2":
+												ModelMeterIon8600V2Service serviceModelIonV2 = new ModelMeterIon8600V2Service();
+												// Check insert database status
+												while ((line = br.readLine()) != null) {
+													sb.append(line); // appends line to string buffer
+													sb.append("\n"); // line feed
+													// Convert string to array
+													List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
+													if (words.size() > 0) {
+														ModelMeterIon8600V2Entity dataModelIonV2 = serviceModelIonV2.setModelMeterIon8600V2(line);
+														dataModelIonV2.setId_device(item.getId());
+														dataModelIonV2.setDatatablename(item.getDatatablename());
+														dataModelIonV2.setView_tablename(item.getView_tablename());
+														dataModelIonV2.setJob_tablename(item.getJob_tablename());
+														
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelMeterIon8600V2Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(dataModelIonV2);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(dataModelIonV2, scaledValue);
+																if (slug.equals("kWTot")) dataModelIonV2.setNvmActivePower(scaledValue);
+																if (slug.equals("kWhDel")) dataModelIonV2.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
+														DeviceEntity deviceUpdateE = new DeviceEntity();
+														// kWTot
+														
+														if(dataModelIonV2.getKWTot() != 0.001 && dataModelIonV2.getKWTot() >= 0){
+															deviceUpdateE.setLast_updated(dataModelIonV2.getTime());
+														}
+														
+														deviceUpdateE.setLast_value(dataModelIonV2.getKWTot() != 0.001 ? dataModelIonV2.getKWTot() : null);
+														deviceUpdateE.setField_value1(dataModelIonV2.getKWTot() != 0.001 ? dataModelIonV2.getKWTot() : null);
+														
+														deviceUpdateE.setField_value2(null);
+														deviceUpdateE.setField_value3(null);
+														
+														deviceUpdateE.setId(item.getId());
+														serviceD.updateLastUpdated(deviceUpdateE);
+														
+														// Insert alert
+//														if(Integer.parseInt(words.get(1)) > 0 && hours >= item.getStart_date_time() && hours <= item.getEnd_date_time() ){
+//															// Check error code
+//															BatchJobService service = new BatchJobService();
+//															ErrorEntity errorItem = new ErrorEntity();
+//															errorItem.setId_device_group(item.getId_device_group());
+//															errorItem.setError_code(words.get(1));
+//															ErrorEntity rowItemError = service.getErrorItem(errorItem);
+//															if(rowItemError.getId() > 0) {
+//																AlertEntity alertItem = new AlertEntity();
+//																alertItem.setId_device(item.getId());
+//																alertItem.setStart_date(words.get(0).replace("'", ""));
+//																alertItem.setId_error(rowItemError.getId());
+//																boolean checkAlertExist = service.checkAlertExist(alertItem);
+//																if(!checkAlertExist && alertItem.getId_device() > 0) {
+//																	// Insert alert
+//																	service.insertAlert(alertItem);
+//																}
+//															}
+//														}
+														
+														serviceModelIonV2.insertModelMeterIon8600V2(dataModelIonV2);
 
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
@@ -5247,6 +5350,108 @@ public class UploadFilesController extends BaseController {
 //														}
 														
 														serviceModelJan.insertModelJanitzaUmg604pro(dataModelJan);
+														
+														// low production alert
+														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
+															item.setLast_updated(deviceUpdateE.getLast_updated());
+															serviceD.checkLowProduction(item);
+														}
+														
+														try  
+														{ 
+															File logFile = new File(root.resolve(fileName).toString());
+															if(logFile.delete()){  }
+															
+															Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
+																	Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
+																	+ timeStamp + ".log.gz");
+															File logGzFile = new File(path.toString());
+															
+															if(logGzFile.delete()) {  }		
+														}  
+														catch(Exception e){  
+															e.printStackTrace();  
+														}
+														
+													}
+												}
+												
+												break;
+												
+											case "model_leviton_70D48000":
+												ModelLeviton70D48000Service serviceModel70D = new ModelLeviton70D48000Service();
+												// Check insert database status
+												while ((line = br.readLine()) != null) {
+													sb.append(line); // appends line to string buffer
+													sb.append("\n"); // line feed
+													// Convert string to array
+													List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
+													if (words.size() > 0) {
+														
+														ModelLeviton70D48000Entity dataModel70D = serviceModel70D.setModelLeviton70D48000(line);
+														dataModel70D.setId_device(item.getId());
+														dataModel70D.setDatatablename(item.getDatatablename());
+														dataModel70D.setView_tablename(item.getView_tablename());
+														dataModel70D.setJob_tablename(item.getJob_tablename());
+														
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelLeviton70D48000Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(dataModel70D);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(dataModel70D, scaledValue);
+																if (slug.equals("PowerSum")) dataModel70D.setNvmActivePower(scaledValue);
+																if (slug.equals("ExportedEnergySum")) dataModel70D.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
+														DeviceEntity deviceUpdateE = new DeviceEntity();
+														
+														// PowerFactor_DTS_Overall
+														if(dataModel70D.getPowerSum() != 0.001 && dataModel70D.getPowerSum() >= 0){
+															deviceUpdateE.setLast_updated(dataModel70D.getTime());
+														}
+														
+														
+														deviceUpdateE.setLast_value(dataModel70D.getPowerSum() != 0.001 ? dataModel70D.getPowerSum() : null);
+														deviceUpdateE.setField_value1(dataModel70D.getPowerSum() != 0.001 ? dataModel70D.getPowerSum() : null);
+														
+														deviceUpdateE.setField_value2(null);
+														deviceUpdateE.setField_value3(null);
+														
+														deviceUpdateE.setId(item.getId());
+														serviceD.updateLastUpdated(deviceUpdateE);
+														
+														
+														
+														// Insert alert
+//														if(Integer.parseInt(words.get(1)) > 0 && hours >= item.getStart_date_time() && hours <= item.getEnd_date_time() ){
+//															// Check error code
+//															BatchJobService service = new BatchJobService();
+//															ErrorEntity errorItem = new ErrorEntity();
+//															errorItem.setId_device_group(item.getId_device_group());
+//															errorItem.setError_code(words.get(1));
+//															ErrorEntity rowItemError = service.getErrorItem(errorItem);
+//															if(rowItemError.getId() > 0) {
+//																AlertEntity alertItem = new AlertEntity();
+//																alertItem.setId_device(item.getId());
+//																alertItem.setStart_date(words.get(0).replace("'", ""));
+//																alertItem.setId_error(rowItemError.getId());
+//																boolean checkAlertExist = service.checkAlertExist(alertItem);
+//																if(!checkAlertExist && alertItem.getId_device() > 0) {
+//																	// Insert alert
+//																	service.insertAlert(alertItem);
+//																}
+//															}
+//														}
+														
+														serviceModel70D.insertModelLeviton70D48000(dataModel70D);
 														
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
