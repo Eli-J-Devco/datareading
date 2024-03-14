@@ -45,9 +45,25 @@ public class DeviceParameterEntity{
 	private String sort_column;
 	private int id_categorize_data;
 	private String scale;
+	private List deviceType;
+	private String filterBy;
 	
 	
 	
+	
+	
+	public String getFilterBy() {
+		return filterBy;
+	}
+	public void setFilterBy(String filterBy) {
+		this.filterBy = filterBy;
+	}
+	public List getDeviceType() {
+		return deviceType;
+	}
+	public void setDeviceType(List deviceType) {
+		this.deviceType = deviceType;
+	}
 	public int getMenu_order() {
 		return menu_order;
 	}

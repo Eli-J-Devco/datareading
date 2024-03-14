@@ -835,8 +835,9 @@ public class FTPUploadServerController extends BaseController {
 														serviceUmg604.insertModelSmaClusterController(entityCluster);
 														// Update last value
 														if(entityCluster.getNvmActivePower() >= 0) {
-															deviceUpdateE.setLast_updated(entitySMA12k.getTime());
+															deviceUpdateE.setLast_updated(entityCluster.getTime());
 															deviceUpdateE.setLast_value(entityCluster.getNvmActivePower() >= 0 ? entityCluster.getNvmActivePower() : null);
+															deviceUpdateE.setField_value1(entityCluster.getNvmActivePower() >= 0 ? entityCluster.getNvmActivePower() : null);
 														} else {
 															deviceUpdateE.setLast_updated(null);
 															deviceUpdateE.setLast_value(null);
@@ -844,7 +845,7 @@ public class FTPUploadServerController extends BaseController {
 														deviceUpdateE.setField_value2(null);
 														deviceUpdateE.setField_value3(null);
 														
-														deviceUpdateE.setId(entitySMA12k.getId_device());
+														deviceUpdateE.setId(entityCluster.getId_device());
 														serviceD.updateLastUpdated(deviceUpdateE);
 														break;
 													
@@ -1128,6 +1129,7 @@ public class FTPUploadServerController extends BaseController {
 				DeviceEntity deviceItem = (DeviceEntity) listDevice.get(i);
 				BatchJobTableEntity obj = new BatchJobTableEntity();
 				obj.setId_device(deviceItem.getId());
+				String datatablename = deviceItem.getDatatablename();
 				obj.setDatatablename(deviceItem.getView_tablename());
 				
 				BatchJobTableEntity lastRow = service.getLastRowItemUpdateDate(obj);
@@ -1135,10 +1137,15 @@ public class FTPUploadServerController extends BaseController {
 				if(lastRow.getNvmActivePower() >= 0) {
 					deviceUpdateE.setId(deviceItem.getId());
 					deviceUpdateE.setLast_updated(lastRow.getTime());
+					// check lastRow if lastRow not in View Table 
+					if(lastRow.getTime() == null) {
+						obj.setDatatablename(datatablename);
+						BatchJobTableEntity lastRowDatatablename = service.getLastRowItemUpdateDate(obj);
+						deviceUpdateE.setLast_updated(lastRowDatatablename.getTime());
+					}
 				} else {
 					deviceUpdateE.setLast_updated(null);
 				}
-				
 				service.updateLastUpdatedCronJob(deviceUpdateE);
 				
 			}

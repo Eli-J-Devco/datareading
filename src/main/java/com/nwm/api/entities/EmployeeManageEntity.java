@@ -45,6 +45,8 @@ public class EmployeeManageEntity{
 	private String label;
 	private int value;
 	private String table_column;
+	private String table_order;
+	private String table_width;
 	private String last_login;
 	private String offset_timezone;
 	private String page_login;
@@ -58,8 +60,16 @@ public class EmployeeManageEntity{
 	private String hash_id_user;
 	private String created_by;
 	private int id_company;
+	private String note;
 	
 	
+	
+	public String getNote() {
+		return note;
+	}
+	public void setNote(String note) {
+		this.note = note;
+	}
 	public int getId_company() {
 		return id_company;
 	}
@@ -113,6 +123,18 @@ public class EmployeeManageEntity{
 	}
 	public void setTable_column(String table_column) {
 		this.table_column = table_column;
+	}
+	public String getTable_order() {
+		return table_order;
+	}
+	public void setTable_order(String table_order) {
+		this.table_order = table_order;
+	}
+	public String getTable_width() {
+		return table_width;
+	}
+	public void setTable_width(String table_width) {
+		this.table_width = table_width;
 	}
 	public String getText() {
 		return text;

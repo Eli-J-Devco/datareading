@@ -97,6 +97,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.nwm.api.entities.MonthlyProductionTrendReportEntity;
 import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.entities.ViewReportEntity;
 import com.nwm.api.entities.WeeklyDateEntity;
@@ -248,8 +249,27 @@ public class BuiltInReportController extends BaseController {
 			cellStyleHeader.setVerticalAlignment(VerticalAlignment.CENTER);
 			cellStyleHeader.setAlignment(HorizontalAlignment.CENTER);
 			
+			String reportInterval = "(Monthly Interval)";
+			switch (dataObj.getData_intervals()) {
+//				case 3:
+//					reportInterval = "(Hourly Interval)";
+//					break;
+//					
+//				case 4:
+//					reportInterval = "(Daily Interval)";
+//					break;
+//					
+//				case 5:
+//					reportInterval = "(Weekly Interval)";
+//					break;
+					
+				case 6:
+				default:
+					reportInterval = "(Monthly Interval)";
+					break;
+			}
 			cell.setCellStyle(cellStyleHeader);
-			cell.setCellValue("ANNUAL PRODUCTION TREND REPORT (MONTHLY INTERVAL)");
+			cell.setCellValue("ANNUAL PRODUCTION TREND REPORT " + reportInterval.toUpperCase());
 			
 			
 			
@@ -561,7 +581,7 @@ public class BuiltInReportController extends BaseController {
 						String table_data_virtual = service.getTableDataVirtual(obj);
 						obj.setTable_data_virtual(table_data_virtual);
 						ViewReportEntity dataObj = (ViewReportEntity) service.getAnnuallyBuitInReport(obj);
-						List dataExports = dataObj.getDataReports();
+						List<WeeklyDateEntity> dataExports = dataObj.getDataReports();
 						
 						if (dataObj != null) {
 							XSSFSheet chartSheet = document.createSheet(WorkbookUtil.createSafeSheetName(siteItem.getName()));
@@ -599,6 +619,7 @@ public class BuiltInReportController extends BaseController {
 							dataObj.setStart_date( new SimpleDateFormat("MM/dd/yyyy").format(startDate) );
 							dataObj.setEnd_date( new SimpleDateFormat("MM/dd/yyyy").format(convertedDate) );
 							dataObj.setSite_name(siteItem.getName());
+							dataObj.setData_intervals(obj.getData_intervals());
 							
 							
 							ArrayList<String> categories = new ArrayList<String>();
@@ -609,55 +630,37 @@ public class BuiltInReportController extends BaseController {
 							ArrayList<Double> dataExpectedGenerationIndex = new ArrayList<Double>();
 							ArrayList<Double> dataModeledGenerationIndex = new ArrayList<Double>();
 						
-							SimpleDateFormat dateFormatCategories = new SimpleDateFormat("MMM-yyyy");
 							double totalActualGeneration = 0;
 							double totalExpectedGeneration = 0;
 							double totalModeledGeneration = 0;
 							double totalExpectedGenerationIndex = 0;
 							double totalModeledGenerationIndex = 0;
 							
-							for (int i = 0; i < 12; i++) {
-								Calendar c = Calendar.getInstance();
-								c.setTime(startDate);
-								c.add(Calendar.MONTH, i);
-								categories.add(dateFormatCategories.format(c.getTime()));
-								Double v = 0d;
-								Double ex = 0d;
-								Double mo = 0d;
-								Double poa = 0d;
-								Double exi = 0d;
-								Double moi = 0d;
-								
-								if(dataExports != null && dataExports.size() > 0) {
-									for( int j = 0; j < dataExports.size(); j++){
-										Map<String, Object> item = (Map<String, Object>) dataExports.get(j);
-										String date = (String) item.get("categories_time");
+							if(dataExports != null && dataExports.size() > 0) {
+								for( int j = 0; j < dataExports.size(); j++){
+									WeeklyDateEntity item = (WeeklyDateEntity) dataExports.get(j);
 
-										if(date.equals(dateFormatCategories.format(c.getTime()) )) {
-											v = (Double)item.get("ActualGeneration");
-											ex = (Double)item.get("ExpectedGeneration");
-											mo = (Double)item.get("ModeledGeneration");
-											poa = (Double)item.get("POA");
-											exi = (Double)item.get("ExpectedGenerationIndex");
-											moi = (Double)item.get("ModeledGenerationIndex");
-																			
-											totalActualGeneration = totalActualGeneration + v;
-											totalExpectedGeneration =  totalExpectedGeneration + ex;
-											totalModeledGeneration = totalModeledGeneration + mo;
-										}
-									}
+									categories.add(item.getCategories_time());
+									Double v = (Double) item.getActualGeneration();
+									Double ex = (Double) item.getExpectedGeneration();
+									Double mo = (Double) item.getModeledGeneration();
+									Double poa = (Double) item.getPoa();
+									Double exi = (Double) item.getExpectedGenerationIndex();
+									Double moi = (Double) item.getModeledGenerationIndex();
+																	
+									totalActualGeneration = totalActualGeneration + v;
+									totalExpectedGeneration =  totalExpectedGeneration + ex;
+									totalModeledGeneration = totalModeledGeneration + mo;
+									
+									actualGeneration.add(v);
+									dataExpectedGeneration.add(ex);
+									dataModeledGeneration.add(mo);
+									
+									dataPOA.add(poa);
+									dataExpectedGenerationIndex.add(exi);
+									dataModeledGenerationIndex.add(moi);
 								}
-								
-								
-								actualGeneration.add(v);
-								dataExpectedGeneration.add(ex);
-								dataModeledGeneration.add(mo);
-								
-								dataPOA.add(poa);
-								dataExpectedGenerationIndex.add(exi);
-								dataModeledGenerationIndex.add(moi);
 							}
-							
 							
 							if(totalActualGeneration > 0 && totalExpectedGeneration > 0) {
 								totalExpectedGenerationIndex = (totalActualGeneration / totalExpectedGeneration) * 100;
@@ -687,7 +690,7 @@ public class BuiltInReportController extends BaseController {
 						    XSSFDrawing drawing1 = chartSheet.createDrawingPatriarch();
 							
 							//====== first line chart============================================================
-							anchor1 = drawing1.createAnchor(0, 0, 0, 0, 0, 20, 8, 37);
+							anchor1 = drawing1.createAnchor(0, 0, 0, 0, 0, categories.size() + 8, 8, categories.size() + 25);
 							chart = drawing1.createChart(anchor1);
 							chart.setTitleText("Performance");
 							chart.setTitleOverlay(false);
@@ -826,10 +829,29 @@ public class BuiltInReportController extends BaseController {
 					}
 					
 					// Write the output to a file
+					String reportInterval = "(Monthly Interval)";
+					switch (obj.getData_intervals()) {
+//						case 3:
+//							reportInterval = "(Hourly Interval)";
+//							break;
+//							
+//						case 4:
+//							reportInterval = "(Daily Interval)";
+//							break;
+//							
+//						case 5:
+//							reportInterval = "(Weekly Interval)";
+//							break;
+							
+						case 6:
+						default:
+							reportInterval = "(Monthly Interval)";
+							break;
+					}
 					String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(Calendar.getInstance().getTime());
 					String dir = uploadRootPath() + "/"
 							+ Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathReportFiles);
-					String fileName = dir + "/Annual production Trend Report (Monthly Interval)_" + timeStamp + ".xlsx";
+					String fileName = dir + "/Annual Production Trend Report " + reportInterval + "_" + timeStamp + ".xlsx";
 					
 					try (FileOutputStream fileOut = new FileOutputStream(fileName)) {
 						document.write(fileOut);
@@ -837,7 +859,7 @@ public class BuiltInReportController extends BaseController {
 								Constants.mailFromContact);
 
 						String msgTemplate = Constants.getMailTempleteByState(18);
-						String body = String.format(msgTemplate, "Customer", "ANNUAL PRODUCTION TREND REPORT (MONTHLY INTERVAL) ", "", "");
+						String body = String.format(msgTemplate, "Customer", "ANNUAL PRODUCTION TREND REPORT " + reportInterval.toUpperCase() + " ", "", "");
 						String mailTo = obj.getSubscribers();
 						String subject = Constants.getMailSubjectByState(18);
 
@@ -916,29 +938,92 @@ public class BuiltInReportController extends BaseController {
 			
 			if(sites.size() > 0) {
 				try (XSSFWorkbook document = new XSSFWorkbook()) {
-					int count = 1;
-					for (int s = 0; s < sites.size(); s++) {
-						SiteEntity siteItem = (SiteEntity) sites.get(s);
-						obj.setId_site(siteItem.getId());
-						ViewReportEntity dataObj = (ViewReportEntity) service.getMonthlyTrendBuitInReport(obj);
-						dataObj.setSite_name(siteItem.getName());
+					if(obj.getData_intervals() == 2) {
+						int count = 1;
+						for (int s = 0; s < sites.size(); s++) {
+							SiteEntity siteItem = (SiteEntity) sites.get(s);
+							obj.setId_site(siteItem.getId());
+							ViewReportEntity dataObj = (ViewReportEntity) service.getMonthlyTrendBuitInReport(obj);
+							dataObj.setSite_name(siteItem.getName());
+							
+							SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+							Date convertedDate = dateFormat.parse(obj.getEnd_date());
+							Date start = dateFormat.parse(obj.getStart_date());
+							
+							dataObj.setStart_date( new SimpleDateFormat("MM/dd/yyyy").format(start) );
+							dataObj.setEnd_date( new SimpleDateFormat("MM/dd/yyyy").format(convertedDate) );
+							dataObj.setData_intervals(obj.getData_intervals());
+							
+							List<MonthlyProductionTrendReportEntity> dataExports = dataObj.getDataReports();
+							
+							if (dataObj != null) {
+								XSSFSheet chartSheet = document.createSheet(WorkbookUtil.createSafeSheetName(siteItem.getName()));
+	                            XSSFSheet dataSheet = document.createSheet("data"+s);
+								document.setSheetHidden( count, true);
+								count = count + 2;
+								// FileInputStream obtains input bytes from the image file
+								InputStream inputStreamImage = new FileInputStream(uploadRootPath() + "/reports/logo-report.jpg");
+								// Get the contents of an InputStream as a byte[].
+								byte[] bytes = IOUtils.toByteArray(inputStreamImage);
+								// Adds a picture to the workbook
+								int pictureIdx = document.addPicture(bytes, Workbook.PICTURE_TYPE_JPEG);
+								// close the input stream
+								inputStreamImage.close();
+	
+								// Returns an object that handles instantiating concrete classes
+								CreationHelper helper = document.getCreationHelper();
+								// Creates the top-level drawing patriarch.
+								Drawing drawing = chartSheet.createDrawingPatriarch();
+	
+								// Create an anchor that is attached to the worksheet
+								ClientAnchor anchor = helper.createClientAnchor();
+								// set top-left corner for the image
+								anchor.setCol1(4);
+								anchor.setRow1(1);
+	
+								// Creates a picture
+								Picture pict = drawing.createPicture(anchor, pictureIdx);
+								// Reset the image to the original size
+								pict.resize(1.0, 3.8);
+								
+								ArrayList<String> categories = new ArrayList<String>();
+								ArrayList<Double> dataGeneration = new ArrayList<Double>();
+								
+								if(dataExports != null && dataExports.size() > 0) {
+									for( int i = 0; i < dataExports.size(); i++){
+										MonthlyProductionTrendReportEntity item = (MonthlyProductionTrendReportEntity) dataExports.get(i);
+										categories.add(item.getTime_full());
+										dataGeneration.add(item.getMonthlyProduction());
+									}
+									
+								}
+								
+								writeHeaderMonthTrendReport(chartSheet, 0, categories, dataGeneration, dataObj);
+							}
+						}
+					} else {
+						List dataExports = new ArrayList();
 						
-						SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-						Date convertedDate = dateFormat.parse(obj.getEnd_date());
-						Date start = dateFormat.parse(obj.getStart_date());
-						String lastOfMonth = new SimpleDateFormat("dd").format(convertedDate);
+						for (int s = 0; s < sites.size(); s++) {
+							SiteEntity siteItem = (SiteEntity) sites.get(s);
+							obj.setId_site(siteItem.getId());
+							ViewReportEntity data = (ViewReportEntity) service.getMonthlyTrendBuitInReport(obj);
+							
+							if (data != null) {
+								SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+								Date convertedDate = dateFormat.parse(obj.getEnd_date());
+								Date start = dateFormat.parse(obj.getStart_date());
+								
+								data.setStart_date( new SimpleDateFormat("MM/dd/yyyy").format(start) );
+								data.setEnd_date( new SimpleDateFormat("MM/dd/yyyy").format(convertedDate));
+								data.setSite_name(siteItem.getName());
+								
+								dataExports.add(data);
+							}
+						}
 						
-						dataObj.setStart_date( new SimpleDateFormat("MM/dd/yyyy").format(start) );
-						dataObj.setEnd_date( new SimpleDateFormat("MM/dd/yyyy").format(convertedDate) );
-						dataObj.setData_intervals(obj.getData_intervals());
-						
-						List dataExports = dataObj.getDataReports();
-						
-						if (dataObj != null) {
-							XSSFSheet chartSheet = document.createSheet(WorkbookUtil.createSafeSheetName(siteItem.getName()));
-							XSSFSheet dataSheet = document.createSheet("data"+s);
-							document.setSheetHidden( count, true);
-							count = count + 2;
+						if (dataExports.size() > 0) {
+							XSSFSheet chartSheet = document.createSheet("Monthly Interval");
 							// FileInputStream obtains input bytes from the image file
 							InputStream inputStreamImage = new FileInputStream(uploadRootPath() + "/reports/logo-report.jpg");
 							// Get the contents of an InputStream as a byte[].
@@ -955,78 +1040,57 @@ public class BuiltInReportController extends BaseController {
 
 							// Create an anchor that is attached to the worksheet
 							ClientAnchor anchor = helper.createClientAnchor();
+							anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_DONT_RESIZE);
 							// set top-left corner for the image
-							anchor.setCol1(4);
+							anchor.setCol1(5);
+							anchor.setCol1(5);
 							anchor.setRow1(1);
-
+							anchor.setRow2(4);
+							
 							// Creates a picture
 							Picture pict = drawing.createPicture(anchor, pictureIdx);
-							// Reset the image to the original size
-							pict.resize(1.0, 3.8);
-
-							ArrayList<String> categories = new ArrayList<String>();
-							SimpleDateFormat dateFormatCategories = new SimpleDateFormat("MM/dd/yyyy HH:mm:00");
+							// Reset the image to the original sizege
+							pict.resize(1, 1);
 							
-							if(Integer.parseInt(lastOfMonth) > 0) {
-								for(int i = 0; i < Integer.parseInt(lastOfMonth); i++) {
-									Date startDate = dateFormat.parse(obj.getStart_date());
-									Calendar newCalendar = Calendar.getInstance();
-									newCalendar.setTime(startDate);
-									newCalendar.add(Calendar.DATE, i);
-									
-									if(obj.getData_intervals() == 2) {
-										for(int j = 0; j < 96; j++) {
-											Calendar itemCalendar = Calendar.getInstance();
-											itemCalendar.setTime(newCalendar.getTime());
-											itemCalendar.add(Calendar.MINUTE, j * 15);
-											categories.add(dateFormatCategories.format(itemCalendar.getTime()));
-										}
-									} else if(obj.getData_intervals() == 1) {
-										for(int j = 0; j < 288; j++) {
-											Calendar itemCalendar = Calendar.getInstance();
-											itemCalendar.setTime(newCalendar.getTime());
-											itemCalendar.add(Calendar.MINUTE, j * 5);
-											categories.add(dateFormatCategories.format(itemCalendar.getTime()));
-										}
-									}
-								}
-							}
-							
-							
-							ArrayList<Double> dataGeneration = new ArrayList<Double>();
-							for(int i = 0; i < categories.size(); i++) {
-								if(dataExports != null && dataExports.size() > 0) {
-									Double dataMonthly = 0.0;
-									for( int j = 0; j < dataExports.size(); j++){
-										Map<String, Object> item = (Map<String, Object>) dataExports.get(j);
-										String date = (String) item.get("time_full");
-										if(date.equals( categories.get(i))) {
-											dataMonthly = (Double) item.get("monthlyProduction");
-										}
-									}
-									
-									dataGeneration.add(dataMonthly);
-								} else {
-									dataGeneration.add(0.0);
-								}
-							}
-							
-							writeHeaderMonthTrendReport(chartSheet, 0, categories, dataGeneration, dataObj);
+							ViewReportEntity dataObj = new ViewReportEntity();
+							dataObj.setDataSite(dataExports);
+							writeHeaderMonthTrendReportMonthlyInterval(chartSheet, 0, dataObj);
 						}
-						
 					}
 					
 					// Write the output to a file
+					String reportInterval;
+					switch (obj.getData_intervals()) {
+//						case 1:
+//							reportInterval = "(5-minute Interval)";
+//							break;
+							
+						case 2:
+							reportInterval = "(15-minute Interval)";
+							break;
+							
+//						case 3:
+//							reportInterval = "(Hourly Interval)";
+//							break;
+//							
+//						case 4:
+//							reportInterval = "(Daily Interval)";
+//							break;
+//							
+//						case 5:
+//							reportInterval = "(Weekly Interval)";
+//							break;
+							
+						case 6:
+						default:
+							reportInterval = "(Monthly Interval)";
+							break;
+					}
+
 					String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(Calendar.getInstance().getTime());
 					String dir = uploadRootPath() + "/"
 							+ Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathReportFiles);
-					String fileName = "";
-					if(obj.getData_intervals() == 1) {
-						fileName = dir + "/Monthly Portfolio Production Report (5min Interval)_" + timeStamp + ".xlsx";
-					} else {
-						fileName = dir + "/Monthly Portfolio Production Report (15min Interval)_" + timeStamp + ".xlsx";
-					}
-					
+					String fileName = dir + "/Monthly Production Trend Report " + reportInterval + "_" + timeStamp + ".xlsx";
 					
 					try (FileOutputStream fileOut = new FileOutputStream(fileName)) {
 						document.write(fileOut);
@@ -1034,7 +1098,7 @@ public class BuiltInReportController extends BaseController {
 								Constants.mailFromContact);
 
 						String msgTemplate = Constants.getMailTempleteByState(19);
-						String body = String.format(msgTemplate, "Customer", "Monthly Portfolio Production Report", "", "");
+						String body = String.format(msgTemplate, "Customer", "MONTHLY PRODUCTION TREND REPORT " + reportInterval.toUpperCase() + " ", "", "");
 						String mailTo = obj.getSubscribers();
 						String subject = Constants.getMailSubjectByState(19);
 
@@ -1060,6 +1124,176 @@ public class BuiltInReportController extends BaseController {
 		}
 	}
 	
+	
+	// Write header with format
+	private static void writeHeaderMonthTrendReportMonthlyInterval(Sheet sheet, int rowIndex, ViewReportEntity dataObj) {
+		try {
+			DecimalFormat df = new DecimalFormat("###,###.#");
+			
+			sheet.autoSizeColumn(12);
+			sheet.setDefaultColumnWidth(16);
+			sheet.setColumnWidth(0, 25 * 256);
+			sheet.setColumnWidth(1, 25 * 256);
+			sheet.setColumnWidth(2, 25 * 256);
+			sheet.setColumnWidth(3, 25 * 256);
+			sheet.setColumnWidth(4, 11 * 256);
+			sheet.setColumnWidth(5, 14 * 256);
+			sheet.setDefaultRowHeight((short) 500);
+			sheet.setDisplayGridlines(false);
+			
+			Row row0 = sheet.createRow(0);
+			row0.setHeight((short) 600);
+			
+			// Create font
+			Font font = sheet.getWorkbook().createFont();
+			font.setFontName("Times New Roman");
+			font.setBold(true);
+			font.setFontHeightInPoints((short) 14); // font size
+			font.setColor(IndexedColors.BLACK.getIndex()); // text color
+			// Create CellStyle
+			CellStyle cellStyleCustom = sheet.getWorkbook().createCellStyle();
+			cellStyleCustom.setFont(font);
+			cellStyleCustom.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+			cellStyleCustom.setVerticalAlignment(VerticalAlignment.CENTER);
+			cellStyleCustom.setAlignment(HorizontalAlignment.CENTER);
+			cellStyleCustom.setWrapText(true);
+			
+			sheet.addMergedRegion(new CellRangeAddress(0, 4, 1, 3));
+			Cell cell = row0.createCell(1);
+			cell.setCellStyle(cellStyleCustom);
+			cell.setCellValue("MONTHLY PRODUCTION TREND REPORT\n(MONTHLY INTERVAL)");
+			
+			
+			// Create font
+			Font font11 = sheet.getWorkbook().createFont();
+			font11.setFontName("Times New Roman");
+			font11.setBold(true);
+			font11.setFontHeightInPoints((short) 12); // font size
+			font11.setColor(IndexedColors.BLACK.getIndex()); // text color
+			// Create CellStyle
+			CellStyle cellStyleCustom11 = sheet.getWorkbook().createCellStyle();
+			cellStyleCustom11.setFont(font11);
+			
+			cellStyleCustom11.setVerticalAlignment(VerticalAlignment.CENTER);
+			cellStyleCustom11.setAlignment(HorizontalAlignment.CENTER);
+			cellStyleCustom11.setWrapText(true);
+			
+			cellStyleCustom11.setBorderBottom(BorderStyle.THIN);
+			cellStyleCustom11.setBorderTop(BorderStyle.THIN);
+			cellStyleCustom11.setBorderRight(BorderStyle.THIN);
+			cellStyleCustom11.setBorderLeft(BorderStyle.THIN);
+			cellStyleCustom11.setTopBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+			cellStyleCustom11.setRightBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+			cellStyleCustom11.setBottomBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+			cellStyleCustom11.setLeftBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+			
+			// Monthly Data
+			sheet.addMergedRegion(new CellRangeAddress(5, 5, 0, 1));
+			Row row5 = sheet.createRow(5);
+			Cell cell50 = row5.createCell(0);
+			cell50.setCellStyle(cellStyleCustom11);
+			cell50.setCellValue("Site Name");
+			
+			Cell cell51 = row5.createCell(1);
+			cell51.setCellStyle(cellStyleCustom11);
+			cell51.setCellValue("");
+			
+			Cell cell52 = row5.createCell(2);
+			cell52.setCellStyle(cellStyleCustom11);
+			cell52.setCellValue("Start Date");
+			
+			Cell cell53 = row5.createCell(3);
+			cell53.setCellStyle(cellStyleCustom11);
+			cell53.setCellValue("End Date");
+			
+			sheet.addMergedRegion(new CellRangeAddress(5, 5, 4, 5));
+			Cell cell54 = row5.createCell(4);
+			cell54.setCellStyle(cellStyleCustom11);
+			cell54.setCellValue("Monthly Production (kWh)");
+			
+			Cell cell55 = row5.createCell(5);
+			cell55.setCellStyle(cellStyleCustom11);
+			cell55.setCellValue(")");
+			
+			
+			List<?> dataExports = dataObj.getDataSite();
+			if(dataExports.size() > 0) {
+				// Create font
+				Font fontR = sheet.getWorkbook().createFont();
+				fontR.setFontName("Times New Roman");
+				fontR.setBold(false);
+				fontR.setFontHeightInPoints((short) 12); // font size
+				fontR.setColor(IndexedColors.BLACK.getIndex()); // text color
+				// Create CellStyle
+				CellStyle cellStyleRow = sheet.getWorkbook().createCellStyle();
+				cellStyleRow.setFont(fontR);
+				cellStyleRow.setVerticalAlignment(VerticalAlignment.CENTER);
+				cellStyleRow.setAlignment(HorizontalAlignment.CENTER);
+				
+				
+				cellStyleRow.setBorderBottom(BorderStyle.THIN);
+				cellStyleRow.setBorderTop(BorderStyle.THIN);
+				cellStyleRow.setBorderRight(BorderStyle.THIN);
+				cellStyleRow.setBorderLeft(BorderStyle.THIN);
+				cellStyleRow.setTopBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				cellStyleRow.setRightBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				cellStyleRow.setBottomBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				cellStyleRow.setLeftBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				
+				// Create CellStyle
+				CellStyle cellStyleRow1 = sheet.getWorkbook().createCellStyle();
+				cellStyleRow1.setFont(fontR);
+				cellStyleRow1.setVerticalAlignment(VerticalAlignment.CENTER);
+				cellStyleRow1.setAlignment(HorizontalAlignment.LEFT);
+				
+				
+				cellStyleRow1.setBorderBottom(BorderStyle.THIN);
+				cellStyleRow1.setBorderTop(BorderStyle.THIN);
+				cellStyleRow1.setBorderRight(BorderStyle.THIN);
+				cellStyleRow1.setBorderLeft(BorderStyle.THIN);
+				cellStyleRow1.setTopBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				cellStyleRow1.setRightBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				cellStyleRow1.setBottomBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				cellStyleRow1.setLeftBorderColor(IndexedColors.GREY_25_PERCENT.getIndex());
+				
+				
+				int r = 6;
+				for( int j = 0; j < dataExports.size(); j++){
+					ViewReportEntity item = (ViewReportEntity) dataExports.get(j);
+					
+					sheet.addMergedRegion(new CellRangeAddress(r+j, r+j, 0, 1));
+					Row row6f = sheet.createRow(r+j);
+					Cell cell60f = row6f.createCell(0);
+					cell60f.setCellStyle(cellStyleRow1);
+					cell60f.setCellValue(item.getSite_name().toString());
+					
+					Cell cell61f = row6f.createCell(1);
+					cell61f.setCellStyle(cellStyleRow);
+					cell61f.setCellValue("");
+					
+					Cell cell62f = row6f.createCell(2);
+					cell62f.setCellStyle(cellStyleRow);
+					cell62f.setCellValue(item.getStart_date().toString());
+					
+					Cell cell63f = row6f.createCell(3);
+					cell63f.setCellStyle(cellStyleRow);
+					cell63f.setCellValue(item.getEnd_date().toString());
+					
+					sheet.addMergedRegion(new CellRangeAddress(r+j, r+j, 4, 5));
+					Cell cell64f = row6f.createCell(4);
+					cell64f.setCellStyle(cellStyleRow);
+					List dataReport = (List) item.getDataReports();
+					MonthlyProductionTrendReportEntity itemdataReport = (MonthlyProductionTrendReportEntity) dataReport.get(0);
+					cell64f.setCellValue(df.format(itemdataReport.getMonthlyProduction()));
+					
+					Cell cell65f = row6f.createCell(5);
+					cell65f.setCellStyle(cellStyleRow);
+					cell65f.setCellValue("");
+				}
+			}
+		} catch (Exception e) {
+		}
+	}
 	
 	
 	// Write header with format monthly portfolio production report 
@@ -1152,12 +1386,35 @@ public class BuiltInReportController extends BaseController {
 			cellStyleHeader.setVerticalAlignment(VerticalAlignment.CENTER);
 			cellStyleHeader.setAlignment(HorizontalAlignment.CENTER);
 			
-			cell.setCellStyle(cellStyleHeader);
-			if(dataObj.getData_intervals() == 1) {
-				cell.setCellValue("Monthly Portfolio Production Report (5min Interval)");
-			} else if(dataObj.getData_intervals() == 2) {
-				cell.setCellValue("Monthly Portfolio Production Report (15min Interval)");
+			String reportInterval;
+			switch (dataObj.getData_intervals()) {
+//				case 1:
+//					reportInterval = "(5-minute Interval)";
+//					break;
+					
+				case 2:
+					reportInterval = "(15-minute Interval)";
+					break;
+					
+//				case 3:
+//					reportInterval = "(Hourly Interval)";
+//					break;
+//					
+//				case 4:
+//					reportInterval = "(Daily Interval)";
+//					break;
+//					
+//				case 5:
+//					reportInterval = "(Weekly Interval)";
+//					break;
+					
+				case 6:
+				default:
+					reportInterval = "(Monthly Interval)";
+					break;
 			}
+			cell.setCellStyle(cellStyleHeader);
+			cell.setCellValue("MONTHLY PRODUCTION TREND REPORT " + reportInterval.toUpperCase());
 							
 			// Create font
 			Font font1 = sheet.getWorkbook().createFont();
@@ -1403,6 +1660,7 @@ public class BuiltInReportController extends BaseController {
 							dataObj.setStart_date( new SimpleDateFormat("MM/dd/yyyy").format(startDate) );
 							dataObj.setEnd_date( new SimpleDateFormat("MM/dd/yyyy").format(convertedDate) );
 							dataObj.setSite_name(siteItem.getName());
+							dataObj.setData_intervals(obj.getData_intervals());
 							
 							
 							ArrayList<String> categories = new ArrayList<String>();
@@ -1473,7 +1731,7 @@ public class BuiltInReportController extends BaseController {
 						    XSSFDrawing drawing1 = chartSheet.createDrawingPatriarch();
 							
 							//====== first line chart============================================================
-							anchor1 = drawing1.createAnchor(0, 0, 0, 0, 0, 15, 8, 27);
+							anchor1 = drawing1.createAnchor(0, 0, 0, 0, 0, categories.size() + 8, 8, categories.size() + 8 + 12);
 							chart = drawing1.createChart(anchor1);
 							chart.setTitleText("Performance");
 							chart.getFormattedTitle().getParagraph(0).addDefaultRunProperties().setFontSize(14d);
@@ -1593,10 +1851,29 @@ public class BuiltInReportController extends BaseController {
 					}
 					
 					// Write the output to a file
+					String reportInterval = "(Daily Interval)";
+					switch (obj.getData_intervals()) {
+//						case 1:
+//							reportInterval = "(5-minute Interval)";
+//							break;
+//							
+//						case 2:
+//							reportInterval = "(15-minute Interval)";
+//							break;
+//							
+//						case 3:
+//							reportInterval = "(Hourly Interval)";
+//							break;
+							
+						case 4:
+						default:
+							reportInterval = "(Daily Interval)";
+							break;
+					}
 					String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(Calendar.getInstance().getTime());
 					String dir = uploadRootPath() + "/"
 							+ Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathReportFiles);
-					String fileName = dir + "/Weekly Production Trend Report (Daily Interval)_" + timeStamp + ".xlsx";
+					String fileName = dir + "/Weekly Production Trend Report " + reportInterval + "_" + timeStamp + ".xlsx";
 					
 					try (FileOutputStream fileOut = new FileOutputStream(fileName)) {
 						document.write(fileOut);
@@ -1604,7 +1881,7 @@ public class BuiltInReportController extends BaseController {
 								Constants.mailFromContact);
 
 						String msgTemplate = Constants.getMailTempleteByState(18);
-						String body = String.format(msgTemplate, "Customer", "WEEKLY PRODUCTION TREND REPORT (DAILY INTERVAL) ", "", "");
+						String body = String.format(msgTemplate, "Customer", "WEEKLY PRODUCTION TREND REPORT " + reportInterval.toUpperCase() + " ", "", "");
 						String mailTo = obj.getSubscribers();
 						String subject = Constants.getMailSubjectByState(18);
 
@@ -1992,8 +2269,27 @@ public class BuiltInReportController extends BaseController {
 				cellStyleHeader.setVerticalAlignment(VerticalAlignment.CENTER);
 				cellStyleHeader.setAlignment(HorizontalAlignment.CENTER);
 				
+				String reportInterval = "(Daily Interval)";
+				switch (dataObj.getData_intervals()) {
+//					case 1:
+//						reportInterval = "(5-minute Interval)";
+//						break;
+//						
+//					case 2:
+//						reportInterval = "(15-minute Interval)";
+//						break;
+//						
+//					case 3:
+//						reportInterval = "(Hourly Interval)";
+//						break;
+						
+					case 4:
+					default:
+						reportInterval = "(Daily Interval)";
+						break;
+				}
 				cell.setCellStyle(cellStyleHeader);
-				cell.setCellValue("WEEKLY PRODUCTION TREND REPORT (DAILY INTERVAL)");
+				cell.setCellValue("WEEKLY PRODUCTION TREND REPORT " + reportInterval.toUpperCase());
 				
 				
 				

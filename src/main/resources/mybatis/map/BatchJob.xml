@@ -188,7 +188,7 @@
 			LEFT JOIN site s ON s.id = d.id_site 
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone
 		WHERE
-			d.`status` = 1 AND d.disable_alert = 0  AND s.`status` = 1 AND d.id_site = #{id_site} AND d.id_device_type NOT IN(5)
+			d.`status` = 1 AND d.disable_alert = 1  AND s.`status` = 1 AND d.id_site = #{id_site} AND d.id_device_type NOT IN(5)
 	</select>
 	
 	<select id="getLastRowItem" resultType="com.nwm.api.entities.BatchJobTableEntity">
@@ -209,7 +209,7 @@
   
 	
 	
-	<select id="getLastValueLifetime" resultType="com.nwm.api.entities.DeviceEntity">
+	<!-- <select id="getLastValueLifetime" resultType="com.nwm.api.entities.DeviceEntity">
 		SELECT
 			dv.id_device AS id,
 			nvmActiveEnergy AS energy_lifetime 
@@ -222,9 +222,9 @@
 			dv.time DESC 
 			LIMIT 1;
 			
-	</select>
+	</select> -->
 	
-	<select id="getLastValueEnergyToday" resultType="com.nwm.api.entities.DeviceEntity" >
+	<!-- <select id="getLastValueEnergyToday" resultType="com.nwm.api.entities.DeviceEntity" >
 		SELECT
 			d.id_site,
 			d.id,
@@ -244,10 +244,10 @@
 			AND DATE_FORMAT(CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') = DATE_FORMAT( #{current_time}, '%Y-%m-%d')
 			AND s.`status` = 1 
 			AND d.`status` = 1 
-	</select>
+	</select> -->
 	
 	
-	<select id="getDataDeviceEnergyThisMonth" resultType="com.nwm.api.entities.DeviceEntity" >
+	<!-- <select id="getDataDeviceEnergyThisMonth" resultType="com.nwm.api.entities.DeviceEntity" >
 		SELECT
 			d.id_site,
 			d.id,
@@ -267,34 +267,34 @@
 			AND DATE_FORMAT(CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m') = DATE_FORMAT( #{current_time}, '%Y-%m')
 			AND s.`status` = 1 
 			AND d.`status` = 1 
-	</select>
+	</select> -->
 	
-	<update id="updateDataDeviceEnergyThisMonth">
+	<!-- <update id="updateDataDeviceEnergyThisMonth">
 		UPDATE `device`
 		SET
 			`energy_this_month` = #{energy_this_month}
 		WHERE
 			`id` = #{id}
-	</update>
+	</update> --> 
 	
 	
-	<update id="updateDataDeviceLifetime">
+	<!-- <update id="updateDataDeviceLifetime">
 		UPDATE `device`
 		SET
 			`energy_lifetime` = #{energy_lifetime}
 		WHERE
 			`id` = #{id}
-	</update>
+	</update> -->
 	
 	
 	
-	<update id="updateDataDeviceEnergyToday">
+	<!-- <update id="updateDataDeviceEnergyToday">
 		UPDATE `device`
 		SET
 			`energy_today` = #{energy_today}
 		WHERE
 			`id` = #{id}
-	</update>
+	</update> --> 
 	
 
 	<select id="getListMeterAndInverter" resultType="com.nwm.api.entities.DeviceEntity" >
@@ -321,7 +321,7 @@
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone
 		WHERE
 			d.`status` = 1 AND d.is_delete = 0
-			AND s.`status` = 1 AND d.id_device_type IN (1, 3) AND d.disable_alert = 0
+			AND s.`status` = 1 AND d.id_device_type IN (1, 3) AND d.disable_alert = 1
 	</select>
 	
 	
@@ -464,7 +464,7 @@
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone
 		WHERE
 			d.`status` = 1 AND d.is_delete = 0
-			AND s.`status` = 1 AND d.id_device_type IN (1, 3) AND d.disable_alert = 0 AND s.id = #{id_site}
+			AND s.`status` = 1 AND d.id_device_type IN (1, 3) AND d.disable_alert = 1 AND s.id = #{id_site}
 	</select>
 	
 	
@@ -495,7 +495,7 @@
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone
 		WHERE
 			d.`status` = 1 AND d.is_delete = 0
-			AND s.`status` = 1 AND d.id_device_type IN (1, 3, 4, 6) AND s.`status` = 1 AND d.disable_alert = 0
+			AND s.`status` = 1 AND d.id_device_type IN (1, 3, 4, 6) AND s.`status` = 1 AND d.disable_alert = 1
 	</select>
 	
 	
@@ -1680,28 +1680,9 @@
 						(
 						SELECT
 							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m-%d-%Y' ) AS time_format,
-							CASE
-									WHEN d.datatablename = 'model_imtsolar_class8000' THEN AVG( IFNULL(dv.nvm_irradiance, 0) )
-									WHEN d.datatablename = 'model_kippzonen_rt1_class8009' THEN AVG( IFNULL(dv.nvm_irradiance, 0) )
-									WHEN d.datatablename = 'model_lufft_class8020' THEN AVG( IFNULL(dv.nvm_irradiance, 0) )
-									WHEN d.datatablename = 'model_lufft_ws501_umb_weather' THEN AVG( IFNULL(dv.nvm_irradiance, 0) )
-									WHEN d.datatablename = 'model_rt1_class30000' THEN AVG( IFNULL(dv.nvm_irradiance, 0) )
-									WHEN d.datatablename = 'model_w_kipp_zonen_rt1' THEN AVG( IFNULL(dv.nvm_irradiance, 0) )
-									ELSE 0
-							END
-							 AS nvm_irradiance,
+							AVG( IFNULL(dv.nvm_irradiance, 0) ) AS nvm_irradiance,
 							 
-							 
-							 CASE
-									WHEN d.datatablename = 'model_imtsolar_class8000' THEN AVG( IFNULL((dv.nvm_temperature), 0) )
-									WHEN d.datatablename = 'model_kippzonen_rt1_class8009' THEN AVG( IFNULL(dv.nvm_temperature, 0) )
-									WHEN d.datatablename = 'model_lufft_class8020' THEN AVG( IFNULL(dv.nvm_temperature, 0) )
-									WHEN d.datatablename = 'model_lufft_ws501_umb_weather' THEN AVG( IFNULL(dv.nvm_temperature, 0) )
-									WHEN d.datatablename = 'model_rt1_class30000' THEN AVG( IFNULL(dv.nvm_temperature, 0) )
-									WHEN d.datatablename = 'model_w_kipp_zonen_rt1' THEN AVG( IFNULL(dv.nvm_temperature, 0) )
-									ELSE 0
-							END
-							 AS nvm_temperature
+							AVG( IFNULL(dv.nvm_temperature, 0) ) AS nvm_temperature
 							
 						FROM
 							${item.datatablename} dv

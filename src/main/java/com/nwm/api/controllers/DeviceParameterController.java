@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nwm.api.entities.DeviceGroupEntity;
 import com.nwm.api.entities.DeviceParameterEntity;
 import com.nwm.api.services.DeviceParameterService;
 import com.nwm.api.utils.Constants;
@@ -66,6 +67,32 @@ public class DeviceParameterController extends BaseController {
 			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
 		}
 	}
+	
+	
+	
+	/**
+	 * @description Get list device group
+	 * @author Hung.Bui
+	 * @since 2023-06-26
+	 * @return data (status, message, array, total_row)
+	 */
+	@PostMapping("/get-all-site-by-device-group")
+	public Object getAllSiteByDeviceGroup(@RequestBody DeviceParameterEntity obj) {
+		try {
+			if (obj.getLimit() == 0) {
+				obj.setLimit(Constants.MAXRECORD);
+			}
+			
+			DeviceParameterService service = new DeviceParameterService();
+			List data = service.getAllSiteByDeviceGroup(obj);
+			int totalRecord = service.getTotalAllSiteByDeviceGroup(obj);
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, totalRecord);
+		} catch (Exception e) {
+			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
+	
 	
 	/**
 	 * @description Get list device group
@@ -148,4 +175,34 @@ public class DeviceParameterController extends BaseController {
 			return this.jsonResult(false, Constants.SAVE_ERROR_MSG, e, 0);
 		}
 	}
+	
+	
+	/**
+	 * @description save device group
+	 * @author Long.Pham
+	 * @since 2024-02-26
+	 * @param  screen_mode = 1:add, 2:edit
+	 */
+	@PostMapping("/save-device-group")
+	public Object saveDeviceGroup(@RequestBody DeviceGroupEntity obj) {
+		try {
+			DeviceParameterService service = new DeviceParameterService();
+			
+				if (obj.getScreen_mode() == 2) {
+					boolean insert = service.updateDeviceGroup(obj);
+					if (insert == true) {
+						return this.jsonResult(true, Constants.UPDATE_SUCCESS_MSG, obj, 1);
+					} else {
+						return this.jsonResult(false, Constants.UPDATE_ERROR_MSG, null, 0);
+					}
+				} else {
+					return this.jsonResult(false, Constants.UPDATE_ERROR_MSG, null, 0);
+				}
+//			}
+		} catch (Exception e) {
+			// log error
+			return this.jsonResult(false, Constants.SAVE_ERROR_MSG, e, 0);
+		}
+	}
+	
 }

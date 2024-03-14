@@ -15,9 +15,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.nwm.api.batchjob.BatchJob;
-import com.nwm.api.batchjob.BatchJobFTP;
-import com.nwm.api.batchjob.BatchJobSMAFTP;
-import com.nwm.api.utils.Constants;
 @Configuration
 @EnableBatchProcessing
 @EnableScheduling
@@ -30,12 +27,12 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */1 * * * *")
-	public void startBatchJobSolarOpenWeather() throws Exception {
-		BatchJob job =new BatchJob(); 
-//		job.runCronJobSolarOpenWeather();
-	}
-	
+//	@Scheduled(cron = "0 */1 * * * *")
+//	public void startBatchJobSolarOpenWeather() throws Exception {
+//		BatchJob job =new BatchJob(); 
+////		job.runCronJobSolarOpenWeather();
+//	}
+//	
 	
 	/**
 	 * @description batch job update data device energy lifetime
@@ -44,11 +41,11 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */5 * * * *")
-	public void startBatchJobUpdateEnergyLifetime() throws Exception {
-		BatchJob job =new BatchJob(); 
-		job.runCronJobUpdateEnergyLifetime();
-	}
+//	@Scheduled(cron = "0 */5 * * * *")
+//	public void startBatchJobUpdateEnergyLifetime() throws Exception {
+//		BatchJob job =new BatchJob(); 
+//		job.runCronJobUpdateEnergyLifetime();
+//	}
 	
 	
 	
@@ -59,11 +56,11 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */5 * * * *")
-	public void startBatchJobUpdateEnergyToday() throws Exception {
-		BatchJob job =new BatchJob(); 
-		job.runCronJobUpdateEnergyToday();
-	}
+//	@Scheduled(cron = "0 */5 * * * *")
+//	public void startBatchJobUpdateEnergyToday() throws Exception {
+//		BatchJob job =new BatchJob(); 
+//		job.runCronJobUpdateEnergyToday();
+//	}
 	
 	
 	/**
@@ -73,11 +70,11 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */5 * * * *")
-	public void startBatchJobUpdateEnergyThisMonth() throws Exception {
-		BatchJob job =new BatchJob(); 
-		job.runCronJobUpdateEnergyThisMonth();
-	}
+//	@Scheduled(cron = "0 */5 * * * *")
+//	public void startBatchJobUpdateEnergyThisMonth() throws Exception {
+//		BatchJob job =new BatchJob(); 
+//		job.runCronJobUpdateEnergyThisMonth();
+//	}
 	
 	
 	
@@ -90,11 +87,11 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 * */60 * * *")
-	public void startBatchJobGetWeather() throws Exception {
-		BatchJob job =new BatchJob(); 
-		job.runCronJobGetWeather();
-	}
+//	@Scheduled(cron = "0 * */60 * * *")
+//	public void startBatchJobGetWeather() throws Exception {
+//		BatchJob job =new BatchJob(); 
+//		job.runCronJobGetWeather();
+//	}
 	
 	/**
 	 * @description batch job get alert for all device No Communication
@@ -195,11 +192,11 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */60 * * * *")
-	public void startBatchJobGenerateDataReport() throws Exception {
-		BatchJob job =new BatchJob(); 
-		job.runCronJobGenerateDataReport();
-	}
+//	@Scheduled(cron = "0 */60 * * * *")
+//	public void startBatchJobGenerateDataReport() throws Exception {
+//		BatchJob job =new BatchJob(); 
+//		job.runCronJobGenerateDataReport();
+//	}
 	
 	
 	/**
@@ -209,14 +206,14 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */20 * * * *")
+//	@Scheduled(cron = "0 */20 * * * *")
 	
 	// Start every day 2 PM.
 //	@Scheduled(cron = "0 0 0/20 ? * *")
-	public void startBatchJobGeneratePerformanceRatio() throws Exception {
-		BatchJob job =new BatchJob(); 
-		job.startBatchJobGeneratePerformanceRatio();
-	}
+//	public void startBatchJobGeneratePerformanceRatio() throws Exception {
+//		BatchJob job =new BatchJob(); 
+//		job.startBatchJobGeneratePerformanceRatio();
+//	}
 	
 	
 	/**
@@ -224,14 +221,14 @@ public class BatchConfig {
 	 * @author Hung.Bui
 	 * @since 2022-12-22
 	 */
-	@Bean
-    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
-		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-		taskScheduler.setRemoveOnCancelPolicy(true);
-		taskScheduler.setPoolSize(5);
-        return taskScheduler;
-    }
-	
+//	@Bean
+//    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
+//		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+//		taskScheduler.setRemoveOnCancelPolicy(true);
+//		taskScheduler.setPoolSize(5);
+//        return taskScheduler;
+//    }
+//	
 	
 	/**
 	 * @description read folder from FTP account
@@ -257,13 +254,13 @@ public class BatchConfig {
 //	}
 	
 	
-	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
-		String value = defaultValue;
-		try {
-			value = resourceBundle.getString(key);
-		} catch (Exception e) {}
-		return value;
-	}
+//	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
+//		String value = defaultValue;
+//		try {
+//			value = resourceBundle.getString(key);
+//		} catch (Exception e) {}
+//		return value;
+//	}
 	
 	/**
 	 * @description SMA read folder from FTP account

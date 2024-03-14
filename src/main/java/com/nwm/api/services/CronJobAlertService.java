@@ -91,6 +91,9 @@ public class CronJobAlertService extends DB {
 	public List getListAlertOpenBySite(SiteEntity obj) {
 		List dataList = new ArrayList();
 		try {
+			List errorLevel = queryForList("CronJobAlert.getListErrorLevel", obj);
+			
+			obj.setErrorLevel(errorLevel);
 			dataList = queryForList("CronJobAlert.getListAlertOpenBySite", obj);
 			if (dataList == null)
 				return new ArrayList();
@@ -590,4 +593,80 @@ public class CronJobAlertService extends DB {
 		}
 	}
 
+	
+	/**
+	 * @description get list device
+	 * @author long.pham
+	 * @since 2023-07-20
+	 */
+	
+	public List getListSiteLowProduction(SiteEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("CronJobAlert.getListSiteLowProduction", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+	
+	
+	/**
+	 * @description get list device by group
+	 * @author long.pham
+	 * @since 2024-03-04
+	 */
+	
+	public List getListDeviceByGroup(DeviceEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("CronJobAlert.getListDeviceByGroup", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+	
+	
+	
+	/**
+	 * @description get list device by group
+	 * @author long.pham
+	 * @since 2024-03-04
+	 */
+	
+	public List getListAlertByGroupDevice(AlertEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("CronJobAlert.getListAlertByGroupDevice", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+	
+	
+	/**
+	 * @description update multi alert
+	 * @author long.pham
+	 * @since 2024-03-06
+	 */
+	
+	
+	public List closeMultiAlert(AlertEntity obj) {
+		try {
+			update("CronJobAlert.closeMultiAlert", obj);			
+			return null;
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+	
+	
 }

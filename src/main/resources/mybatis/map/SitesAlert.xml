@@ -274,6 +274,14 @@
 				
 				WHEN dg.table_name = 'model_acu_rev_production_meter' AND d.field_value_default = 'TotalRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
+				WHEN dg.table_name = 'model_phoenix_contact_quint_ups' AND d.field_value_default = 'StateofHealth' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "%" )))
+				
+				WHEN dg.table_name = 'model_sma_inverter_12_15_20_24_30tlus10' AND d.field_value_default = 'Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_abb_uno_dm_1250tp_plus' AND d.field_value_default = 'PowerAC' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_klea_220p' AND d.field_value_default = 'TotalActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+
 				ELSE "N/A"
 			END AS key_indicator
 			
@@ -529,6 +537,11 @@
 				e.id_error_level = 11
 				AND a.`status` = 1 
 				AND e.`status` = 1 
+				AND a.is_delete = 0
+				AND e.is_delete = 0
+				AND d.`status` = 1
+				AND d.is_delete = 0
+				AND s.enable_alert = 1
 				AND d.id_site = #{id_site}
 				AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
 			GROUP BY
@@ -552,6 +565,7 @@
 				AND e.is_delete = 0
 				AND d.`status` = 1
 				AND d.is_delete = 0
+				AND s.enable_alert = 1
 				AND d.id_site = #{id_site}
 				AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
 		) AS totalError

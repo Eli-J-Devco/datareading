@@ -54,21 +54,116 @@
 			dp.id
 	</select>
 	
+	
+	<select id="getAllSiteByDeviceGroup" resultType="Map">
+		SELECT
+			d.id_site,
+			dg.group_name,
+			s.`name` AS site_name
+		FROM
+			device d 
+			LEFT JOIN site s ON s.id = d.id_site
+			LEFT JOIN device_group dg ON dg.id = d.id_device_group
+		WHERE
+			d.`status` = 1 AND d.is_delete = 0
+			AND d.id_device_group = #{id_device_group}
+		GROUP BY
+			d.id_site,
+			d.id_device_group 
+		ORDER BY s.id DESC 
+		LIMIT ${limit} OFFSET ${offset};
+	</select>
+	
+	<select id="getTotalAllSiteByDeviceGroup" resultType="int" parameterType="com.nwm.api.entities.DeviceParameterEntity">
+    	SELECT
+			count(*) AS totalRow 
+		FROM
+			(
+			SELECT
+				d.id_site,
+				dg.group_name,
+				s.`name` AS site_name 
+			FROM
+				device d
+				LEFT JOIN site s ON s.id = d.id_site
+				LEFT JOIN device_group dg ON dg.id = d.id_device_group 
+			WHERE
+				d.`status` = 1 
+				AND d.is_delete = 0 
+				AND d.id_device_group = #{id_device_group}
+			GROUP BY
+				d.id_site,
+			d.id_device_group 
+			)t
+  	</select>
+  	
+	
 	<select id="getListDeviceGroup" resultType="Map">
 		SELECT
 			dg.id,
 			dg.group_name AS name,
 			dt.name AS device_type,
 			dg.`status`,
-			dg.is_delete
+			dg.is_delete,
+			dg.manufacture,
+			dg.notes,
+			DATE_FORMAT(dg.created_date, "%Y/%d/%m %H:%i:%s") AS date_added,
+			CONCAT( DATE_FORMAT(dg.updated_date, "%H:%i %m/%d/%Y") , ' by ', dg.updated_by) AS last_modified,
+			dg.table_name,
+			t.sites_using,
+			t.sites_name
 		FROM
 			device_group AS dg
 			LEFT JOIN device_type dt ON dt.id = dg.id_device_type
+			LEFT JOIN (
+				SELECT
+					t.id_device_group,
+					COUNT( t.id_site ) AS sites_using,
+					substring_index(group_concat(t.site_name SEPARATOR ','), ',', 5) AS sites_name
+				FROM
+					(
+					SELECT
+						d.*,
+						s.`name` AS site_name 
+					FROM
+						device d 
+						LEFT JOIN site s ON s.id = d.id_site
+					WHERE
+						d.`status` = 1 
+					GROUP BY
+						d.id_site,
+						d.id_device_group 
+					) t 
+				GROUP BY
+					t.id_device_group
+			)t ON dg.id = t.id_device_group
 		WHERE
+		
+		
+		
 			dg.`status` = 1 AND dg.is_delete = 0
-			<if test="keyword != null">
+			
+			<if test="keyword != null and filterBy == 'group_name'">
 				AND dg.group_name LIKE CONCAT("%",#{keyword}, "%")
 			</if>
+			
+			<if test="keyword != null and filterBy == 'manufacture'">
+				AND dg.manufacture LIKE CONCAT("%",#{keyword}, "%")
+			</if>
+			
+			<if test="keyword != null and filterBy == 'table_name'">
+				AND dg.table_name LIKE CONCAT("%",#{keyword}, "%")
+			</if>
+			
+			<if test="deviceType != null and !deviceType.isEmpty()">
+				AND dg.id_device_type IN(
+				<foreach item="item" index="index" collection="deviceType" separator=",">
+			        #{item.id_device_type}
+			    </foreach>
+				)
+			</if>
+			
+			
 	    ORDER BY
 	        <choose>  
 	            <when test="sort_column == 'id'">
@@ -82,6 +177,30 @@
 	                dt.name ${order_by}
 	            </when>
 	            
+	            <when test="sort_column == 'table_name'">
+	                dg.table_name ${order_by}
+	            </when>
+	            
+	            <when test="sort_column == 'date_added'">
+	                dg.created_date ${order_by}
+	            </when>
+	            
+	            <when test="sort_column == 'last_modified'">
+	                dg.updated_date ${order_by}
+	            </when>
+	            
+	            <when test="sort_column == 'notes'">
+	                dg.notes ${order_by}
+	            </when>
+	            
+	            <when test="sort_column == 'manufacture'">
+	                dg.manufacture ${order_by}
+	            </when>
+	            
+	            <when test="sort_column == 'sites_using'">
+	                sites_using ${order_by}
+	            </when>
+	            
 	            <otherwise>
 			      dg.id DESC
 			    </otherwise>                                                  
@@ -93,9 +212,26 @@
     	SELECT count(*) as totalRow
 		FROM device_group dg
 		WHERE dg.`status` = 1 AND dg.is_delete = 0
-		<if test="keyword != null">
-			AND dg.name LIKE CONCAT("%",#{keyword}, "%")
-		</if> 
+		
+		<if test="keyword != null and filterBy == 'group_name'">
+			AND dg.group_name LIKE CONCAT("%",#{keyword}, "%")
+		</if>
+		
+		<if test="keyword != null and filterBy == 'manufacture'">
+			AND dg.manufacture LIKE CONCAT("%",#{keyword}, "%")
+		</if>
+		
+		<if test="keyword != null and filterBy == 'table_name'">
+			AND dg.table_name LIKE CONCAT("%",#{keyword}, "%")
+		</if>
+			
+		<if test="deviceType != null and !deviceType.isEmpty()">
+				AND dg.id_device_type IN(
+				<foreach item="item" index="index" collection="deviceType" separator=",">
+			        #{item.id_device_type}
+			    </foreach>
+				)
+			</if>
   	</select>
 	
 	<select id="getListParameterByDeviceGroup" resultType="Map">
@@ -105,6 +241,7 @@
 			dp.standard_name,
 			dp.`status`,
 			dp.is_delete,
+			IF(dp.is_common = 1, 1, 0) AS is_common,
 			ct.id AS id_categorize_data,
 			ct.name AS categorize_data_name
 		FROM
@@ -119,13 +256,22 @@
 	        <choose>  
 	            <when test="sort_column == 'id'">
 	                dp.id ${order_by}
-	            </when>         
-	            <when test="sort_column == 'register_name'">
+	            </when>     
+	                
+	            <when test="sort_column == 'name'">
 	                dp.name ${order_by}
 	            </when>
 	            
 	            <when test="sort_column == 'standard_name'">
 	                dp.standard_name ${order_by}
+	            </when>
+	            
+	            <when test="sort_column == 'categorize_data_name'">
+	                ct.name ${order_by}
+	            </when>
+	            
+	            <when test="sort_column == 'is_common'">
+	                dp.is_common ${order_by}
 	            </when>
 	            
 	            <otherwise>
@@ -163,7 +309,21 @@
 	<update id="updateDeviceParameter">
 		UPDATE `device_parameters`
 		SET
+			`is_common` = #{is_common},
 			`standard_name` = #{standard_name}
+		WHERE
+			`id` = #{id}
+	</update>
+	
+	
+	<update id="updateDeviceGroup">
+		UPDATE `device_group`
+		SET
+			`group_name` = #{group_name},
+			`manufacture` = #{manufacture},
+			`notes` = #{notes},
+			`updated_date` = NOW(),
+			`updated_by` = #{updated_by}
 		WHERE
 			`id` = #{id}
 	</update>

@@ -51,7 +51,6 @@
 			s.cf_alert_threshold,
 			s.unit_type_temp,
 			s.unit_wind_speed,
-			IF(s.cf_email_subscribers IS NULL || s.cf_email_subscribers = '',t.cf_email_subscribers,s.cf_email_subscribers) AS cf_email_subscribers,
 			g.total_error,
 			s.display_time_format,
 			s.display_date_format,
@@ -80,7 +79,12 @@
 			s.transformer_losses,
 			s.soiling,
 			s.other_losses,
-			s.alert_mail_bcc,
+			IF(s.alert_mail_bcc IS NULL || s.alert_mail_bcc = '', '', s.alert_mail_bcc) AS alert_mail_bcc,
+			
+			
+			IF(s.cf_email_subscribers IS NULL || s.cf_email_subscribers = '', 'support@nwemon.com', s.cf_email_subscribers) AS cf_email_subscribers,
+			
+			
 			s.alert_mail_cc,
 			h.is_hiding,
 			s.table_data_report,
@@ -103,10 +107,11 @@
 			) h ON h.id_site = s.id
 			
 			LEFT JOIN (
-				SELECT sem.id_site, GROUP_CONCAT(e.email) AS cf_email_subscribers FROM site_employee_map sem
+				SELECT sem.id_site, GROUP_CONCAT(e.email) AS alert_mail_bcc FROM site_employee_map sem
 				LEFT JOIN employee e ON e.id = sem.id_employee
 				WHERE 
 				SHA1(sem.id_site) = #{hash_id}
+				AND e.id = #{id_employee}
 			)t ON t.id_site = s.id
 			
 			LEFT JOIN(
@@ -155,8 +160,22 @@
 		FROM
 			device d
 		WHERE
-			SHA1(d.id_site) = #{hash_id} AND d.disable_alert = 1
+			SHA1(d.id_site) = #{hash_id} AND d.disable_alert = 0
 	</select>
+	
+	
+	 
+	
+	<select id="getListErrorLevel" resultType="Map">
+		SELECT
+			m.*
+			
+		FROM
+			error_level_site_map m
+		WHERE
+			SHA1(m.id_site) = #{hash_id} GROUP BY m.id_error_level
+	</select>
+	
 	
 	
 	<select id="getListAlertByIdDevice" resultType="Map">
@@ -425,6 +444,14 @@
 				
 				WHEN dg.table_name = 'model_acu_rev_production_meter' AND d.field_value_default = 'TotalRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
+				WHEN dg.table_name = 'model_phoenix_contact_quint_ups' AND d.field_value_default = 'StateofHealth' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "%" )))
+				
+				WHEN dg.table_name = 'model_sma_inverter_12_15_20_24_30tlus10' AND d.field_value_default = 'Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_abb_uno_dm_1250tp_plus' AND d.field_value_default = 'PowerAC' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_klea_220p' AND d.field_value_default = 'TotalActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+
 				ELSE "N/A"
 			END AS key_indicator,
 			
@@ -565,6 +592,7 @@
 					WHERE 
 					d.`status` = 1 
 					AND d.is_delete = 0
+					AND d.consumption_meter = 0
 					AND d.id_site  = #{id_site}
 			)today ON today.id_site = s.id
 			

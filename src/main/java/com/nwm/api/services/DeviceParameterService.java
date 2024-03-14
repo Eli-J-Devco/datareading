@@ -12,6 +12,7 @@ import java.util.Map;
 import org.apache.ibatis.session.SqlSession;
 
 import com.nwm.api.DBManagers.DB;
+import com.nwm.api.entities.DeviceGroupEntity;
 import com.nwm.api.entities.DeviceParameterEntity;
 
 public class DeviceParameterService extends DB {
@@ -90,6 +91,37 @@ public class DeviceParameterService extends DB {
 			return 0;
 		}
 	}
+	
+	
+	
+	/**
+	 * @description Get all site by device group
+	 * @author Long.Pham
+	 * @since 2024-02-27
+	 * @return data (status, message, array, total_row)
+	 */
+	
+	public List getAllSiteByDeviceGroup(DeviceParameterEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("DeviceParameter.getAllSiteByDeviceGroup", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+	
+	public int getTotalAllSiteByDeviceGroup(DeviceParameterEntity obj) {
+		try {
+			return (int)queryForObject("DeviceParameter.getTotalAllSiteByDeviceGroup", obj);
+		} catch (Exception ex) {
+			return 0;
+		}
+	}
+	
+	
 	/**
 	 * @description Get list parameter by device group
 	 * @author Hung.Bui
@@ -159,7 +191,27 @@ public class DeviceParameterService extends DB {
 			session.commit();
 			return true;
 		}catch (Exception ex) {
+			session.rollback();
 			log.error("DeviceParameter.updateDeviceParameter", ex);
+			return false;
+		}finally {
+			session.close();
+		}
+	}
+	
+	
+	
+	/**
+	 * @description update device parameter
+	 * @author Hung.Bui
+	 * @since 2023-06-26
+	 * @param id
+	 */
+	public boolean updateDeviceGroup(DeviceGroupEntity obj){
+		try{
+			return update("DeviceParameter.updateDeviceGroup", obj) > 0;
+		}catch (Exception ex) {
+			log.error("DeviceParameter.updateDeviceGroup", ex);
 			return false;
 		}
 	}

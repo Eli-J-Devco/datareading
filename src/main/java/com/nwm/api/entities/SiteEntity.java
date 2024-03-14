@@ -198,9 +198,44 @@ public class SiteEntity {
 	private String expiration;
 	private int is_show_each_meter;
 	private int enable_alert;
+	private List errorLevel;
+	private int totalInverter;
+	private int totalMeter;
+	private String listGroup;
+	private int totalWeatherStation;
 	
 	
 	
+	public int getTotalWeatherStation() {
+		return totalWeatherStation;
+	}
+	public void setTotalWeatherStation(int totalWeatherStation) {
+		this.totalWeatherStation = totalWeatherStation;
+	}
+	public int getTotalInverter() {
+		return totalInverter;
+	}
+	public void setTotalInverter(int totalInverter) {
+		this.totalInverter = totalInverter;
+	}
+	public int getTotalMeter() {
+		return totalMeter;
+	}
+	public void setTotalMeter(int totalMeter) {
+		this.totalMeter = totalMeter;
+	}
+	public String getListGroup() {
+		return listGroup;
+	}
+	public void setListGroup(String listGroup) {
+		this.listGroup = listGroup;
+	}
+	public List getErrorLevel() {
+		return errorLevel;
+	}
+	public void setErrorLevel(List errorLevel) {
+		this.errorLevel = errorLevel;
+	}
 	public int getEnable_alert() {
 		return enable_alert;
 	}

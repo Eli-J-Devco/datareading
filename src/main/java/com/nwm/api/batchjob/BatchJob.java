@@ -246,94 +246,95 @@ public class BatchJob {
 
 	}
 
-	public void runCronJobUpdateEnergyLifetime() {
-		try {
-			BatchJobService service = new BatchJobService();
+//	public void runCronJobUpdateEnergyLifetime() {
+//		try {
+//			BatchJobService service = new BatchJobService();
+//
+//			// Get list site
+//			List<?> listDevice = service.getListMeterAndInverter(new DeviceEntity());
+//			if (listDevice == null || listDevice.size() == 0) {
+//				return;
+//			}
+//			for (int i = 0; i < listDevice.size(); i++) {
+//				DeviceEntity deviceItem = (DeviceEntity) listDevice.get(i);
+//				DeviceEntity rowItem = service.getDataDeviceUpdateLifetime(deviceItem);
+//				if (rowItem != null) {
+//					// Update energy lifetime
+//					service.updateDataDeviceLifetime(rowItem);
+//				}
+//			}
+//		} catch (Exception e) {
+//			log.error(e);
+//		}
+//
+//	}
+	
 
-			// Get list site
-			List<?> listDevice = service.getListMeterAndInverter(new DeviceEntity());
-			if (listDevice == null || listDevice.size() == 0) {
-				return;
-			}
-			for (int i = 0; i < listDevice.size(); i++) {
-				DeviceEntity deviceItem = (DeviceEntity) listDevice.get(i);
-				DeviceEntity rowItem = service.getDataDeviceUpdateLifetime(deviceItem);
-				if (rowItem != null) {
-					// Update energy lifetime
-					service.updateDataDeviceLifetime(rowItem);
-				}
-			}
-		} catch (Exception e) {
-			log.error(e);
-		}
+//	public void runCronJobUpdateEnergyToday() {
+//		try {
+//			BatchJobService service = new BatchJobService();
+//
+//			// Get list site
+//			List<?> listDevice = service.getListMeterAndInverter(new DeviceEntity());
+//			if (listDevice == null || listDevice.size() == 0) {
+//				return;
+//			}
+//			for (int i = 0; i < listDevice.size(); i++) {
+//				DeviceEntity deviceItem = (DeviceEntity) listDevice.get(i);
+//
+//				/// converting date format for US
+//				Date date = new Date();
+//				SimpleDateFormat sdfAmerica = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+//				TimeZone tzInAmerica = TimeZone.getTimeZone("America/Los_Angeles");
+//				sdfAmerica.setTimeZone(tzInAmerica);
+//
+//				deviceItem.setCurrent_time(sdfAmerica.format(date));
+//				DeviceEntity rowItem = service.getDataDeviceUpdateEnergyToday(deviceItem);
+//				if (rowItem.getId() <= 0) {
+//					rowItem.setDatatablename(deviceItem.getDatatablename());
+//					rowItem.setId(deviceItem.getId());
+//					rowItem.setEnergy_today(null);
+//				}
+//				service.updateDataDeviceEnergyToday(rowItem);
+//			}
+//		} catch (Exception e) {
+//			log.error(e);
+//		}
+//
+//	}
 
-	}
-
-	public void runCronJobUpdateEnergyToday() {
-		try {
-			BatchJobService service = new BatchJobService();
-
-			// Get list site
-			List<?> listDevice = service.getListMeterAndInverter(new DeviceEntity());
-			if (listDevice == null || listDevice.size() == 0) {
-				return;
-			}
-			for (int i = 0; i < listDevice.size(); i++) {
-				DeviceEntity deviceItem = (DeviceEntity) listDevice.get(i);
-
-				/// converting date format for US
-				Date date = new Date();
-				SimpleDateFormat sdfAmerica = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-				TimeZone tzInAmerica = TimeZone.getTimeZone("America/Los_Angeles");
-				sdfAmerica.setTimeZone(tzInAmerica);
-
-				deviceItem.setCurrent_time(sdfAmerica.format(date));
-				DeviceEntity rowItem = service.getDataDeviceUpdateEnergyToday(deviceItem);
-				if (rowItem.getId() <= 0) {
-					rowItem.setDatatablename(deviceItem.getDatatablename());
-					rowItem.setId(deviceItem.getId());
-					rowItem.setEnergy_today(null);
-				}
-				service.updateDataDeviceEnergyToday(rowItem);
-			}
-		} catch (Exception e) {
-			log.error(e);
-		}
-
-	}
-
-	public void runCronJobUpdateEnergyThisMonth() {
-		try {
-			BatchJobService service = new BatchJobService();
-
-			// Get list site
-			List<?> listDevice = service.getListMeterAndInverter(new DeviceEntity());
-			if (listDevice == null || listDevice.size() == 0) {
-				return;
-			}
-			for (int i = 0; i < listDevice.size(); i++) {
-				DeviceEntity deviceItem = (DeviceEntity) listDevice.get(i);
-
-				// converting date format for US
-				Date date = new Date();
-				SimpleDateFormat sdfAmerica = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-				TimeZone tzInAmerica = TimeZone.getTimeZone("America/Los_Angeles");
-				sdfAmerica.setTimeZone(tzInAmerica);
-				deviceItem.setCurrent_time(sdfAmerica.format(date));
-
-				DeviceEntity rowItem = service.getDataDeviceEnergyThisMonth(deviceItem);
-				if (rowItem.getId() <= 0) {
-					rowItem.setDatatablename(deviceItem.getDatatablename());
-					rowItem.setId(deviceItem.getId());
-					rowItem.setEnergy_this_month(null);
-				}
-				service.updateDataDeviceEnergyThisMonth(rowItem);
-			}
-		} catch (Exception e) {
-			log.error(e);
-		}
-
-	}
+//	public void runCronJobUpdateEnergyThisMonth() {
+//		try {
+//			BatchJobService service = new BatchJobService();
+//
+//			// Get list site
+//			List<?> listDevice = service.getListMeterAndInverter(new DeviceEntity());
+//			if (listDevice == null || listDevice.size() == 0) {
+//				return;
+//			}
+//			for (int i = 0; i < listDevice.size(); i++) {
+//				DeviceEntity deviceItem = (DeviceEntity) listDevice.get(i);
+//
+//				// converting date format for US
+//				Date date = new Date();
+//				SimpleDateFormat sdfAmerica = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+//				TimeZone tzInAmerica = TimeZone.getTimeZone("America/Los_Angeles");
+//				sdfAmerica.setTimeZone(tzInAmerica);
+//				deviceItem.setCurrent_time(sdfAmerica.format(date));
+//
+//				DeviceEntity rowItem = service.getDataDeviceEnergyThisMonth(deviceItem);
+//				if (rowItem.getId() <= 0) {
+//					rowItem.setDatatablename(deviceItem.getDatatablename());
+//					rowItem.setId(deviceItem.getId());
+//					rowItem.setEnergy_this_month(null);
+//				}
+//				service.updateDataDeviceEnergyThisMonth(rowItem);
+//			}
+//		} catch (Exception e) {
+//			log.error(e);
+//		}
+//
+//	}
 
 //	public void runCronJobAutoSentMailAlert() {
 //		try {
@@ -699,6 +700,9 @@ public class BatchJob {
 //										case "model_acu_rev_production_meter":
 //											noProduction = 1225;
 //											break;
+//										case "model_sma_inverter_12_15_20_24_30tlus10":
+//											noProduction = 1226;
+//											break;
 //
 //										}
 //
@@ -920,8 +924,11 @@ public class BatchJob {
 //											break;
 //										case "model_dts_measurelogic_demand_meter":
 //											noCommunication = 1223;
-//										case "model_dts_measurelogic_demand_meter":
+//										case "model_acu_rev_production_meter":
 //											noCommunication = 1224;
+//											break;
+//										case "model_sma_inverter_12_15_20_24_30tlus10":
+//											noCommunication = 1227;
 //											break;
 //
 //										}

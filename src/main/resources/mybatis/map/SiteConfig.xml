@@ -144,7 +144,7 @@
 	<update id="updateDeviceResetDisableAlert">
 		UPDATE `device`
 		SET
-			`disable_alert` = 0
+			`disable_alert` = 1
 		WHERE
 			`id_site` = #{id}
 	</update>
@@ -153,7 +153,7 @@
 	<update id="enableDeviceDisableAlert">
 		UPDATE `device`
 		SET
-			`disable_alert` = 1
+			`disable_alert` = 0
 		WHERE
 			`id` = #{id} AND `id_site` = #{id_site}
 	</update>
@@ -253,5 +253,24 @@
 			AND s.name LIKE CONCAT("%",#{keyword}, "%")
 		</if>
   	</select>
+  	
+  	
+  	<delete id="deleteErrorLevelSiteMap">
+		DELETE FROM `error_level_site_map`
+		WHERE
+			`id_site` = #{id}
+	</delete>
+	
+	<insert id="insertErrorLevelSiteMap">
+    INSERT INTO error_level_site_map (
+    id_site,
+    id_error_level)
+    VALUES
+    <foreach collection="errorLevel" item="element" index="index" open="(" separator="),("  close=")">
+        #{element.id_site},
+        #{element.id_error_level}
+    </foreach>
+</insert>
+
   	
 </mapper>
