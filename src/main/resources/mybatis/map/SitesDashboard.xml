@@ -79,13 +79,11 @@
 			s.transformer_losses,
 			s.soiling,
 			s.other_losses,
-			IF(s.alert_mail_bcc IS NULL || s.alert_mail_bcc = '', '', s.alert_mail_bcc) AS alert_mail_bcc,
+
+			IF(smm.alert_mail_cc IS NULL || smm.alert_mail_cc = '', '', smm.alert_mail_cc) AS alert_mail_cc,
+			IF(smm.alert_mail_bcc IS NULL || smm.alert_mail_bcc = '', '', smm.alert_mail_bcc) AS alert_mail_bcc,
+			IF(smm.cf_email_subscribers IS NULL || smm.cf_email_subscribers = '', '', smm.cf_email_subscribers) AS cf_email_subscribers,
 			
-			
-			IF(s.cf_email_subscribers IS NULL || s.cf_email_subscribers = '', 'support@nwemon.com', s.cf_email_subscribers) AS cf_email_subscribers,
-			
-			
-			s.alert_mail_cc,
 			h.is_hiding,
 			s.table_data_report,
 			s.table_data_virtual,
@@ -97,6 +95,7 @@
 			LEFT JOIN country c ON c.id = s.id_country
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone
 			LEFT JOIN date_format d ON d.id = s.display_date_format
+			LEFT JOIN site_mail_map smm ON smm.id_site = s.id AND smm.id_employee = #{id_employee}
 			
 			LEFT JOIN (
 				SELECT
@@ -448,10 +447,16 @@
 				
 				WHEN dg.table_name = 'model_sma_inverter_12_15_20_24_30tlus10' AND d.field_value_default = 'Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
-				WHEN dg.table_name = 'model_abb_uno_dm_1250tp_plus' AND d.field_value_default = 'PowerAC' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				WHEN dg.table_name = 'model_abb_uno_dm_1250tp_plus' AND d.field_value_default = 'ACActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_klea_220p' AND d.field_value_default = 'TotalActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 
+				WHEN dg.table_name = 'model_meter_ion_6200' AND d.field_value_default = 'kWtotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_leviton_s40000r_power_meter' AND d.field_value_default = 'TotalInstantaneousRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				
+				
 				ELSE "N/A"
 			END AS key_indicator,
 			
@@ -469,7 +474,8 @@
 				WHEN CONVERT_TZ( d.last_updated, '+00:00', t.`offset` ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', t.`offset` ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 HOUR ) THEN 'hour'
 				WHEN CONVERT_TZ( d.last_updated, '+00:00', t.`offset` ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', t.`offset` ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 MINUTE ) THEN 'minute' ELSE 'now'
 			END AS times_ago_unit,
-			d.field_value_default
+			d.field_value_default,
+			IF(pp.totalError > 0, 1, 0) AS is_datalogger_error
 			
 		FROM
 			device d
@@ -496,10 +502,35 @@
 					AND d.`status` = 1
 					AND s.enable_alert = 1
 					AND d.is_delete = 0
-					
+					AND (e.id_error_level = 32 || e.id_error_level = 33)
 					AND d.id_site = #{id_site}
 				GROUP BY d.id
 			) p ON p.id_device = d.id
+			LEFT JOIN(
+				SELECT 
+					a.id_device,
+					d.id_site,
+					d.serial_number,
+					e.id_error_level,
+					COUNT(a.id) AS totalError
+				FROM
+					alert a
+					LEFT JOIN device d ON d.id = a.id_device
+					LEFT JOIN error e ON e.id = a.id_error
+					LEFT JOIN site s ON s.id = d.id_site
+					
+				WHERE
+					a.`status` = 1
+					AND a.is_delete = 0
+					AND e.`status` = 1
+					AND e.is_delete = 0
+					AND d.`status` = 1
+					AND s.enable_alert = 1
+					AND d.is_delete = 0
+					AND e.id_error_level = 12 AND d.id_device_type = 5
+					AND d.id_site = #{id_site}
+				GROUP BY d.id
+			) pp ON pp.id_site = d.id_site AND pp.serial_number = d.serial_number
 			
 		WHERE
 			d.id_site = #{id_site} AND d.`status` = 1 AND d.is_delete = 0
@@ -703,6 +734,19 @@
 					"N/A"
 				</otherwise>
 			</choose> AS key_indicator,
+			CASE
+				WHEN CONVERT_TZ( dv.time, '+00:00', #{offset} ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i'), INTERVAL -1 DAY ) THEN TIMESTAMPDIFF( DAY, CONVERT_TZ( dv.time, '+00:00', #{offset} ), DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i') )
+				WHEN CONVERT_TZ( dv.time, '+00:00', #{offset} ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i'), INTERVAL -1 HOUR ) THEN TIMESTAMPDIFF( HOUR, CONVERT_TZ( dv.time, '+00:00', #{offset} ), DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i') ) 
+				WHEN CONVERT_TZ( dv.time, '+00:00', #{offset} ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i'), INTERVAL -1 MINUTE ) THEN TIMESTAMPDIFF( MINUTE, CONVERT_TZ( dv.time, '+00:00', #{offset} ), DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i') ) 
+				ELSE 0
+			END AS times_ago,
+
+	
+			CASE
+				WHEN CONVERT_TZ( dv.time, '+00:00', #{offset} ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 DAY ) THEN 'day'
+				WHEN CONVERT_TZ( dv.time, '+00:00', #{offset} ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 HOUR ) THEN 'hour'
+				WHEN CONVERT_TZ( dv.time, '+00:00', #{offset} ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 MINUTE ) THEN 'minute' ELSE 'now'
+			END AS times_ago_unit,
 			
 			IFNULL(DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', #{offset} ) , '%m-%d-%Y %h:%i %p'), 'N/A') AS time
 			
@@ -711,7 +755,7 @@
 
 		WHERE dv.id_device = #{id}
 		<if test="id_device_type == 1 or id_device_type == 3">
-				AND dv.error = 0 AND dv.nvmActivePower IS NOT NULL
+				AND dv.error = 0 AND dv.nvmActivePower IS NOT NULL AND dv.nvmActiveEnergy
 		</if>
 		
 		<if test="id_device_type == 4">

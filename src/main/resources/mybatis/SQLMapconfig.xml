@@ -129,6 +129,11 @@
 		<mapper resource="mybatis/map/ModelSmaInverterStp1215202430Tlus10.xml"/>
 		<mapper resource="mybatis/map/ModelAbbUnoDm1250tpPlus.xml"/>
 		<mapper resource="mybatis/map/ModelKlea220p.xml"/>
+		<mapper resource="mybatis/map/ModelMeterIon6200.xml"/>
+		<mapper resource="mybatis/map/ModelLevitonS40000rPowerMeter.xml"/>
+		<mapper resource="mybatis/map/ModelLevitonAbviusA891123Channel.xml"/>
+		
+		
 		
 		
 		
@@ -180,7 +185,14 @@
 		 <mapper resource="mybatis/map/FileImportDataOld.xml"/>
 		 <mapper resource="mybatis/map/CronJobAlert.xml" />
 		 <mapper resource="mybatis/map/CategorizeData.xml"/>
+		 <mapper resource="mybatis/map/WidgetGroup.xml"/>
 		 
+		 
+		 
+		 
+		 
+		 
+		<mapper resource="mybatis/map/ScadaDevice.xml"/>
 		
 		
 	</mappers>
