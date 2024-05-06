@@ -96,7 +96,7 @@
 			END AS times_ago_unit,
 			
 			CASE
-				
+				WHEN d.last_updated IS NULL THEN "Never"
 				
 				WHEN dg.table_name = 'model_power_measurement_ion_7650' AND d.field_value_default = 'kWTot' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
@@ -105,6 +105,8 @@
 				WHEN dg.table_name = 'model_meter_ion_8600v1' AND d.field_value_default = 'kWTot' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_meter_ion_8600v2' AND d.field_value_default = 'kWTot' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_meter_ion_8600v3' AND d.field_value_default = 'kWTot' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_aes_tx_inverter' AND d.field_value_default = 'pt33' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
@@ -283,6 +285,11 @@
 				WHEN dg.table_name = 'model_meter_ion_6200' AND d.field_value_default = 'kWtotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_leviton_s40000r_power_meter' AND d.field_value_default = 'TotalInstantaneousRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_sma_inverter_stp24000tlus10' AND d.field_value_default = 'GridMs_TotW' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
 
 				
 				ELSE "N/A"
@@ -463,6 +470,8 @@
 		        WHEN dg.table_name = 'model_sma_inverter_12_15_20_24_30tlus10' AND d.field_value_default = 'Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
 
 				WHEN dg.table_name = 'model_meter_ion_6200' AND d.field_value_default = 'kWtotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
+				
+				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
 				
 				ELSE "Z"
 				
@@ -873,7 +882,8 @@
 			END AS times_ago_unit,
 			
 			CASE
-			
+				WHEN d.last_updated IS NULL THEN "Never"
+				
 				WHEN dg.table_name = 'model_datalogger' AND d.field_value_default = 'MemFree' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kB" )))
 				
 				WHEN dg.table_name = 'model_solaredge_inverter' AND d.field_value_default = 'I_AC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
@@ -1036,6 +1046,11 @@
 				WHEN dg.table_name = 'model_meter_ion_6200' AND d.field_value_default = 'kWtotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_leviton_s40000r_power_meter' AND d.field_value_default = 'TotalInstantaneousRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_sma_inverter_stp24000tlus10' AND d.field_value_default = 'GridMs_TotW' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
 				
 				ELSE "N/A"
 			END AS key_indicator
@@ -1857,7 +1872,8 @@
 				WHEN CONVERT_TZ( l.start_date, '+00:00', t.`offset` ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', t.`offset` ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 MINUTE ) THEN 'minute' ELSE 'now'
 			END AS times_ago_unit,
 			CASE
-			
+				WHEN d.last_updated IS NULL THEN "Never"
+				
 				WHEN dg.table_name = 'model_datalogger' AND d.field_value_default = 'MemFree' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kB" )))
 				
 				WHEN dg.table_name = 'model_solaredge_inverter' AND d.field_value_default = 'I_AC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
@@ -2020,6 +2036,11 @@
 				WHEN dg.table_name = 'model_meter_ion_6200' AND d.field_value_default = 'kWtotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_leviton_s40000r_power_meter' AND d.field_value_default = 'TotalInstantaneousRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_sma_inverter_stp24000tlus10' AND d.field_value_default = 'GridMs_TotW' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
 				
 				ELSE "N/A"
 			END AS key_indicator

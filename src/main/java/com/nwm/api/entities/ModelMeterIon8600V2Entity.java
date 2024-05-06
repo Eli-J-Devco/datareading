@@ -78,9 +78,7 @@ public class ModelMeterIon8600V2Entity {
 	private String datatablename;
 	private String view_tablename;
 	private String job_tablename;
-private int enable_alert;
-	
-	
+	private int enable_alert;
 	
 	public int getEnable_alert() {
 		return enable_alert;

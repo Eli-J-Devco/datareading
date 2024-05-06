@@ -10,25 +10,31 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.beans.IntrospectionException;
+import java.beans.PropertyDescriptor;
+import net.objecthunter.exp4j.ExpressionBuilder;
+
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -55,6 +61,7 @@ import com.nwm.api.entities.BatchJobTableEntity;
 import com.nwm.api.entities.DeviceEntity;
 import com.nwm.api.entities.ModelSmaClusterControllerEntity;
 import com.nwm.api.entities.ModelSmaInverterStp1200tlus10Entity;
+import com.nwm.api.entities.ModelSmaInverterStp24000ktlus10Entity;
 import com.nwm.api.entities.ModelSmaInverterStp24ktlus10Entity;
 import com.nwm.api.entities.ModelSmaInverterStp3000ktlus10Entity;
 import com.nwm.api.entities.ModelSmaInverterStp62us41Entity;
@@ -63,6 +70,7 @@ import com.nwm.api.services.BatchJobService;
 import com.nwm.api.services.DeviceService;
 import com.nwm.api.services.ModelSmaClusterControllerService;
 import com.nwm.api.services.ModelSmaInverterStp1200tlus10Service;
+import com.nwm.api.services.ModelSmaInverterStp24000ktlus10Service;
 import com.nwm.api.services.ModelSmaInverterStp24ktlus10Service;
 import com.nwm.api.services.ModelSmaInverterStp3000ktlus10Service;
 import com.nwm.api.services.ModelSmaInverterStp62us41Service;
@@ -170,6 +178,7 @@ public class FTPUploadServerController extends BaseController {
 		try {
 			BatchJobService service = new BatchJobService();
 			ModelSmaInverterStp3000ktlus10Service serviceSMA3000 = new ModelSmaInverterStp3000ktlus10Service();
+			ModelSmaInverterStp24000ktlus10Service serviceSMA24000 = new ModelSmaInverterStp24000ktlus10Service();
 			ModelSmaInverterStp62us41Service serviceSMA62 = new ModelSmaInverterStp62us41Service();
 			ModelSmaInverterStp24ktlus10Service serviceSMA24k = new ModelSmaInverterStp24ktlus10Service();
 			ModelSmaInverterStp1200tlus10Service serviceSMA12k = new ModelSmaInverterStp1200tlus10Service();
@@ -194,9 +203,11 @@ public class FTPUploadServerController extends BaseController {
 						if(listDevice.size() > 0) {
 							// Read file XML
 							String dirFolderXML = Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadRootPathConfigKey) + "/"+siteItem.getId()+"/data";
-							Set<String> fileSet = new HashSet<>();
+							Set<String> fileSet = new HashSet<>();						
 							try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(dirFolderXML))) {
-								for (Path path : stream) {
+								StreamSupport.stream(stream.spliterator(), false)
+							    .sorted(Comparator.comparing(Path::toString))
+							    .forEach(path -> { 
 									if (!Files.isDirectory(path)) {
 										fileSet.add(path.getFileName().toString());
 										String fileXML = dirFolderXML + "/" + path.getFileName().toString();
@@ -222,12 +233,21 @@ public class FTPUploadServerController extends BaseController {
 													DeviceEntity deviceItem = (DeviceEntity) listDevice.get(v);
 													DeviceEntity deviceUpdateE = new DeviceEntity();
 													
+													List<DeviceEntity> scaledDeviceParameters = serviceD.getListScaledDeviceParameter(deviceItem);
+
+													
 													String[] itemXML = {"MeanPublic", "CurrentPublic"};
 													ModelSmaInverterStp3000ktlus10Entity entitySMA3000 = new ModelSmaInverterStp3000ktlus10Entity();
 													entitySMA3000.setId_device(deviceItem.getId());
 													entitySMA3000.setView_tablename(deviceItem.getView_tablename());
 													entitySMA3000.setJob_tablename(deviceItem.getJob_tablename());
 													entitySMA3000.setDatatablename(deviceItem.getDatatablename());
+													
+													ModelSmaInverterStp24000ktlus10Entity entitySMA24000 = new ModelSmaInverterStp24000ktlus10Entity();
+													entitySMA24000.setId_device(deviceItem.getId());
+													entitySMA24000.setView_tablename(deviceItem.getView_tablename());
+													entitySMA24000.setJob_tablename(deviceItem.getJob_tablename());
+													entitySMA24000.setDatatablename(deviceItem.getDatatablename());
 													
 													ModelSmaInverterStp62us41Entity entitySMA62 = new ModelSmaInverterStp62us41Entity();
 													entitySMA62.setId_device(deviceItem.getId());
@@ -413,7 +433,7 @@ public class FTPUploadServerController extends BaseController {
 																		if (field.equals("DcMs.Vol[A]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
 																			entitySMA24k.setDcMs_VolA(mean != null  ? Double.parseDouble(mean) : 0.001);
 																		}
-//																		  
+																		  
 																		if (field.equals("DcMs.Vol[B]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
 																			entitySMA24k.setDcMs_VolB(mean != null  ? Double.parseDouble(mean) : 0.001);
 																		}
@@ -614,6 +634,154 @@ public class FTPUploadServerController extends BaseController {
 																		
 																		else if (field.equals("Measurement.Metering.TotWhOut.Pv") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
 																			entitySMA3000.setTotWhOut_Pv(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+
+																		
+																		break;
+																		
+																	case "model_sma_inverter_stp24000tlus10":
+																		entitySMA24000.setTime(formatterUtcDateTime);
+																		// Put data to entity
+																		if (field.equals("Measurement.GridMs.TotVAr") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setGridMs_TotVAr(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.DcMs.Watt[0]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setDcMs_Watt0(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																
+																		else if (field.equals("Measurement.DcMs.Watt[1]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setDcMs_Watt1(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																
+																		else if (field.equals("Measurement.GridMs.W.phsA") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setW_phsA(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.W.phsB") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setW_phsB(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.A.phsB") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setA_phsB(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.W.phsC") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setW_phsC(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.TotW") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setGridMs_TotW(mean != null  ? Double.parseDouble(mean) / 1000 : 0.001);
+																			entitySMA24000.setNvmActivePower(mean != null  ? Double.parseDouble(mean) / 1000 : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.TotVA") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setGridMs_TotVA(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.A.phsC") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setA_phsC(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.Hz") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setGridMs_Hz(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.A.phsA") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setA_phsA(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.Isolation.LeakRis") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setIsolation_LeakRis(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.DcMs.Vol[0]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setDcMs_Vol0(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																
+																		else if (field.equals("Measurement.DcMs.Vol[1]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setDcMs_Vol1(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.PhV.phsC") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setPhV_phsC(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.PhV.phsB") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setPhV_phsB(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.VAr.phsA") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setVAr_phsA(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.DcMs.Amp[0]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setDcMs_Amp0(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																
+																		else if (field.equals("Measurement.DcMs.Amp[1]") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setDcMs_Amp1(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.TotVAr.Pv") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setTotVAr_Pv(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.VAr.phsB") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setVAr_phsB(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.PhV.phsA") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setPhV_phsA(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.VAr.phsC") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setVAr_phsC(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.VA.phsA") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setVA_phsA(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.VA.phsB") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setVA_phsB(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.VA.phsC") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setVA_phsC(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.GridMs.TotW.Pv") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setTotW_Pv(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.Metering.TotFeedTms") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setMetering_TotFeedTms(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.Operation.GriSwCnt") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setOperation_GriSwCnt(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.Metering.TotOpTms") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setMetering_TotOpTms(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.Operation.Health") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setOperation_Health(mean != null ? mean : null);
+																		}
+																		
+																		else if (field.equals("Measurement.Metering.TotWhOut") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setMetering_TotWhOut(mean != null  ? Double.parseDouble(mean)/1000 : 0.001);
+																			entitySMA24000.setNvmActiveEnergy(mean != null ? Double.parseDouble(mean)/1000 : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.Metering.TotWhOut.Pv") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setTotWhOut_Pv(mean != null  ? Double.parseDouble(mean) : 0.001);
+																		}
+																		
+																		else if (field.equals("Measurement.Operation.Evt.EvtNoShrt") && modbusdevicenumber.equals(deviceItem.getModbusdevicenumber())) {
+																			entitySMA24000.setEvt_EvtNoShrt(mean != null  ? Double.parseDouble(mean) : 0.001);
 																		}
 
 																		
@@ -832,6 +1000,23 @@ public class FTPUploadServerController extends BaseController {
 													
 													switch (deviceItem.getDevice_group_table()) {
 													case "model_sma_cluster_controller":
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelSmaClusterControllerEntity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(entityCluster);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(entityCluster, scaledValue);
+																if (slug.equals("GridMs.TotW")) entityCluster.setNvmActivePower(scaledValue);
+																if (slug.equals("Metering.TotWhOut")) entityCluster.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
 														serviceUmg604.insertModelSmaClusterController(entityCluster);
 														// Update last value
 														if(entityCluster.getNvmActivePower() >= 0) {
@@ -850,6 +1035,23 @@ public class FTPUploadServerController extends BaseController {
 														break;
 													
 													case "model_sma_inverter_stp1200tlus10":
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelSmaInverterStp1200tlus10Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(entitySMA12k);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(entitySMA12k, scaledValue);
+																if (slug.equals("GridMs.TotW")) entitySMA12k.setNvmActivePower(scaledValue);
+																if (slug.equals("Metering.TotWhOut")) entitySMA12k.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
 														serviceSMA12k.insertModelSmaInverterStp1200tlus10(entitySMA12k);
 														// Update last value
 														if(entitySMA12k.getNvmActivePower() >= 0) {
@@ -867,6 +1069,23 @@ public class FTPUploadServerController extends BaseController {
 														serviceD.updateLastUpdated(deviceUpdateE);
 														break;
 													case "model_sma_inverter_stp24ktlus10":
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelSmaInverterStp24ktlus10Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(entitySMA24k);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(entitySMA24k, scaledValue);
+																if (slug.equals("GridMs.TotW")) entitySMA24k.setNvmActivePower(scaledValue);
+																if (slug.equals("Metering.TotWhOut")) entitySMA24k.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
 														serviceSMA24k.insertModelSmaInverterStp24ktlus10(entitySMA24k);
 														if (entitySMA24k.getGridMs_TotW() > 0) {
 															deviceUpdateE.setLast_updated(entitySMA24k.getTime());
@@ -887,6 +1106,23 @@ public class FTPUploadServerController extends BaseController {
 														break;
 														
 													case "model_sma_inverter_stp30000tlus10":
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelSmaInverterStp3000ktlus10Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(entitySMA3000);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(entitySMA3000, scaledValue);
+																if (slug.equals("Measurement.GridMs.TotW")) entitySMA3000.setNvmActivePower(scaledValue);
+																if (slug.equals("Measurement.Metering.TotWhOut")) entitySMA3000.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
 														serviceSMA3000.insertModelSmaInverterStp3000ktlus10(entitySMA3000);
 														if (entitySMA3000.getGridMs_TotW() > 0) {
 															deviceUpdateE.setLast_updated(entitySMA3000.getTime());
@@ -904,7 +1140,60 @@ public class FTPUploadServerController extends BaseController {
 														deviceUpdateE.setId(entitySMA3000.getId_device());
 														serviceD.updateLastUpdated(deviceUpdateE);
 														break;
+														
+													case "model_sma_inverter_stp24000tlus10":
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelSmaInverterStp24000ktlus10Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(entitySMA24000);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(entitySMA3000, scaledValue);
+																if (slug.equals("Measurement.GridMs.TotW")) entitySMA24000.setNvmActivePower(scaledValue);
+																if (slug.equals("Measurement.Metering.TotWhOut")) entitySMA24000.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
+														serviceSMA24000.insertModelSmaInverterStp24000ktlus10(entitySMA24000);
+														if (entitySMA24000.getGridMs_TotW() > 0) {
+															deviceUpdateE.setLast_updated(entitySMA24000.getTime());
+															deviceUpdateE.setLast_value(entitySMA24000.getGridMs_TotW()  > 0 ? entitySMA24000.getGridMs_TotW() : null);
+															deviceUpdateE.setField_value1(entitySMA24000.getGridMs_TotW()  > 0 ? entitySMA24000.getGridMs_TotW() : null);
+														} else {
+															deviceUpdateE.setLast_updated(null);
+															deviceUpdateE.setLast_value(null);
+															deviceUpdateE.setField_value1(null);
+														}
+
+														deviceUpdateE.setField_value2(null);
+														deviceUpdateE.setField_value3(null);
+														
+														deviceUpdateE.setId(entitySMA24000.getId_device());
+														serviceD.updateLastUpdated(deviceUpdateE);
+														break;
+														
 													case "model_sma_inverter_stp62us41":
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelSmaInverterStp62us41Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(entitySMA62);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(entitySMA62, scaledValue);
+																if (slug.equals("Measurement.GridMs.TotW")) entitySMA62.setNvmActivePower(scaledValue);
+																if (slug.equals("Measurement.Metering.TotWhOut")) entitySMA62.setNvmActiveEnergy(scaledValue);
+															}
+														}
 														
 														serviceSMA62.insertModelSmaInverterStp62us41(entitySMA62);
 														
@@ -929,7 +1218,7 @@ public class FTPUploadServerController extends BaseController {
 												}
 												
 												
-											} catch (ParserConfigurationException | SAXException | IOException e) {
+											} catch (ParserConfigurationException | SAXException | IOException | IntrospectionException | IllegalAccessException | InvocationTargetException e) {
 												e.printStackTrace();
 											}
 											
@@ -939,7 +1228,7 @@ public class FTPUploadServerController extends BaseController {
 											logFile.delete();
 										}
 									}
-								}
+								});
 							}
 						}
 						

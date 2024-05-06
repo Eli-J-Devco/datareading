@@ -34,6 +34,7 @@ import com.nwm.api.entities.ModelAE1000NXClass9644Entity;
 import com.nwm.api.entities.ModelAbbTrioClass6210Entity;
 import com.nwm.api.entities.ModelAbbUnoDm1250tpPlusEntity;
 import com.nwm.api.entities.ModelAcuRevProductionMeterEntity;
+import com.nwm.api.entities.ModelAcuvimIIREntity;
 import com.nwm.api.entities.ModelAdam4017WSClass8110Nelis190Entity;
 import com.nwm.api.entities.ModelAdvancedEnergySolaronEntity;
 import com.nwm.api.entities.ModelAeRefusolEntity;
@@ -65,6 +66,7 @@ import com.nwm.api.entities.ModelMeterIon6200Entity;
 import com.nwm.api.entities.ModelMeterIon8600Entity;
 import com.nwm.api.entities.ModelMeterIon8600V1Entity;
 import com.nwm.api.entities.ModelMeterIon8600V2Entity;
+import com.nwm.api.entities.ModelMeterIon8600V3Entity;
 import com.nwm.api.entities.ModelPVMet100Entity;
 import com.nwm.api.entities.ModelPVPInverterEntity;
 import com.nwm.api.entities.ModelPVPowered3550260500kwInverterEntity;
@@ -98,6 +100,7 @@ import com.nwm.api.services.ModelAE1000NXClass9644Service;
 import com.nwm.api.services.ModelAbbTrioClass6210Service;
 import com.nwm.api.services.ModelAbbUnoDm1250tpPlusService;
 import com.nwm.api.services.ModelAcuRevProductionMeterService;
+import com.nwm.api.services.ModelAcuvimIIRService;
 import com.nwm.api.services.ModelAdam4017WSClass8110Nelis190Service;
 import com.nwm.api.services.ModelAdvancedEnergySolaronService;
 import com.nwm.api.services.ModelAeRefusolService;
@@ -129,6 +132,7 @@ import com.nwm.api.services.ModelMeterIon6200Service;
 import com.nwm.api.services.ModelMeterIon8600Service;
 import com.nwm.api.services.ModelMeterIon8600V1Service;
 import com.nwm.api.services.ModelMeterIon8600V2Service;
+import com.nwm.api.services.ModelMeterIon8600V3Service;
 import com.nwm.api.services.ModelPVMet100Service;
 import com.nwm.api.services.ModelPVPInverterService;
 import com.nwm.api.services.ModelPVPowered3550260500kwInverterService;
@@ -230,24 +234,24 @@ public class UploadFilesController extends BaseController {
 			String LOGFILEUPLOAD = "LOGFILEUPLOAD";
 			List<String> fileNames = new ArrayList<>();
 			
-			System.out.println("SENDDATATRACE: " + senddatatrace);
-			System.out.println("MODE: " + mode);
-			System.out.println("SERIALNUMBER: " + serialnumber);
-			System.out.println("PASSWORD: " + password);
-			System.out.println("LOOPNAME: " + loopname);
-			System.out.println("MODBUSIP: " + modbusip);
-			System.out.println("MODBUSPORT: " + modbusport);
-			System.out.println("MODBUSDEVICE: " + modbusdevice);
-			System.out.println("MODBUSDEVICENAME: " + modbusdevicename);
-			System.out.println("MODBUSDEVICETYPE: " + modbusdevicetype);
-			System.out.println("MODBUSDEVICETYPENUMBER: " + modbusdevicetypenumber);
-			System.out.println("MODBUSDEVICECLASS: " + modbusdeviceclass);
-			System.out.println("MD5CHECKSUM: " + md5checksum);
-			System.out.println("FILESIZE: " + filesize);
-			System.out.println("FILETIME: " + filetime);
-			
-			System.out.println("FILE: " + files.length);
-			
+//			System.out.println("SENDDATATRACE: " + senddatatrace);
+//			System.out.println("MODE: " + mode);
+//			System.out.println("SERIALNUMBER: " + serialnumber);
+//			System.out.println("PASSWORD: " + password);
+//			System.out.println("LOOPNAME: " + loopname);
+//			System.out.println("MODBUSIP: " + modbusip);
+//			System.out.println("MODBUSPORT: " + modbusport);
+//			System.out.println("MODBUSDEVICE: " + modbusdevice);
+//			System.out.println("MODBUSDEVICENAME: " + modbusdevicename);
+//			System.out.println("MODBUSDEVICETYPE: " + modbusdevicetype);
+//			System.out.println("MODBUSDEVICETYPENUMBER: " + modbusdevicetypenumber);
+//			System.out.println("MODBUSDEVICECLASS: " + modbusdeviceclass);
+//			System.out.println("MD5CHECKSUM: " + md5checksum);
+//			System.out.println("FILESIZE: " + filesize);
+//			System.out.println("FILETIME: " + filetime);
+//			
+//			System.out.println("FILE: " + files.length);
+//			
 
 			if (mode.equals(LOGFILEUPLOAD) && files.length > 0) {
 				Arrays.asList(files).stream().forEach(file -> {
@@ -401,7 +405,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -506,7 +510,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -808,7 +812,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -1200,7 +1204,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -1402,7 +1406,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -1510,7 +1514,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -1610,7 +1614,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -1713,7 +1717,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -1817,7 +1821,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -2020,7 +2024,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -2125,7 +2129,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -2421,7 +2425,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -2618,7 +2622,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -2724,7 +2728,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -2925,7 +2929,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -3027,7 +3031,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -3128,7 +3132,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -3230,7 +3234,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -3334,7 +3338,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -3439,7 +3443,7 @@ public class UploadFilesController extends BaseController {
 													// low production alert
 													if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 														item.setLast_updated(deviceUpdateE.getLast_updated());
-														serviceD.checkLowProduction(item);
+														serviceD.checkLowProduction(item, dataDevice);
 													}
 													
 													try  
@@ -3541,7 +3545,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -3643,7 +3647,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -3743,7 +3747,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -3842,7 +3846,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -3941,7 +3945,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -4040,7 +4044,106 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
+														}
+														
+														try  
+														{ 
+															File logFile = new File(root.resolve(fileName).toString());
+															if(logFile.delete()){  
+															}
+															
+															Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
+																	Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
+																	+ timeStamp + ".log.gz");
+															File logGzFile = new File(path.toString());
+															
+															if(logGzFile.delete()) {  
+															}		
+														}  
+														catch(Exception e){  
+															e.printStackTrace();  
+														}
+													}
+												}
+												
+												break;
+												
+											case "model_meter_ion_8600v3":
+												ModelMeterIon8600V3Service serviceModelIonV3 = new ModelMeterIon8600V3Service();
+												// Check insert database status
+												while ((line = br.readLine()) != null) {
+													sb.append(line); // appends line to string buffer
+													sb.append("\n"); // line feed
+													// Convert string to array
+													List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
+													if (words.size() > 0) {
+														ModelMeterIon8600V3Entity dataModelIonV3 = serviceModelIonV3.setModelMeterIon8600V3(line);
+														dataModelIonV3.setId_device(item.getId());
+														dataModelIonV3.setDatatablename(item.getDatatablename());
+														dataModelIonV3.setView_tablename(item.getView_tablename());
+														dataModelIonV3.setJob_tablename(item.getJob_tablename());
+														
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelMeterIon8600V3Entity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(dataModelIonV3);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(dataModelIonV3, scaledValue);
+																if (slug.equals("kWTot")) dataModelIonV3.setNvmActivePower(scaledValue);
+																if (slug.equals("kWhDelRec")) dataModelIonV3.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
+														DeviceEntity deviceUpdateE = new DeviceEntity();
+														// kWTot
+														
+														if(dataModelIonV3.getKWTot() != 0.001 && dataModelIonV3.getKWTot() >= 0){
+															deviceUpdateE.setLast_updated(dataModelIonV3.getTime());
+														}
+														
+														deviceUpdateE.setLast_value(dataModelIonV3.getKWTot() != 0.001 ? dataModelIonV3.getKWTot() : null);
+														deviceUpdateE.setField_value1(dataModelIonV3.getKWTot() != 0.001 ? dataModelIonV3.getKWTot() : null);
+														
+														deviceUpdateE.setField_value2(null);
+														deviceUpdateE.setField_value3(null);
+														
+														deviceUpdateE.setId(item.getId());
+														serviceD.updateLastUpdated(deviceUpdateE);
+														
+														// Insert alert
+//														if(Integer.parseInt(words.get(1)) > 0 && hours >= item.getStart_date_time() && hours <= item.getEnd_date_time() ){
+//															// Check error code
+//															BatchJobService service = new BatchJobService();
+//															ErrorEntity errorItem = new ErrorEntity();
+//															errorItem.setId_device_group(item.getId_device_group());
+//															errorItem.setError_code(words.get(1));
+//															ErrorEntity rowItemError = service.getErrorItem(errorItem);
+//															if(rowItemError.getId() > 0) {
+//																AlertEntity alertItem = new AlertEntity();
+//																alertItem.setId_device(item.getId());
+//																alertItem.setStart_date(words.get(0).replace("'", ""));
+//																alertItem.setId_error(rowItemError.getId());
+//																boolean checkAlertExist = service.checkAlertExist(alertItem);
+//																if(!checkAlertExist && alertItem.getId_device() > 0) {
+//																	// Insert alert
+//																	service.insertAlert(alertItem);
+//																}
+//															}
+//														}
+														
+														serviceModelIonV3.insertModelMeterIon8600V3(dataModelIonV3);
+
+														// low production alert
+														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
+															item.setLast_updated(deviceUpdateE.getLast_updated());
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -4139,7 +4242,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -4242,7 +4345,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -4441,7 +4544,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -4981,7 +5084,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5083,7 +5186,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5184,7 +5287,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5286,7 +5389,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5389,7 +5492,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5491,7 +5594,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5590,7 +5693,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5686,7 +5789,7 @@ public class UploadFilesController extends BaseController {
 														// low production alert
 														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 															item.setLast_updated(deviceUpdateE.getLast_updated());
-															serviceD.checkLowProduction(item);
+															serviceD.checkLowProduction(item, dataDevice);
 														}
 														
 														try  
@@ -5785,7 +5888,7 @@ public class UploadFilesController extends BaseController {
 						                            // low production alert
 						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 						                              item.setLast_updated(deviceUpdateE.getLast_updated());
-						                              serviceD.checkLowProduction(item);
+						                              serviceD.checkLowProduction(item, dataDevice);
 						                            }
 						                            
 						                            try  
@@ -5885,7 +5988,7 @@ public class UploadFilesController extends BaseController {
 						                            // low production alert
 						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 						                              item.setLast_updated(deviceUpdateE.getLast_updated());
-						                              serviceD.checkLowProduction(item);
+						                              serviceD.checkLowProduction(item, dataDevice);
 						                            }
 						                            
 						                            try  
@@ -5985,7 +6088,7 @@ public class UploadFilesController extends BaseController {
 						                            // low production alert
 						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
 						                              item.setLast_updated(deviceUpdateE.getLast_updated());
-						                              serviceD.checkLowProduction(item);
+						                              serviceD.checkLowProduction(item, dataDevice);
 						                            }
 						                            
 						                            try  
@@ -6082,10 +6185,10 @@ public class UploadFilesController extends BaseController {
 						                            serviceModelMeterIon6200.insertModelMeterIon6200(data);
 						                            
 						                            // low production alert
-//						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
-//						                              item.setLast_updated(deviceUpdateE.getLast_updated());
-//						                              serviceD.checkLowProduction(item);
-//						                            }
+						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
+						                              item.setLast_updated(deviceUpdateE.getLast_updated());
+						                              serviceD.checkLowProduction(item, dataDevice);
+						                            }
 						                            
 						                            try  
 						                            { 
@@ -6182,10 +6285,10 @@ public class UploadFilesController extends BaseController {
 						                            serviceModelMeterS40000.insertModelLevitonS40000rPowerMeter(data);
 						                            
 						                            // low production alert
-//						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
-//						                              item.setLast_updated(deviceUpdateE.getLast_updated());
-//						                              serviceD.checkLowProduction(item);
-//						                            }
+						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
+						                              item.setLast_updated(deviceUpdateE.getLast_updated());
+						                              serviceD.checkLowProduction(item, dataDevice);
+						                            }
 						                            
 						                            try  
 						                            { 
@@ -6224,6 +6327,7 @@ public class UploadFilesController extends BaseController {
 						                        	  data.setDatatablename(item.getDatatablename());
 						                        	  data.setView_tablename(item.getView_tablename());
 						                        	  data.setJob_tablename(item.getJob_tablename());
+						                        	  data.setId_site(item.getId_site());
 						                            
 						                            // scaling device parameter
 						                            if (scaledDeviceParameters.size() > 0) {
@@ -6282,10 +6386,10 @@ public class UploadFilesController extends BaseController {
 						                            serviceModelA891123.insertModelLevitonAbviusA891123Channel(data);
 						                            
 						                            // low production alert
-//						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
-//						                              item.setLast_updated(deviceUpdateE.getLast_updated());
-//						                              serviceD.checkLowProduction(item);
-//						                            }
+						                            if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
+						                              item.setLast_updated(deviceUpdateE.getLast_updated());
+						                              serviceD.checkLowProduction(item, dataDevice);
+						                            }
 						                            
 						                            try  
 						                            { 
@@ -6307,6 +6411,105 @@ public class UploadFilesController extends BaseController {
 						                        }
 						                        
 						                        break;
+						                        
+											case "model_acuvim_IIR":
+												ModelAcuvimIIRService serviceModelAcuvimIIR = new ModelAcuvimIIRService();
+												// Check insert database status
+												while ((line = br.readLine()) != null) {
+													sb.append(line); // appends line to string buffer
+													sb.append("\n"); // line feed
+													// Convert string to array
+													List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
+													if (words.size() > 0) {
+														
+														ModelAcuvimIIREntity dataModelAcuvimIIR = serviceModelAcuvimIIR.setModelAcuvimIIR(line);
+														dataModelAcuvimIIR.setId_device(item.getId());
+														dataModelAcuvimIIR.setDatatablename(item.getDatatablename());
+														dataModelAcuvimIIR.setView_tablename(item.getView_tablename());
+														dataModelAcuvimIIR.setJob_tablename(item.getJob_tablename());
+														
+														// scaling device parameter
+														if (scaledDeviceParameters.size() > 0) {
+															for (int j = 0; j < scaledDeviceParameters.size(); j++) {
+																DeviceEntity scaledDeviceParameter = scaledDeviceParameters.get(j);
+																String slug = scaledDeviceParameter.getParameter_slug();
+																String scaleExpressions = scaledDeviceParameter.getParameter_scale();
+																String variableName = scaledDeviceParameter.getVariable_name();
+																PropertyDescriptor pd = new PropertyDescriptor(slug, ModelAcuvimIIREntity.class);
+																Double initialValue = (Double) pd.getReadMethod().invoke(dataModelAcuvimIIR);
+																if (initialValue == 0.001) continue;
+																Double scaledValue = new ExpressionBuilder(scaleExpressions).variable(variableName).build().setVariable(variableName, initialValue).evaluate();
+																pd.getWriteMethod().invoke(dataModelAcuvimIIR, scaledValue);
+																if (slug.equals("SystempowerPsum")) dataModelAcuvimIIR.setNvmActivePower(scaledValue);
+																if (slug.equals("EnergyTotal")) dataModelAcuvimIIR.setNvmActiveEnergy(scaledValue);
+															}
+														}
+														
+														DeviceEntity deviceUpdateE = new DeviceEntity();
+														
+														// SystempowerPsum
+														if(dataModelAcuvimIIR.getSystempowerPsum() != 0.001 && dataModelAcuvimIIR.getSystempowerPsum() >= 0){
+															deviceUpdateE.setLast_updated(dataModelAcuvimIIR.getTime());
+														}
+														
+														deviceUpdateE.setLast_value(dataModelAcuvimIIR.getSystempowerPsum() != 0.001 ? dataModelAcuvimIIR.getSystempowerPsum() : null);
+														deviceUpdateE.setField_value1(dataModelAcuvimIIR.getSystempowerPsum() != 0.001 ? dataModelAcuvimIIR.getSystempowerPsum() : null);
+														
+														deviceUpdateE.setField_value2(null);
+														deviceUpdateE.setField_value3(null);
+														
+														deviceUpdateE.setId(item.getId());
+														serviceD.updateLastUpdated(deviceUpdateE);
+														
+														// Insert alert
+//														if(Integer.parseInt(words.get(1)) > 0 && hours >= item.getStart_date_time() && hours <= item.getEnd_date_time() ){
+//															// Check error code
+//															BatchJobService service = new BatchJobService();
+//															ErrorEntity errorItem = new ErrorEntity();
+//															errorItem.setId_device_group(item.getId_device_group());
+//															errorItem.setError_code(words.get(1));
+//															ErrorEntity rowItemError = service.getErrorItem(errorItem);
+//															if(rowItemError.getId() > 0) {
+//																AlertEntity alertItem = new AlertEntity();
+//																alertItem.setId_device(item.getId());
+//																alertItem.setStart_date(words.get(0).replace("'", ""));
+//																alertItem.setId_error(rowItemError.getId());
+//																boolean checkAlertExist = service.checkAlertExist(alertItem);
+//																if(!checkAlertExist && alertItem.getId_device() > 0) {
+//																	// Insert alert
+//																	service.insertAlert(alertItem);
+//																}
+//															}
+//														}
+														
+														serviceModelAcuvimIIR.insertModelAcuvimIIR(dataModelAcuvimIIR);
+														
+														// low production alert
+														if ((hours >= item.getStart_date_time()) && (hours <= item.getEnd_date_time())) {
+															item.setLast_updated(deviceUpdateE.getLast_updated());
+															serviceD.checkLowProduction(item, dataDevice);
+														}
+														
+														try  
+														{ 
+															File logFile = new File(root.resolve(fileName).toString());
+															if(logFile.delete()){  }
+															
+															Path path = Paths.get(Lib.getReourcePropValue(Constants.appConfigFileName,
+																	Constants.uploadRootPathConfigKey) + "/" + "bm-" + modbusdevice  + "-" + unique + "."
+																	+ timeStamp + ".log.gz");
+															File logGzFile = new File(path.toString());
+															
+															if(logGzFile.delete()) {  }		
+														}  
+														catch(Exception e){  
+															e.printStackTrace();  
+														}
+														
+													}
+												}
+												
+												break;
 						                        
 											
 										}

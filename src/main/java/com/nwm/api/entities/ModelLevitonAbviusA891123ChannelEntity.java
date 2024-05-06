@@ -63,6 +63,14 @@ public class ModelLevitonAbviusA891123ChannelEntity {
 	private String datatablename;
 	private String view_tablename;
 	private String job_tablename;
+	private int id_site;
+	
+	public int getId_site() {
+		return id_site;
+	}
+	public void setId_site(int id_site) {
+		this.id_site = id_site;
+	}
 	public String getTime() {
 		return time;
 	}

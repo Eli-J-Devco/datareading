@@ -32,9 +32,37 @@ public class WidgetGroupEntity{
 	private int id_device_group;
 	private List dataFields;
 	private int menu_order;
+	private int type;
+	private String unit;
+	private int id_device;
+	private String datatablename;
 	
 	
 	
+	public int getId_device() {
+		return id_device;
+	}
+	public void setId_device(int id_device) {
+		this.id_device = id_device;
+	}
+	public String getDatatablename() {
+		return datatablename;
+	}
+	public void setDatatablename(String datatablename) {
+		this.datatablename = datatablename;
+	}
+	public String getUnit() {
+		return unit;
+	}
+	public void setUnit(String unit) {
+		this.unit = unit;
+	}
+	public int getType() {
+		return type;
+	}
+	public void setType(int type) {
+		this.type = type;
+	}
 	public int getMenu_order() {
 		return menu_order;
 	}

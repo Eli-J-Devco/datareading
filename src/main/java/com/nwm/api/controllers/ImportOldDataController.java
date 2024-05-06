@@ -276,6 +276,10 @@ public class ImportOldDataController extends BaseController {
 										case "model_meter_ion_8600v2":
 											service.setModelMeterIon8600V2(rowItem, r);
 											break;	
+										
+										case "model_meter_ion_8600v3":
+											service.setModelMeterIon8600V3(rowItem, r);
+											break;	
 											
 										case "model_hukseflux_sr30d1_deviceclass_v0":
 											service.setModelHukselfluxSr30d1DeviceclassV0(rowItem, r);	
@@ -341,6 +345,12 @@ public class ImportOldDataController extends BaseController {
 											service.setModelRT1Class30000(rowItem, r);
 											break;
 											
+										case "model_pyranometer_poa":
+											service.setModelPyranometerPOA(rowItem, r);
+											break;
+											
+											
+											
 										case "model_advanced_energy_solaron":
 											service.setModelAdvancedEnergySolaron(rowItem, r);
 											break;
@@ -404,6 +414,14 @@ public class ImportOldDataController extends BaseController {
 										case "model_sma_inverter_12_15_20_24_30tlus10":
 											service.setModelSmaInverterStp1215202430Tlus10(rowItem, r);
 											break;
+											
+										case "model_meter_ion_6200":
+											service.setModelMeterIon6200(rowItem, r);
+											break;
+										
+										case "model_acuvim_IIR":
+											service.setModelAcuvimIIR(rowItem, r);
+											break;	
 											
 										}
 										

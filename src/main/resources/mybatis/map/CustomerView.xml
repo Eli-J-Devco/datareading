@@ -2711,7 +2711,7 @@
 				WHEN CONVERT_TZ( l.start_date, '+00:00', t.`offset` ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', t.`offset` ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 MINUTE ) THEN 'minute' ELSE 'now'
 			END AS times_ago_unit,
 		CASE
-				
+				WHEN d.last_updated IS NULL THEN "Never"
 				
 				WHEN dg.table_name = 'model_power_measurement_ion_7650' AND d.field_value_default = 'kWTot' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
@@ -2897,6 +2897,9 @@
 
 				WHEN dg.table_name = 'model_meter_ion_6200' AND d.field_value_default = 'kWtotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
+				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				
 				ELSE "N/A"
 			END AS key_indicator,
 			
@@ -3075,6 +3078,9 @@
 		        WHEN dg.table_name = 'model_sma_inverter_12_15_20_24_30tlus10' AND d.field_value_default = 'Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
 
 				WHEN dg.table_name = 'model_meter_ion_6200' AND d.field_value_default = 'kWtotal' THEN (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
+				
+				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
+				
 				
 				ELSE "Z"
 				

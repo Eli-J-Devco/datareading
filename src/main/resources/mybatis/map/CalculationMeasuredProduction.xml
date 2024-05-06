@@ -159,7 +159,7 @@
 		LEFT JOIN (
 			SELECT 
 				time,
-				IF(nvmActiveEnergy IS NULL OR (LEAD(nvmActiveEnergy, 1) OVER (ORDER BY time)) IS NULL OR nvmActiveEnergy <![CDATA[<=]]> 0 OR (LEAD(nvmActiveEnergy, 1) OVER (ORDER BY time)) <![CDATA[<=]]> 0, 0, ROUND( GREATEST( (LEAD(nvmActiveEnergy, 1) OVER (ORDER BY time)) - nvmActiveEnergy, 0), 0) ) AS MeasuredProduction
+				IF(nvmActiveEnergy IS NULL OR (LEAD(nvmActiveEnergy, 1) OVER (ORDER BY time)) IS NULL OR nvmActiveEnergy <![CDATA[<=]]> 0 OR (LEAD(nvmActiveEnergy, 1) OVER (ORDER BY time)) <![CDATA[<=]]> 0, 0, ROUND( GREATEST( (LEAD(nvmActiveEnergy, 1) OVER (ORDER BY time)) - nvmActiveEnergy, 0), 2) ) AS MeasuredProduction
 			FROM 
 				${datatablename}
 			WHERE
@@ -333,8 +333,14 @@
 							    <when test="formula == 1">
 							      AVG( ${fieldname} ) AS valueField
 							    </when>
-							    <when test="formula != 2">
+							    <when test="formula == 2">
 							      SUM( ${fieldname} ) AS valueField
+							    </when>
+							    <when test="formula == 3">
+							      MAX( ${fieldname} ) AS valueField
+							    </when>
+							    <when test="formula == 4">
+							      MIN( ${fieldname} ) AS valueField
 							    </when>
 							    <otherwise>
 							      AVG( ${fieldname} ) AS valueField
@@ -351,13 +357,16 @@
 								      time <![CDATA[>=]]> DATE_ADD(NOW(), INTERVAL -1 HOUR)
 								    </when>
 								    <when test="type == 3">
-								      time <![CDATA[>=]]> SELECT DATE_ADD(NOW(), INTERVAL -1 DAY)
+								      time <![CDATA[>=]]> DATE_ADD(NOW(), INTERVAL -1 DAY)
 								    </when>
 								    <when test="type == 4">
-								      time <![CDATA[>=]]> SELECT DATE_ADD(NOW(), INTERVAL -1 MONTH)
+								      time <![CDATA[>=]]> DATE_ADD(NOW(), INTERVAL -1 MONTH)
 								    </when>
 								    <when test="type == 5">
-								      time <![CDATA[>=]]> SELECT DATE_ADD(NOW(), INTERVAL -12 MONTH)
+								      time <![CDATA[>=]]> DATE_ADD(NOW(), INTERVAL -12 MONTH)
+								    </when>
+								    <when test="type == 6">
+								      time <![CDATA[>=]]> DATE_ADD(NOW(), INTERVAL -1 MONTH)
 								    </when>
 								    <otherwise>
 								      DATE_FORMAT( time, '%Y-%m-%d' ) = DATE_FORMAT( NOW(), '%Y-%m-%d' )
