@@ -301,6 +301,10 @@ public class ImportOldDataController extends BaseController {
 											service.setModelSolectriaSGI226IVT(rowItem, r);	
 											break;
 											
+										case "model_solectria_inv_00_slc_3146":
+											service.setModelSolectriaINV00SLC3146T(rowItem, r);	
+											break;
+											
 										case "model_pv_powered_35_50_260_500kw_inverter":
 											service.setModelPVPowered3550260KWInverter(rowItem, r);
 											break;
@@ -375,6 +379,10 @@ public class ImportOldDataController extends BaseController {
 											service.setModelShark100(rowItem, r);
 											break;
 											
+										case "model_shark100v1":
+											service.setModelShark100v1(rowItem, r);
+											break;
+											
 										case "model_xantrex_inverter":
 											service.setModelXantrexInverter(rowItem, r);
 											break;
@@ -422,6 +430,28 @@ public class ImportOldDataController extends BaseController {
 										case "model_acuvim_IIR":
 											service.setModelAcuvimIIR(rowItem, r);
 											break;	
+										case "model_veris_industries_e50c2a":
+											service.setModelVerisIndustriesE50c2a(rowItem, r);
+											break;
+											
+										case "model_sma_cluster_controller":
+											service.setModelSmaClusterController(rowItem, r);
+											break;
+										case "model_sma_inverter_stp1200tlus10":
+											service.setModelSmaInverterStp1200tlus10(rowItem, r);
+											break;	
+										case "model_sma_inverter_stp24ktlus10":
+											service.setModelSmaInverterStp24ktlus10(rowItem, r);
+											break;
+										case "model_sma_inverter_stp30000tlus10":
+											service.setModelSmaInverterStp30000tlus10(rowItem, r);
+											break;
+										case "model_sma_inverter_stp24000tlus10":
+											service.setModelSmaInverterStp24000tlus10(rowItem, r);
+											break;
+										case "model_sma_inverter_stp62us41":
+											service.setModelSmaInverterStp62tlus41(rowItem, r);
+											break;
 											
 										}
 										

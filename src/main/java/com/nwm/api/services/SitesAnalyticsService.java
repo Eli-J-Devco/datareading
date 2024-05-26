@@ -64,9 +64,8 @@ public class SitesAnalyticsService extends DB {
 			List dataList = new ArrayList();
 			List dataDevice = obj.getDataDevice();
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-			List<Map<String, String>> deviceGroupsList = queryForList("SitesAnalytics.getDeviceGroupsList", obj);
 						
-			if(dataDevice.size() > 0 && deviceGroupsList.size() > 0) {
+			if(dataDevice.size() > 0) {
 				List<CompletableFuture<Map<String, Object>>> list = new ArrayList<CompletableFuture<Map<String, Object>>>();
 				
 				int diff5Days = (int) ((dateFormat.parse(obj.getEnd_date()).getTime() - dateFormat.parse(obj.getStart_date()).getTime()) / (1000 * 60 * 60 * 24) + 1);
@@ -88,6 +87,7 @@ public class SitesAnalyticsService extends DB {
 						try {
 							Map<String, Object> map = (Map<String, Object>) dataDevice.get(k);
 							
+							map.put("filterEnabled", obj.isFilterEnabled());
 							map.put("filterBy", obj.getFilterBy());
 							map.put("start_date", obj.getStart_date());
 							map.put("end_date", obj.getEnd_date());
@@ -98,28 +98,20 @@ public class SitesAnalyticsService extends DB {
 							List hiddenDataList = queryForList("SitesAnalytics.getHiddenDataListByDevice", map);
 							map.put("hidden_data_list", hiddenDataList);
 							
-							// get device's common model table
-							Map<String, String> modelTable = deviceGroupsList.stream().filter(deviceGroup -> map.get("datatablename").toString().endsWith(deviceGroup.get("table_name"))).findFirst().get();
-							map.put("table_name", modelTable.get("table_name"));
-							
 							if(d1.compareTo(d2) < 0) {
 								map.put("datatablename", map.get("datatablename"));
 							} else {
 								map.put("datatablename", map.get("view_tablename"));
 							}
 							
-							if ((int) map.get("id_device_type") == 12) map.put("datatablename", map.get("table_data_virtual"));
+							if ((int) map.get("id_device_type") == 12 && (int) map.get("id_device_group") != 81) map.put("datatablename", map.get("table_data_virtual"));
 							
 							List getDataChartParameter = queryForList("SitesAnalytics.getDataChartParameter", map);
-							
-							// get list of filter parameters
-							List filterParamsList = queryForList("SitesAnalytics.getFilterParamsByDevice", map);
 							
 							maps.put("id", map.get("id"));
 							maps.put("device_name", map.get("devicename"));
 							maps.put("id_device_group", map.get("id_device_group"));
 							maps.put("id_device_type", map.get("id_device_type"));
-							maps.put("filter_params", filterParamsList);
 							maps.put("data", getDataChartParameter);
 						} catch (Exception ex) {
 							log.error("getChartParameterDevice", ex);

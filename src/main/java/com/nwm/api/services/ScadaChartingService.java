@@ -6,56 +6,83 @@
 package com.nwm.api.services;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nwm.api.DBManagers.DB;
-import com.nwm.api.entities.ScadaDeviceAlarmEntity;
-import com.nwm.api.entities.ScadaDeviceChartDataEntity;
-import com.nwm.api.entities.ScadaDeviceEntity;
+import com.nwm.api.entities.ScadaChartingDeviceEntity;
+import com.nwm.api.entities.ScadaChartingEntity;
 
-public class ScadaDeviceService extends DB {
+public class ScadaChartingService extends DB {
+	
+	/**
+	 * @description get site detail
+	 * @author Hung.Bui
+	 * @since 2024-05-03
+	 * @param obj { hash_id_site }
+	 * @return
+	 */
+	public ScadaChartingEntity getSiteDetail(ScadaChartingEntity obj) {
+		try {
+			return (ScadaChartingEntity) queryForObject("ScadaCharting.getSiteDetail", obj);
+		} catch (Exception ex) {
+			return null;
+		}
+	}
 
 	/**
 	 * @description get devices list by site
 	 * @author Hung.Bui
-	 * @since 2024-03-26
-	 * @param obj { id_site }
+	 * @since 2024-05-03
+	 * @param obj { hash_id_site }
 	 * @return
 	 */
-	public List<ScadaDeviceEntity> getListDeviceBySite(ScadaDeviceEntity obj) {
-		List<ScadaDeviceEntity> dataList = new ArrayList<ScadaDeviceEntity>();
+	public List<ScadaChartingDeviceEntity> getListDeviceBySite(ScadaChartingEntity obj) {
 		try {
-			dataList = queryForList("ScadaDevice.getListDeviceBySite", obj);
-			if (dataList == null) return new ArrayList<ScadaDeviceEntity>();
+			List<ScadaChartingDeviceEntity> dataList = queryForList("ScadaCharting.getListDeviceBySite", obj);
+			ObjectMapper mapper = new ObjectMapper();
+			dataList.forEach(item -> {
+					try {
+						item.setParameters(mapper.readValue(item.getParametersJSON(), new TypeReference<List<Map<String, Object>>>(){}));
+					} catch (JsonProcessingException e) {
+						item.setParameters(new ArrayList<Map<String, Object>>());
+					}
+				item.setParametersJSON(null);
+			});
+			return dataList;
 		} catch (Exception ex) {
-			return new ArrayList<ScadaDeviceEntity>();
+			return new ArrayList<ScadaChartingDeviceEntity>();
 		}
-		return dataList;
 	}
 	
 	/**
 	 * @description fulfill data in specific range of time
 	 * @author Hung.Bui
-	 * @since 2024-04-05
+	 * @since 2024-05-03
 	 * @param dateTimeList
 	 * @param dataList
 	 * @return
 	 */
-	private List<ScadaDeviceChartDataEntity> fulfillData(List<ScadaDeviceChartDataEntity> dateTimeList, List<ScadaDeviceChartDataEntity> dataList) {
-		List<ScadaDeviceChartDataEntity> fulfilledDataList = new ArrayList<ScadaDeviceChartDataEntity>();
+	private List<Map<String, Object>> fulfillData(List<Map<String, Object>> dateTimeList, List<Map<String, Object>> dataList) {
+		List<Map<String, Object>> fulfilledDataList = new ArrayList<Map<String, Object>>();
 		
 		try {
 			if(dataList.size() > 0 && dateTimeList.size() > 0) {
-				for (ScadaDeviceChartDataEntity dateTime: dateTimeList) {
+				for (Map<String, Object> dateTime: dateTimeList) {
 					boolean isFound = false;
 					
-					for(ScadaDeviceChartDataEntity data: dataList) {
-						String fullTime = dateTime.getFull_time();
-						String powerTime = data.getFull_time();
+					for(Map<String, Object> data: dataList) {
+						String fullTime = dateTime.get("time_full").toString();
+						String powerTime = data.get("time_full").toString();
 						
 						if (fullTime.equals(powerTime)) {
 							fulfilledDataList.add(data);
@@ -77,14 +104,14 @@ public class ScadaDeviceService extends DB {
 	/**
 	 * @description create date time list
 	 * @author Hung.Bui
-	 * @since 2024-04-22
+	 * @since 2024-05-03
 	 * @param obj device object
 	 * @param start start date time
 	 * @param end end date time
 	 * @return
 	 */
-	private List<ScadaDeviceChartDataEntity> getDateTimeList(ScadaDeviceEntity obj, LocalDateTime start, LocalDateTime end) {
-		List<ScadaDeviceChartDataEntity> dateTimeList = new ArrayList<>();
+	private List<Map<String, Object>> getDateTimeList(ScadaChartingEntity obj, LocalDateTime start, LocalDateTime end) {
+		List<Map<String, Object>> dateTimeList = new ArrayList<>();
 		
 		try {
 			int interval = 0;
@@ -238,9 +265,9 @@ public class ScadaDeviceService extends DB {
 			}
 			
 			while (!start.isAfter(end)) {
-				ScadaDeviceChartDataEntity dateTime = new ScadaDeviceChartDataEntity();
-				dateTime.setFull_time(start.format(fullTimeFormat));
-				dateTime.setCategory_time(start.format(categoryTimeFormat));
+				Map<String, Object> dateTime = new HashMap<String, Object>();
+				dateTime.put("time_full", start.format(fullTimeFormat));
+				dateTime.put("categories_time", start.format(categoryTimeFormat));
 				dateTimeList.add(dateTime);
 				start = start.plus(interval, timeUnit);
 			}
@@ -254,57 +281,76 @@ public class ScadaDeviceService extends DB {
 	/**
 	 * @description get chart data
 	 * @author Hung.Bui
-	 * @since 2024-04-05
-	 * @param obj { id, datatablename, timezone_value, id_filter, start_date, end_date, data_send_time }
+	 * @since 2024-05-03
+	 * @param obj { id_filter, start_date, end_date, data_send_time, devicesList }
 	 * @return
 	 */
-	public List<ScadaDeviceChartDataEntity> getChartData(ScadaDeviceEntity obj) {
+	public List getChartData(ScadaChartingEntity obj) {
 		try {
-			List<ScadaDeviceChartDataEntity> dataList = new ArrayList<ScadaDeviceChartDataEntity>();
-			
-			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")).withHour(0).withMinute(0).withSecond(0);
-			obj.setStart_date(start.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")).withHour(23).withMinute(59).withSecond(59);
-			obj.setEnd_date(end.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-			
-			dataList = queryForList("ScadaDevice.getChartData", obj);
-			if (dataList == null) return new ArrayList<ScadaDeviceChartDataEntity>();
-			return fulfillData(getDateTimeList(obj, start, end), dataList);
-		} catch (Exception ex) {
-			return new ArrayList<ScadaDeviceChartDataEntity>();
-		}
-	}
-	
-	/**
-	 * @description get alarms list by device
-	 * @author Hung.Bui
-	 * @since 2024-04-12
-	 * @param obj { hash_id_site, modbusdevicenumber }
-	 * @return
-	 */
-	public List<ScadaDeviceAlarmEntity> getActiveAlarmsListByDevice(ScadaDeviceEntity obj) {
-		try {
-			List<ScadaDeviceAlarmEntity> dataList = queryForList("ScadaDevice.getActiveAlarmsListByDevice", obj);
-			if (dataList == null) return new ArrayList<ScadaDeviceAlarmEntity>();
+			List dataList = new ArrayList();
+			List devicesList = obj.getDevicesList();
+			DateTimeFormatter inputDateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
+			DateTimeFormatter isoDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+						
+			if(devicesList.size() > 0) {
+				List<CompletableFuture<Map<String, Object>>> list = new ArrayList<CompletableFuture<Map<String, Object>>>();
+				
+				LocalDateTime startDate = LocalDateTime.parse(obj.getStart_date(), inputDateFormat).withHour(0).withMinute(0).withSecond(0);
+				LocalDateTime endDate = LocalDateTime.parse(obj.getEnd_date(), inputDateFormat).withHour(23).withMinute(59).withSecond(59);
+				long diff5Days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+				
+				for(int i = 0; i < devicesList.size(); i++) {
+					int k = i;
+					
+					CompletableFuture<Map<String, Object>> future = CompletableFuture.supplyAsync(() -> {
+						Map<String, Object> maps = new HashMap<>();
+						
+						try {
+							Map<String, Object> map = (Map<String, Object>) devicesList.get(k);
+							
+							map.put("filterBy", obj.getId_filter());
+							map.put("start_date", startDate.format(isoDateFormat));
+							map.put("end_date", endDate.format(isoDateFormat));
+							map.put("diff5Days", diff5Days <= 5 && diff5Days > 0);
+							map.put("data_send_time", obj.getData_send_time());
+							
+							// get list of time to exclude data from
+							List hiddenDataList = queryForList("ScadaCharting.getHiddenDataListByDevice", map);
+							map.put("hidden_data_list", hiddenDataList);
+							// if device is virtual device, use table_data_virtual
+							if ((int) map.get("id_device_type") == 12) map.put("datatablename", map.get("table_data_virtual"));
+							// if data is more than 3 months, use view_tablename, else use datatablename
+							else map.put("datatablename", map.get(startDate.isBefore(LocalDateTime.now().minusMonths(3)) ? "datatablename" : "view_tablename"));
+							
+							List chartData = queryForList("ScadaCharting.getChartData", map);
+							
+							// get list of filter parameters
+							List filterParamsList = queryForList("ScadaCharting.getFilterParamsByDevice", map);
+							
+							maps.put("id", map.get("id"));
+							maps.put("device_name", map.get("name"));
+							maps.put("id_device_group", map.get("id_device_group"));
+							maps.put("id_device_type", map.get("id_device_type"));
+							maps.put("filter_params", filterParamsList);
+							maps.put("data", fulfillData(getDateTimeList(obj, startDate, endDate), chartData));
+						} catch (Exception ex) {
+							log.error("getChartData", ex);
+						}
+						
+						return maps;
+					});
+					
+					list.add(future);
+				}
+				
+				CompletableFuture<Void> combinedFutures = CompletableFuture.allOf(list.toArray(new CompletableFuture[list.size()]));
+				List<Map<String, Object>> deviceDataList = combinedFutures.thenApply(__ -> list.stream().map(future -> future.join()).collect(Collectors.toList())).get();
+			    deviceDataList.forEach(data -> dataList.add(data));
+			}
 			return dataList;
+				
 		} catch (Exception ex) {
-			return new ArrayList<ScadaDeviceAlarmEntity>();
+			return new ArrayList();
 		}
 	}
-	
-	/**
-	 * @description get device detail
-	 * @author Hung.Bui
-	 * @since 2024-04-12
-	 * @param obj { hash_id_site, modbusdevicenumber }
-	 * @return
-	 */
-	public ScadaDeviceEntity getDeviceDetail(ScadaDeviceEntity obj) {
-		try {
-			return (ScadaDeviceEntity) queryForObject("ScadaDevice.getDeviceDetail", obj);
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
 }

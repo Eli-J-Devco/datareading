@@ -39,6 +39,7 @@
 		<mapper resource="mybatis/map/Employee.xml" />
 		<mapper resource="mybatis/map/Device.xml" />
 		<mapper resource="mybatis/map/ModelShark100.xml" />
+		<mapper resource="mybatis/map/ModelShark100v1.xml" />
 		<mapper resource="mybatis/map/ModelRT1Class30000.xml" />
 		<mapper resource="mybatis/map/ModelIVTSolaronEXT.xml" />
 		<mapper resource="mybatis/map/Site.xml" />
@@ -136,8 +137,8 @@
 		<mapper resource="mybatis/map/ModelSmaInverterStp24000ktlus.xml"/>
 		<mapper resource="mybatis/map/ModelLevitonVirtualMeter.xml"/>
 		<mapper resource="mybatis/map/ModelAcuvimIIR.xml"/>
-		
-		
+		<mapper resource="mybatis/map/ModelPVMet200.xml"/>
+		<mapper resource="mybatis/map/ModelSolectriaINV00SLC3146.xml"/>
 		
 		
 		
@@ -193,6 +194,7 @@
 		 <mapper resource="mybatis/map/WidgetGroup.xml"/>
 		 
 		 <mapper resource="mybatis/map/ThirdPartyAPI.xml"/>
+		 <mapper resource="mybatis/map/UploadJSON.xml"/>
 		 
 		 
 		 
@@ -202,6 +204,7 @@
 		<mapper resource="mybatis/map/ScadaSetup.xml"/>
 		<mapper resource="mybatis/map/ScadaOverview.xml"/>
 		<mapper resource="mybatis/map/ScadaAlert.xml"/>
+		<mapper resource="mybatis/map/ScadaCharting.xml"/>
 		
 	</mappers>
 </configuration>
