@@ -1171,7 +1171,7 @@ public class ReportsController extends BaseController {
 			
 			cell = row1.createCell(2);
 			cell.setCellStyle(cellStyleCustom);
-			cell.setCellValue("ANNUALLY PRODUCTION REPORT");
+			cell.setCellValue("ANNUAL PRODUCTION REPORT");
 
 			// Create CellStyle image
 
@@ -1544,7 +1544,7 @@ public class ReportsController extends BaseController {
 						baselineGenerationIndexTrailing.add((double) (totalGeneration/totalExpectations) * 100 );
 					}
 					
-					XSSFSheet chartSheet = document.createSheet("Annually Performance");
+					XSSFSheet chartSheet = document.createSheet("Annual Performance");
 					XSSFSheet dataSheet = document.createSheet("data");
 
 					// FileInputStream obtains input bytes from the image file
@@ -1592,7 +1592,7 @@ public class ReportsController extends BaseController {
 					XSSFDrawing drawing1 = chartSheet.createDrawingPatriarch();
 					XSSFClientAnchor anchor1 = drawing1.createAnchor(0, 0, 0, 0, 0, 18, 14, 40);
 					XDDFChart chart = drawing1.createChart(anchor1);
-					chart.setTitleText("Annually Performance");
+					chart.setTitleText("Annual Performance");
 					chart.setTitleOverlay(false);
 					chart.getCTChart().getTitle().getTx().getRich().getPArray(0).getRArray(0).getRPr().setSz(1200);
 
@@ -1675,28 +1675,32 @@ public class ReportsController extends BaseController {
 					
 
 					data = chart.createData(ChartTypes.LINE, bottomAxis, rightAxis);
+					data.setVaryColors(false);
 					bar.setBarDirection(BarDirection.COL);
 
 
 				    
-					series = data.addSeries(categoriesData, valuesData3);
-					
+					XDDFLineChartData.Series seriesLine = (XDDFLineChartData.Series) data.addSeries(categoriesData, valuesData3);
 
-					series.setTitle("Baseline Generation Index (%)",
+					seriesLine.setTitle("Estimated Generation Index (%)",
 							new CellReference(chartSheet.getSheetName(), 10, 0, true, true));
-					chart.plot(data);
+					seriesLine.setSmooth(false);
+					seriesLine.setMarkerStyle(MarkerStyle.NONE);
+					chart.plot(data);			
+					// set line colors				
+					solidLineSeries(data, 0, PresetColor.GRAY);
+
 
 
 					// this must occur after the call to chart.plot above
-					CTPlotArea plotAreaLine = chart.getCTChart().getPlotArea();
-				    for (CTLineChart ch : plotAreaLine.getLineChartList()) {
-				        for (CTLineSer ser : ch.getSerList()) {
-				            CTBoolean ctBool = CTBoolean.Factory.newInstance();
-				            ctBool.setVal(false);
-				            ser.setSmooth(ctBool);
-				            ser.addNewMarker().addNewSymbol().setVal(STMarkerStyle.CIRCLE);
-				        }
-				    }
+//					CTPlotArea plotAreaLine = chart.getCTChart().getPlotArea();
+//				    for (CTLineChart ch : plotAreaLine.getLineChartList()) {
+//				        for (CTLineSer ser : ch.getSerList()) {
+//				            CTBoolean ctBool = CTBoolean.Factory.newInstance();
+//				            ser.setSmooth(ctBool);				            
+//				            ser.addNewMarker().addNewSymbol().setVal(STMarkerStyle.NONE);
+//				        }
+//				    }
 				    
 					
 					// set legend
@@ -1707,7 +1711,7 @@ public class ReportsController extends BaseController {
 					String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(Calendar.getInstance().getTime());
 					String dir = uploadRootPath() + "/"
 							+ Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathReportFiles);
-					String fileName = dir + "/Annually-report-" + timeStamp + ".xlsx";
+					String fileName = dir + "/Annual-report-" + timeStamp + ".xlsx";
 
 					try (FileOutputStream fileOut = new FileOutputStream(fileName)) {
 						document.write(fileOut);
@@ -1715,7 +1719,7 @@ public class ReportsController extends BaseController {
 								Constants.mailFromContact);
 
 						String msgTemplate = Constants.getMailTempleteByState(16);
-						String body = String.format(msgTemplate, dataObj.getSite_name(), dataObj.getId_site(), "Customer", "Annually ", "", "");
+						String body = String.format(msgTemplate, dataObj.getSite_name(), dataObj.getId_site(), "Customer", "Annual ", "", "");
 						String mailTo = dataObj.getSubscribers();
 						String subject = Constants.getMailSubjectByState(16);
 
@@ -1748,7 +1752,7 @@ public class ReportsController extends BaseController {
 		try {
 			String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(Calendar.getInstance().getTime());
 			String dir = uploadRootPath() + "/" + Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathReportFiles);
-			String fileName = dir + "/Annually-report-" + timeStamp + ".pdf";
+			String fileName = dir + "/Annual-report-" + timeStamp + ".pdf";
 			File file = new File(fileName);
 			
 			try (
@@ -1857,7 +1861,7 @@ public class ReportsController extends BaseController {
 					//====== table ============================================================
 					// header and logo
 					table.addCell(new com.itextpdf.layout.element.Cell(1, 4).setHeight(14).setBorder(Border.NO_BORDER));
-					table.addCell(new com.itextpdf.layout.element.Cell(6, 6).add(new Paragraph("ANNUALLY PRODUCTION REPORT")).setTextAlignment(TextAlignment.CENTER).setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE).setBorder(Border.NO_BORDER).setFontSize(20).setBold());
+					table.addCell(new com.itextpdf.layout.element.Cell(6, 6).add(new Paragraph("ANNUAL PRODUCTION REPORT")).setTextAlignment(TextAlignment.CENTER).setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE).setBorder(Border.NO_BORDER).setFontSize(20).setBold());
 					table.addCell(new com.itextpdf.layout.element.Cell(6, 4).add(logoImage).setVerticalAlignment(com.itextpdf.layout.properties.VerticalAlignment.MIDDLE).setBorder(Border.NO_BORDER));
 					table.addCell(new com.itextpdf.layout.element.Cell(1, 2).add(new Paragraph("Site Name").setBold().setTextAlignment(TextAlignment.LEFT)));
 					table.addCell(new com.itextpdf.layout.element.Cell(1, 2).add(new Paragraph(dataObj.getSite_name()).setBold().setTextAlignment(TextAlignment.LEFT)));
@@ -2005,7 +2009,7 @@ public class ReportsController extends BaseController {
 					// plot and return image
 					JFreeChart chart = new JFreeChart(plot);
 					chart.setBackgroundPaint(Color.white);
-					chart.setTitle("Annually Performance");
+					chart.setTitle("Annual Performance");
 					chartCell.add(new Image(ImageDataFactory.create(chart.createBufferedImage(1650, 600), null)).setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER).scaleToFit(1100, 400));
 
 					// Write the output to a file
@@ -2015,7 +2019,7 @@ public class ReportsController extends BaseController {
 
 				    String mailFromContact = Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailFromContact);
 				    String msgTemplate = Constants.getMailTempleteByState(16);
-				    String body = String.format(msgTemplate, dataObj.getSite_name(), dataObj.getId_site(), "Customer", "Annually ", "", "");
+				    String body = String.format(msgTemplate, dataObj.getSite_name(), dataObj.getId_site(), "Customer", "Annual ", "", "");
 				    String mailTo = dataObj.getSubscribers();
 				    String subject = Constants.getMailSubjectByState(16);
 				    
@@ -3910,12 +3914,13 @@ public class ReportsController extends BaseController {
 				for (int i = 0; i < data.size(); i++) {
 					Map<String, Object> item = (Map<String, Object>) data.get(i);
 					String[] record = { 
-							item.get("rec_id").toString(), 
-							item.get("gu_id").toString(), 
+							item.get("name").toString() + " - " + item.get("devicename").toString(),
+							" "+item.get("ru_id").toString(),
+							" "+item.get("gu_id").toString(),
 							" "+item.get("vintage_date").toString(),
 							" "+item.get("start_date").toString(),
 							" "+item.get("end_date").toString(),
-							item.get("energy_this_month").toString()
+							" "+item.get("energy_this_month").toString()
 							};
 					list.add(record);
 				}
@@ -4449,15 +4454,19 @@ public class ReportsController extends BaseController {
 					// set correct cross axis
 					bottomAxis.crossAxis(rightAxis);
 					rightAxis.crossAxis(bottomAxis);
-					
+													
 					data = chart.createData(ChartTypes.LINE, bottomAxis, rightAxis);
+					data.setVaryColors(false);
 					bar.setBarDirection(BarDirection.COL);
-					series = data.addSeries(categoriesData, valuesData3);
-					series.setTitle("Baseline Generation Index (%)",
+					XDDFLineChartData.Series seriesLine = (XDDFLineChartData.Series) data.addSeries(categoriesData, valuesData3);
+					seriesLine.setTitle("Estimated Generation Index (%)",
 							new CellReference(chartSheet.getSheetName(), 8, 3, true, true));
-					chart.plot(data);
-					
-					
+					seriesLine.setSmooth(false);
+					seriesLine.setMarkerStyle(MarkerStyle.NONE);
+					chart.plot(data);		
+					// set line colors				
+					solidLineSeries(data, 0, PresetColor.GRAY);
+									
 					// set legend
 					legend = chart.getOrAddLegend();
 					legend.setPosition(LegendPosition.BOTTOM);

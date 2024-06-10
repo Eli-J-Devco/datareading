@@ -189,6 +189,8 @@
 			s.`name` AS site_name,
 			CASE
 		    	WHEN r.type_report = 1 THEN CONCAT_WS( " " , s.`name`, "Solar Production Report") 
+		    	WHEN r.type_report = 3 THEN CONCAT_WS( " " , s.`name`, "Leviton BMO Consumption Report") 
+		    	WHEN r.type_report = 4 THEN CONCAT_WS( " " , s.`name`, "Asset Management and Operation Performance Report") 
 		    	WHEN r.type_report = 2 THEN
 		    		CASE
 		    			WHEN r.type_option = 1 THEN CONCAT_WS( " " , "Entire Portfolio", "Production Trend Report")
@@ -202,7 +204,7 @@
 		    	WHEN r.cadence_range = 1 THEN "Daily"
 				WHEN r.cadence_range = 2 THEN "Monthly"
 				WHEN r.cadence_range = 3 THEN "Quarterly"
-				WHEN r.cadence_range = 4 THEN "Annually"
+				WHEN r.cadence_range = 4 THEN "Annual"
 				WHEN r.cadence_range = 6 THEN "Weekly"
 		    	ELSE "Custom"
 			END	AS cadence_range_name,
@@ -364,6 +366,8 @@
 			t.ids_site,
 			CASE
 		    	WHEN r.type_report = 1 THEN CONCAT_WS( " " , s.`name`, "Solar Production Report") 
+		    	WHEN r.type_report = 3 THEN CONCAT_WS( " " , s.`name`, "Leviton BMO Consumption Report") 
+		    	WHEN r.type_report = 4 THEN CONCAT_WS( " " , s.`name`, "Asset Management and Operation Performance Report") 
 		    	WHEN r.type_report = 2 THEN
 		    		CASE
 		    			WHEN r.type_option = 1 THEN CONCAT_WS( " " , "Entire Portfolio", "Built-in Report")
@@ -487,8 +491,8 @@
 			DATE_FORMAT( sdr.time, '%m/%d/%Y' ) AS time_full,
 			DATE_FORMAT( sdr.time, '%Y-%m-%d' ) AS time_format,
 			
-			IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS chart_energy_kwh,
-			IFNULL(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
+			IF( (SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS chart_energy_kwh,
+			IFNULL(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
 			IFNULL(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 0.001) AS inverterEnergy
 			
 		FROM
@@ -540,27 +544,19 @@
 	<select id="getDataEnergyRECReport" resultType="Map" >
 		<foreach item="item" index="index" collection="id_sites" separator="UNION">
 		SELECT
-			s.id,
-			s.id AS id_site,
+			d.id,
 			s.`name`,
-			IF(s.rec_id IS NULL || s.rec_id = '', CONCAT_WS("-", "NWM", s.id), s.rec_id) AS rec_id,
-			IF(s.gu_id IS NULL || s.gu_id = '', CONCAT_WS("-", "NWM", s.id), s.gu_id) AS gu_id,
-			DATE_FORMAT( #{start_date}, "%m/%d/%Y") AS start_date,
+			d.devicename,
+			IF(d.ru_id IS NULL || d.ru_id = '', CONCAT_WS("-", "NWM", d.id), d.ru_id) AS ru_id,
+			IF(d.gu_id IS NULL || d.gu_id = '', CONCAT_WS("-", "NWM", d.id), d.gu_id) AS gu_id,
+			DATE_FORMAT(#{start_date}, "%m/%d/%Y") AS start_date,
 			DATE_FORMAT(#{end_date}, "%m/%d/%Y") AS end_date,
 			DATE_FORMAT(#{end_date}, "%m/%Y") AS vintage_date,
-			DATE_FORMAT( sdr.time, '%m' ) AS month,
-			DATE_FORMAT( sdr.time, '%Y' ) AS year,
-			DATE_FORMAT( sdr.time, '%m/%Y' ) AS categories_time,
-			DATE_FORMAT( sdr.time, '%m/%Y' ) AS time_full,
 			0 AS is_edit,
-			
 			CASE
-			    WHEN DATE_FORMAT( sdr.time, '%m' ) != DATE_FORMAT(CONVERT_TZ(NOW(),'+00:00', t.`offset`), '%m') THEN FORMAT( (ROUND( (IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) )) / 1000, 2 ) - ROUND( (IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) )) / 1000, 2 ) * 0.03) , 2) 
+			    WHEN DATE_FORMAT( sdr.time, '%m/%Y' ) != DATE_FORMAT(CONVERT_TZ(NOW(),'+00:00', t.`offset`), '%m/%Y') THEN FORMAT(SUM(sdr.ActualGeneration) / 1000 * 0.97, 2) 
 			    ELSE 0
-				END AS energy_this_month,
-				
-			IFNULL(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
-			IFNULL(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 0.001) AS inverterEnergy
+			END AS energy_this_month
 			
 		FROM
 			${item.table_data_report} sdr 
@@ -570,13 +566,17 @@
 			
 		WHERE
 			s.`status` = 1
-			AND d.`status` = 1
-			AND s.id = #{item.id}
 			AND s.is_delete = 0
+			AND d.`status` = 1
 			AND d.is_delete = 0
+			AND d.id = #{item.value}
+			AND d.id_device_type = 3
+			AND d.consumption_meter = 0
 			AND DATE_FORMAT(sdr.time, '%Y-%m') = DATE_FORMAT( #{end_date}, '%Y-%m')
 			AND s.is_rec_report = 1
-			GROUP BY s.id
+			AND s.reporting_region = #{reporting_region}
+		GROUP BY
+			d.id
 		</foreach>
 		
 		
@@ -585,16 +585,16 @@
 	
 	
 	<update id="updateRECID">
-		UPDATE `site`
+		UPDATE `device`
 		SET
-			`rec_id` = #{rec_id}
+			`ru_id` = #{ru_id}
 		WHERE
 			`id` = #{id}
 	</update>
 	
 	
 	<update id="updateGUID">
-		UPDATE `site`
+		UPDATE `device`
 		SET
 			`gu_id` = #{gu_id}
 		WHERE
@@ -614,8 +614,8 @@
 			DATE_FORMAT( sdr.time, '%m-%Y' ) AS time_full,
 			DATE_FORMAT( sdr.time, '%Y-%m' ) AS time_format,
 			DATE_FORMAT( sdr.time, '%Y-%m-%d' ) AS time_format_by_day,
-			IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS chart_energy_kwh,
-			IFNULL(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
+			IF( (SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS chart_energy_kwh,
+			IFNULL(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
 			IFNULL(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 0.001) AS inverterEnergy
 			
 		FROM
@@ -692,8 +692,8 @@
 			DATE_FORMAT( sdr.time, '%Y' ) AS year,
 			DATE_FORMAT( sdr.time, '%m' ) AS month_number,
 			DATE_FORMAT( sdr.time, '%b' ) AS month,
-			IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS chart_energy_kwh,
-			IFNULL(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
+			IF( (SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS chart_energy_kwh,
+			IFNULL(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
 			IFNULL(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 0.001) AS inverterEnergy
 			
 		FROM
@@ -751,6 +751,7 @@
 			WHERE
 				d.id_site = #{id_site}
 				AND d.id_device_type = 3
+				AND d.consumption_meter = 0
 				AND (sd.time BETWEEN #{start_date} AND #{end_date})
 				GROUP BY sd.time
 		)t
@@ -799,6 +800,7 @@
 							WHERE
 								s.id = #{item.id_site}
 								AND d.id_device_type = 3
+								AND d.consumption_meter = 0
 								AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
 								AND s.`status` = 1 
 								AND d.`status` = 1 
@@ -851,6 +853,7 @@
 							WHERE
 								s.id = #{item.id_site}
 								AND d.id_device_type = 3
+								AND d.consumption_meter = 0
 								AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
 								AND s.`status` = 1 
 								AND d.`status` = 1 
@@ -904,6 +907,7 @@
 							WHERE
 								s.id = #{item.id_site}
 								AND d.id_device_type = 3
+								AND d.consumption_meter = 0
 								AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
 								AND s.`status` = 1 
 								AND d.`status` = 1 
@@ -1107,8 +1111,8 @@
 				DATE_FORMAT( sdr.time, '%m/%d/%Y' ) AS time_full,
 				DATE_FORMAT( sdr.time, '%Y-%m-%d' ) AS time_format,
 				
-				IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS actual,
-				IFNULL(SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
+				IF( (SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0))) > 0, (ROUND(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 1)), ROUND(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 1) ) AS actual,
+				IFNULL(SUM(IF(d.id_device_type = 3 AND d.consumption_meter = 0, sdr.ActualGeneration, 0)), 0.001) AS meterEnergy,
 				IFNULL(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)), 0.001) AS inverterEnergy
 				
 			FROM

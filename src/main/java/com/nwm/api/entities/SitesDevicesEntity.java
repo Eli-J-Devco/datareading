@@ -136,6 +136,10 @@ public class SitesDevicesEntity {
 	private String mqtt_protocol;
 	private String mqtt_username;
 	private String mqtt_password;
+	
+	private String verifyCode;
+	private String sunrise;
+	private String sunset;
 
 	
 	
@@ -884,6 +888,24 @@ public class SitesDevicesEntity {
 	}
 	public void setExpiration(String expiration) {
 		this.expiration = expiration;
+	}
+	public String getVerifyCode() {
+		return verifyCode;
+	}
+	public void setVerifyCode(String verifyCode) {
+		this.verifyCode = verifyCode;
+	}
+	public String getSunrise() {
+		return sunrise;
+	}
+	public void setSunrise(String sunrise) {
+		this.sunrise = sunrise;
+	}
+	public String getSunset() {
+		return sunset;
+	}
+	public void setSunset(String sunset) {
+		this.sunset = sunset;
 	}
 	
 	

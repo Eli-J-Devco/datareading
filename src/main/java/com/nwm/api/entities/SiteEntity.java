@@ -119,6 +119,7 @@ public class SiteEntity {
 	private int value;
 	private double totalGeneration;
 	private int is_hiding;
+	private String tag;
 	
 	private double view_lat;
 	private double view_lng;
@@ -164,6 +165,7 @@ public class SiteEntity {
 	private int timezone_datalogger;
 	private String read_data_all;
 	private List devices;
+	private String ru_id;
 	private String gu_id;
 	private int unit_type_temp;
 	private int unit_wind_speed;
@@ -211,8 +213,29 @@ public class SiteEntity {
 	private String mqtt_protocol;
 	private String mqtt_username;
 	private String mqtt_password;
+	private String sunrise;
+	private String sunset;
+	private Integer reporting_region;
 	
 	
+	public String getTag() {
+		return tag;
+	}
+	public void setTag(String tag) {
+		this.tag = tag;
+	}
+	public String getSunrise() {
+		return sunrise;
+	}
+	public void setSunrise(String sunrise) {
+		this.sunrise = sunrise;
+	}
+	public String getSunset() {
+		return sunset;
+	}
+	public void setSunset(String sunset) {
+		this.sunset = sunset;
+	}
 	public String getSerial_number() {
 		return serial_number;
 	}
@@ -440,6 +463,12 @@ public class SiteEntity {
 	}
 	public void setUnit_type_temp(int unit_type_temp) {
 		this.unit_type_temp = unit_type_temp;
+	}
+	public String getRu_id() {
+		return ru_id;
+	}
+	public void setRu_id(String ru_id) {
+		this.ru_id = ru_id;
 	}
 	public String getGu_id() {
 		return gu_id;
@@ -1352,6 +1381,12 @@ public class SiteEntity {
 	}
 	public void setFilterEnabled(boolean filterEnabled) {
 		this.filterEnabled = filterEnabled;
+	}
+	public Integer getReporting_region() {
+		return reporting_region;
+	}
+	public void setReporting_region(Integer reporting_region) {
+		this.reporting_region = reporting_region;
 	}
 	
 	
