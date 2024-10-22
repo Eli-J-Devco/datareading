@@ -23,13 +23,15 @@ public class ModelKlea220pService extends DB {
 	 * @param data
 	 */
 	
-	public ModelKlea220pEntity setModelKlea220p(String line) {
+	public ModelKlea220pEntity setModelKlea220p(String line, double offset_data_old) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
 				ModelKlea220pEntity dataModel = new ModelKlea220pEntity();
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(5)) ? words.get(5) : "0.001");
+				Double energy = Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0.001");
+				if(energy > 0) { energy = energy + offset_data_old; }
 				
 				
 				dataModel.setTime(words.get(0).replace("'", ""));
@@ -37,7 +39,7 @@ public class ModelKlea220pService extends DB {
 				dataModel.setLow_alarm(Integer.parseInt(!Lib.isBlank(words.get(2)) ? words.get(2) : "0"));
 				dataModel.setHigh_alarm(Integer.parseInt(!Lib.isBlank(words.get(3)) ? words.get(3) : "0"));
 				
-				dataModel.setTotalEnergy(Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0.001"));
+				dataModel.setTotalEnergy(energy);
 				dataModel.setTotalActivePower(Double.parseDouble(!Lib.isBlank(words.get(5)) ? words.get(5) : "0.001"));
 				dataModel.setTotalReactivePower(Double.parseDouble(!Lib.isBlank(words.get(6)) ? words.get(6) : "0.001"));
 				dataModel.setTotalApparentPower(Double.parseDouble(!Lib.isBlank(words.get(7)) ? words.get(7) : "0.001"));
@@ -74,10 +76,9 @@ public class ModelKlea220pService extends DB {
 				
 				
 				// set custom field nvmActivePower and nvmActiveEnergy
-				Double nvmActiveEnergy = Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0.001");
 				
 				dataModel.setNvmActivePower(power);
-				dataModel.setNvmActiveEnergy(nvmActiveEnergy);
+				dataModel.setNvmActiveEnergy(energy);
 				
 				return dataModel;
 				
@@ -105,8 +106,12 @@ public class ModelKlea220pService extends DB {
 			ModelKlea220pEntity dataObj = (ModelKlea220pEntity) queryForObject("ModelKlea220p.getLastRow", obj);
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
-				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
-				 if(measuredProduction < 0 ) { measuredProduction = 0;}
+				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy(); 
+			 }
+			 
+			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
+				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				 obj.setTotalEnergy(dataObj.getNvmActiveEnergy());
 			 }
 
 			 obj.setMeasuredProduction(measuredProduction);

@@ -22,13 +22,16 @@ public class ModelShark100Service extends DB {
 	 * @param data
 	 */
 	
-	public ModelShark100Entity setModelShark100(String line) {
+	public ModelShark100Entity setModelShark100(String line, double offset_data_old) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
 				ModelShark100Entity dataModelShark100 = new ModelShark100Entity();
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(13)) ? words.get(13) : "0.001");
+				Double energy = Double.parseDouble(!Lib.isBlank(words.get(22)) ? words.get(22) : "0.001");
+				if(energy > 0) { energy = energy + offset_data_old; }
+				
 				
 				
 				dataModelShark100.setTime(words.get(0).replace("'", ""));
@@ -55,7 +58,7 @@ public class ModelShark100Service extends DB {
 				
 				dataModelShark100.setW_hours_delivered(Double.parseDouble(!Lib.isBlank(words.get(20)) ? words.get(20) : "0.001"));
 				dataModelShark100.setW_hours_net(Double.parseDouble(!Lib.isBlank(words.get(21)) ? words.get(21) : "0.001"));
-				dataModelShark100.setW_hours_total(Double.parseDouble(!Lib.isBlank(words.get(22)) ? words.get(22) : "0.001"));
+				dataModelShark100.setW_hours_total(energy);
 				dataModelShark100.setVar_hours_positive(Double.parseDouble(!Lib.isBlank(words.get(23)) ? words.get(23) : "0.001"));
 				dataModelShark100.setVar_hours_negative(Double.parseDouble(!Lib.isBlank(words.get(24)) ? words.get(24) : "0.001"));
 				dataModelShark100.setVar_hours_net(Double.parseDouble(!Lib.isBlank(words.get(25)) ? words.get(25) : "0.001"));
@@ -166,7 +169,7 @@ public class ModelShark100Service extends DB {
 				
 				// set custom field nvmActivePower and nvmActiveEnergy
 				dataModelShark100.setNvmActivePower(power);
-				dataModelShark100.setNvmActiveEnergy(Double.parseDouble(!Lib.isBlank(words.get(22)) ? words.get(22) : "0.001"));
+				dataModelShark100.setNvmActiveEnergy(energy);
 				
 				
 				return dataModelShark100;
@@ -194,11 +197,11 @@ public class ModelShark100Service extends DB {
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
-				 if(measuredProduction < 0 ) { measuredProduction = 0;}
-				 
-//				 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-//					 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-//				 }
+			 }
+			 
+			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
+				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				 obj.setW_hours_net(dataObj.getNvmActiveEnergy());
 			 }
 			 
 			 obj.setMeasuredProduction(measuredProduction);

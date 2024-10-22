@@ -10,6 +10,7 @@
 			s.id,
 			SHA1(s.id) AS hash_id,
 			s.id_country,
+			s.id_company,
 			s.id_time_zone,
 			s.`name`,
 			s.lat,
@@ -90,7 +91,15 @@
 			s.table_data_report,
 			s.table_data_virtual,
 			s.is_show_each_meter,		
-			s.expiration
+			s.expiration,
+			s.cost,
+			s.cost_unit,
+			s.site_domain_type,
+			s.threshold_item_max,
+			s.time_queue,
+			s.advance_tech_pass,
+			s.advance_tech_host,
+			advance_tech_status
 		FROM
 			site s 
 			LEFT JOIN site_employee_map sem ON sem.id_site = s.id
@@ -252,7 +261,7 @@
 			dt.image,
 			s.datalogger_ip,
 			d.ip_address,
-			IFNULL(DATE_FORMAT( CONVERT_TZ( d.last_updated, '+00:00', t.`offset` ) , '%m-%d-%Y %h:%i %p'), 'N/A') AS last_updated,
+			IFNULL(DATE_FORMAT( CONVERT_TZ( d.last_updated, '+00:00', t.`offset` ) , '%c/%e/%Y %h:%i %p'), 'N/A') AS last_updated,
 			t.offset,
 			p.totalError,
 			p.id_error_level,
@@ -287,6 +296,8 @@
 				WHEN dg.table_name = 'model_datalogger' AND d.field_value_default = 'MemFree' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kB" )))
 				
 				WHEN dg.table_name = 'model_solaredge_inverter' AND d.field_value_default = 'I_AC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+
+				WHEN dg.table_name = 'model_solaredge_inverter_v1' AND d.field_value_default = 'I_AC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 			
 				WHEN dg.table_name = 'model_sunny_central_class9775_inverter' AND d.field_value_default = 'ACPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				WHEN dg.table_name = 'model_sunny_central_class9775_inverter' AND d.field_value_default = 'ACVoltage' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "V" )))
@@ -326,6 +337,8 @@
 				
 				WHEN dg.table_name = 'model_lufft_class8020' AND d.field_value_default = 'AirTemperatureActual' THEN IF(s.unit_type_temp = 2,CONCAT_WS(" ", ROUND(IFNULL((d.field_value1 * 1.8 + 32), 0 ),2), "°F" ), CONCAT_WS(" ", ROUND(IFNULL(d.field_value2, 0 ),2), "°C" ))
 				WHEN dg.table_name = 'model_lufft_class8020' AND d.field_value_default = 'IrradianceActual' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "W/m²" )))
+
+				WHEN dg.table_name = 'model_sth01_temp_sensor' AND d.field_value_default = 'TEMPRATURE' THEN IF(s.unit_type_temp = 2,CONCAT_WS(" ", ROUND(IFNULL((d.field_value1 * 1.8 + 32), 0 ),2), "°F" ), CONCAT_WS(" ", ROUND(IFNULL(d.field_value1, 0 ),2), "°C" ))
 				
 				WHEN dg.table_name = 'model_lufft_ws501_umb_weather' AND d.field_value_default = 'AirTemperatureCActual' THEN IF(s.unit_type_temp = 2,CONCAT_WS(" ", ROUND(IFNULL((d.field_value1 * 1.8 + 32), 0 ),2), "°F" ), CONCAT_WS(" ", ROUND(IFNULL(d.field_value1, 0 ),2), "°C" ))
 				WHEN dg.table_name = 'model_lufft_ws501_umb_weather' AND d.field_value_default = 'GlobalRadiation' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "W/m²" )))
@@ -380,6 +393,10 @@
 				WHEN dg.table_name = 'model_elkor_production_meter' AND d.field_value_default = 'ActivePowerTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				WHEN dg.table_name = 'model_elkor_production_meter' AND d.field_value_default = 'VoltageA' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "Volts" )))
 				WHEN dg.table_name = 'model_elkor_production_meter' AND d.field_value_default = 'VoltageB' THEN  (IF(d.field_value3 = -1 or d.field_value3 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value3, 2), "Volts" )))
+				
+				WHEN dg.table_name = 'model_elkor_production_meterv1' AND d.field_value_default = 'ActivePowerTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				WHEN dg.table_name = 'model_elkor_production_meterv1' AND d.field_value_default = 'VoltageA' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "Volts" )))
+				WHEN dg.table_name = 'model_elkor_production_meterv1' AND d.field_value_default = 'VoltageB' THEN  (IF(d.field_value3 = -1 or d.field_value3 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value3, 2), "Volts" )))
 				
 				WHEN dg.table_name = 'model_elkor_wattson_pv_meter' AND d.field_value_default = 'TotalRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
@@ -476,6 +493,10 @@
 				
 				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
+				WHEN dg.table_name = 'model_gas_meter' AND d.field_value_default = 'ReadingValue' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				WHEN dg.table_name = 'model_water_meter' AND d.field_value_default = 'ReadingValue' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_dent_48pshd_meter' AND d.field_value_default = 'PowerSum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				ELSE "N/A"
 			END AS key_indicator,
@@ -592,7 +613,8 @@
 			device d
 			LEFT JOIN device_type dt ON d.id_device_type = dt.id 
 		WHERE
-			dt.id = 3 
+			dt.id IN (3,7,9)
+			AND d.is_excluded_meter = 0
 			AND d.id_site = #{id_site}
 			AND d.`status` = 1 
 			AND d.is_delete = 0
@@ -637,20 +659,19 @@
 			LEFT JOIN(
 				SELECT 
 					d.id_site,
-					IF( (SUM(IF(d.id_device_type = 3, d.energy_today, 0))) > 0, (SUM(IF(d.id_device_type = 3, d.energy_today, 0))), (SUM(IF(d.id_device_type = 1, d.energy_today, 0))) ) AS nvmActiveEnergy,
-					IF( (SUM(IF(d.id_device_type = 3, d.last_value, 0))) > 0, (SUM(IF(d.id_device_type = 3, d.last_value, 0))), (SUM(IF(d.id_device_type = 1, d.last_value, 0))) ) AS power_today
+					IF( (SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, d.energy_today, 0))) > 0, (SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, d.energy_today, 0))), (SUM(IF(d.id_device_type = 1, d.energy_today, 0))) ) AS nvmActiveEnergy,
+					IF( (SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, d.last_value, 0))) > 0, (SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, d.last_value, 0))), (SUM(IF(d.id_device_type = 1, d.last_value, 0))) ) AS power_today
 					FROM device d 
 					WHERE 
 					d.`status` = 1 
 					AND d.is_delete = 0
-					AND d.consumption_meter = 0
 					AND d.id_site  = #{id_site}
 			)today ON today.id_site = s.id
 			
 			LEFT JOIN(
 				SELECT
 					s.id,
-					IF( (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))) > 0, (SUM(IF(d.id_device_type = 3, sdr.ActualGeneration, 0))), (SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0))) ) AS nvmActiveEnergy
+					IF( (SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0))) > 0, (SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0))), (SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0))) ) AS nvmActiveEnergy
 				FROM
 					${table_data_report} sdr
 					LEFT JOIN device d ON d.id = sdr.id_device
@@ -768,7 +789,7 @@
 				WHEN CONVERT_TZ( dv.time, '+00:00', #{offset} ) <![CDATA[<]]> DATE_ADD( DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', #{offset} ) , '%Y-%m-%d %H:%i'), INTERVAL - 1 MINUTE ) THEN 'minute' ELSE 'now'
 			END AS times_ago_unit,
 			
-			IFNULL(DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', #{offset} ) , '%m-%d-%Y %h:%i %p'), 'N/A') AS time
+			IFNULL(DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', #{offset} ) , '%c/%e/%Y %h:%i %p'), 'N/A') AS time
 			
 		FROM
 			${datatablename} dv
@@ -786,4 +807,114 @@
 		ORDER BY dv.time DESC
 		LIMIT 1
 	</select>
+	
+	
+	<select id="getListWidgetOverviewLeviton" resultType="Map">
+		SELECT
+			d.id,
+			d.id_site,
+			d.`name`,
+			d.`status`,
+			d.icon,
+			d.is_consumption
+		FROM
+			leviton_overview_widget d
+		WHERE
+			d.id_site = #{id_site}
+			AND d.`status` = 1 
+			GROUP BY d.id;
+	</select>
+	
+	
+	
+	<select id="getListDeviceInWidget" resultType="Map">
+		SELECT
+			dm.id_device,
+			dm.id_leviton_overview_widget,
+			dt.datatablename
+		FROM
+			leviton_overview_widget_map dm
+			LEFT JOIN device dt ON dt.id = dm.id_device
+		WHERE
+			dm.id_leviton_overview_widget = #{id}
+			GROUP BY dt.id;
+	</select>
+	
+	
+	
+	<select id="getDataToday" resultType="Map">
+		SELECT 
+			t.id_device,
+			ROUND(SUM(t.energy),2) AS energy,
+			ROUND(SUM(t.today), 2) AS today
+		FROM (
+		<foreach collection="devices" item="item" index="index" separator="union all" >
+		<![CDATA[
+			SELECT
+				dv.id_device,
+				SUM( dv.MeasuredProduction ) AS energy,
+				(
+					SELECT SUM(dv.MeasuredProduction) AS today FROM ${item.datatablename} dv 
+					LEFT JOIN device d ON d.id = dv.id_device
+					LEFT JOIN site s ON s.id = d.id_site
+					LEFT JOIN time_zone t ON t.id = s.id_time_zone
+					WHERE 
+					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) = DATE_FORMAT( CONVERT_TZ( NOW(), '+00:00', t.`offset` ), '%Y-%m-%d' )
+				) AS today
+			FROM
+				${item.datatablename} dv 
+				LEFT JOIN device d ON d.id = dv.id_device
+				LEFT JOIN site s ON s.id = d.id_site
+				LEFT JOIN time_zone t ON t.id = s.id_time_zone
+			WHERE
+				time >= ADDDATE( NOW(), INTERVAL -30 DAY)
+		]]>
+		</foreach>
+		)t
+	</select>
+	
+	
+	
+	<select id="getDataChartingForLeviton" resultType="Map">
+		SELECT 
+			t.id_device,
+			ROUND(SUM(t.energy),2) AS energy,
+			t.categories_time,
+			t.tooltip_time,
+			t.time_format
+		FROM (
+		<foreach collection="devices" item="item" index="index" separator="union all" >
+			SELECT
+				dv.id_device,
+				SUM( dv.MeasuredProduction ) AS energy,
+				<choose>
+					<when test="(id_filter == '12_month') or (id_filter == 'lifetime')">
+						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m' ) AS categories_time,
+						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b, %Y' ) AS tooltip_time,
+						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m' ) AS time_format
+					</when>
+					
+					<otherwise>
+						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS categories_time,
+						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b %d, %Y' ) AS tooltip_time,
+						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format
+					</otherwise>
+				</choose>
+								
+				
+			FROM
+				${item.datatablename} dv 
+				LEFT JOIN device d ON d.id = dv.id_device
+				LEFT JOIN site s ON s.id = d.id_site
+				LEFT JOIN time_zone t ON t.id = s.id_time_zone
+			WHERE
+				(CAST(CONVERT_TZ( dv.time, '+00:00', t.`offset` ) AS DATETIME) BETWEEN CAST(#{start_date} AS DATETIME) AND CAST(#{end_date} AS DATETIME))
+			
+			GROUP BY
+				time_format
+		</foreach>
+		)t GROUP BY t.time_format
+	</select>
+	
+	
 </mapper>

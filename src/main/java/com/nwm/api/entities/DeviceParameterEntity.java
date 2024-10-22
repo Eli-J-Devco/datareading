@@ -48,11 +48,19 @@ public class DeviceParameterEntity{
 	private List deviceType;
 	private String filterBy;
 	private int writable;
+	private int rounding_decimals;
+	private int is_user_defined;
+	private Integer id_generic_parameter;
 	
 	
 	
 	
-	
+	public int getRounding_decimals() {
+		return rounding_decimals;
+	}
+	public void setRounding_decimals(int rounding_decimals) {
+		this.rounding_decimals = rounding_decimals;
+	}
 	public String getFilterBy() {
 		return filterBy;
 	}
@@ -286,6 +294,18 @@ public class DeviceParameterEntity{
 	}
 	public void setWritable(int writable) {
 		this.writable = writable;
+	}
+	public int getIs_user_defined() {
+		return is_user_defined;
+	}
+	public void setIs_user_defined(int is_user_defined) {
+		this.is_user_defined = is_user_defined;
+	}
+	public Integer getId_generic_parameter() {
+		return id_generic_parameter;
+	}
+	public void setId_generic_parameter(Integer id_generic_parameter) {
+		this.id_generic_parameter = id_generic_parameter;
 	}
 	
 

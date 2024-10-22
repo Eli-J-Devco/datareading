@@ -5,23 +5,30 @@
 *********************************************************/
 package com.nwm.api.services;
 
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 import org.apache.ibatis.session.SqlSession;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nwm.api.DBManagers.DB;
+import com.nwm.api.entities.AssetManagementAndOperationPerformanceReportEntity;
 import com.nwm.api.entities.DailyDateEntity;
 import com.nwm.api.entities.EnergyExpectationsEntity;
 import com.nwm.api.entities.MonthlyDateEntity;
+import com.nwm.api.entities.AssetManagementAndOperationPerformanceDataEntity;
 import com.nwm.api.entities.QuarterlyDateEntity;
 import com.nwm.api.entities.ReportsEntity;
 import com.nwm.api.entities.SiteEntity;
@@ -30,15 +37,90 @@ import com.nwm.api.utils.Constants;
 
 public class ReportsService extends DB {
 	
-	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
-		String value = defaultValue;
+	/**
+	 * @description fulfill data in specific range of time
+	 * @author Hung.Bui
+	 * @since 2024-05-03
+	 * @param dateTimeList
+	 * @param dataList
+	 * @return
+	 */
+	private List<Map<String, Object>> fulfillData(List<Map<String, Object>> dateTimeList, List<Map<String, Object>> dataList) {
+		List<Map<String, Object>> fulfilledDataList = new ArrayList<Map<String, Object>>();
+		
 		try {
-			value = resourceBundle.getString(key);
+			if(dataList != null && dateTimeList.size() > 0) {
+				for (Map<String, Object> dateTime: dateTimeList) {
+					boolean isFound = false;
+					
+					for(Map<String, Object> data: dataList) {
+						String fullTime = dateTime.get("categories_time").toString();
+						String powerTime = data.get("categories_time").toString();
+						
+						if (fullTime.equals(powerTime)) {
+							fulfilledDataList.add(data);
+							isFound = true;
+							break;
+						}
+					}
+					
+					if (!isFound) fulfilledDataList.add(dateTime);
+				}
+			}
 		} catch (Exception e) {
 			// TODO: handle exception
-			dbLog.error(e);
 		}
-		return value;
+		
+		return fulfilledDataList;
+	}
+	
+	/**
+	 * @description create date time list
+	 * @author Hung.Bui
+	 * @since 2024-05-03
+	 * @param obj device object
+	 * @param start start date time
+	 * @param end end date time
+	 * @return
+	 */
+	private List<Map<String, Object>> getDateTimeList(ViewReportEntity obj, LocalDateTime start, LocalDateTime end) {
+		List<Map<String, Object>> dateTimeList = new ArrayList<>();
+		
+		try {
+			int interval = 1;
+			DateTimeFormatter categoryTimeFormat = DateTimeFormatter.ofPattern("HH:mm");
+			ChronoUnit timeUnit = ChronoUnit.MINUTES;
+		
+			switch (obj.getCadence_range()) {
+				case 5: // custom
+	                switch (obj.getData_intervals()) {
+	                	case 4:
+	                		categoryTimeFormat = DateTimeFormatter.ofPattern("MM/dd/yyy");
+	                		timeUnit = ChronoUnit.DAYS;
+	                		break;
+	                	case 6:
+	                		categoryTimeFormat = DateTimeFormatter.ofPattern("MM/yyy");
+	                		timeUnit = ChronoUnit.MONTHS;
+	                		break;
+	                	case 7:
+	                		categoryTimeFormat = DateTimeFormatter.ofPattern("yyyy");
+	                		timeUnit = ChronoUnit.YEARS;
+	                		break;
+	                }
+					break;
+			}
+			
+			while (!start.isAfter(end)) {
+				Map<String, Object> dateTime = new HashMap<String, Object>();
+				dateTime.put("categories_time", start.format(categoryTimeFormat));
+				dateTimeList.add(dateTime);
+				start = start.plus(interval, timeUnit);
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		return dateTimeList;
 	}
 	
 	/**
@@ -48,10 +130,9 @@ public class ReportsService extends DB {
 	 * @param id_site, date_from, data_to
 	 */
 	
-	public Object getDailyReport(ViewReportEntity obj) {
-		ViewReportEntity dataObj = new ViewReportEntity();
-		DecimalFormat df = new DecimalFormat("###.#");
+	public ViewReportEntity getDailyReport(ViewReportEntity obj) {
 		try {
+			ViewReportEntity dataObj = new ViewReportEntity();
 			dataObj = (ViewReportEntity) queryForObject("Reports.getDetailReport", obj);
 			if (dataObj == null) {
 				return null;
@@ -79,7 +160,6 @@ public class ReportsService extends DB {
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm"); 
 			SimpleDateFormat catFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm");
 			
-			SimpleDateFormat dateFormatHour = new SimpleDateFormat("HH:00");
 			Date startDate = dateFormat.parse(obj.getStart_date());
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(startDate);
@@ -102,12 +182,7 @@ public class ReportsService extends DB {
 				cal.add(Calendar.MINUTE, t * minute);
 				
 				headerDate.setTime_format(dateFormat.format(cal.getTime()));
-				String hours = dateFormatHour.format(cal.getTime());
 				headerDate.setCategories_time(catFormat.format(cal.getTime()));
-				headerDate.setEnergy(0.001);
-				headerDate.setPower(0.001);
-				headerDate.setIrradiance(0.001);
-				headerDate.setHour_time(hours);
 				categories.add(headerDate);
 			}
 			
@@ -125,19 +200,16 @@ public class ReportsService extends DB {
 					        if (categoriesTime.equals(powerTime)) {
 					        	flag = true;
 					        	mapItemObj.setCategories_time(itemT.get("categories_time").toString());
-					        	Double power = Double.parseDouble(itemT.get("power").toString());
-					        	power = (power == -0.0) ? 0 : power;
+					        	Double power = itemT.get("power") != null ? Double.parseDouble(itemT.get("power").toString()) : null;
 					        	
 					        	mapItemObj.setPower( power );
-					        	mapItemObj.setIrradiance(item.getIrradiance());
 					        	mapItemObj.setTime_format(itemT.get("categories_time").toString());
-					        	mapItemObj.setHour_time(itemT.get("hour_time").toString());
 					        	
 					        	
-					        	if(itemT.get("power") == null || Double.parseDouble(itemT.get("power").toString()) == 0.001) {
-						        	mapItemObj.setEnergy( 0.001 );
+					        	if(itemT.get("power") == null) {
+						        	mapItemObj.setEnergy(null);
 					        	} else {
-					        		Double energy = (double)Math.round(Double.parseDouble(itemT.get("power").toString()) * 15/60);
+					        		Double energy = (double)Math.round(Double.parseDouble(itemT.get("power").toString()) * minute/60);
 						        	mapItemObj.setEnergy( energy > 0 ? energy : 0 );
 					        	}
 					        	
@@ -153,10 +225,6 @@ public class ReportsService extends DB {
 						DailyDateEntity mapItem = new DailyDateEntity();
 						mapItem.setCategories_time(item.getCategories_time());
 						mapItem.setTime_format(item.getTime_format());
-						mapItem.setHour_time(item.getHour_time());
-						mapItem.setIrradiance(item.getIrradiance());
-						mapItem.setEnergy(item.getEnergy());
-						mapItem.setPower(item.getPower());
 						
 						dataNewPower.add(mapItem);
 					} else {
@@ -181,7 +249,7 @@ public class ReportsService extends DB {
 							String categoriesTime = item.getTime_format();
 							String powerTime = itemT.get("categories_time").toString();
 					        if (categoriesTime.equals(powerTime)) {
-					        	item.setIrradiance(Double.parseDouble(itemT.get("irradiance").toString()));
+					        	item.setIrradiance(itemT.get("irradiance") != null ? Double.parseDouble(itemT.get("irradiance").toString()) : null);
 					        	break;
 					        }
 					    }
@@ -233,6 +301,7 @@ public class ReportsService extends DB {
 			}
 			
 			obj.setTable_data_report(dataObj.getTable_data_report());
+			obj.setHave_meter(dataObj.isHave_meter());
 			List dataListInverter = queryForList("Reports.getListDeviceTypeInverter", obj);
 			List dataEnergy = queryForList("Reports.getDataEnergyAnnuallyReport", obj);
 			
@@ -274,210 +343,46 @@ public class ReportsService extends DB {
 			if (dataObj == null) {
 				return null;
 			}
+			boolean quarterlyReportByMonth = dataObj.getData_intervals() == Constants.MONTHLY_INTERVAL;
 			
 			obj.setTable_data_report(dataObj.getTable_data_report());
-			List dataEnergy = queryForList("Reports.getDataEnergyQurterlyReport", obj);
-			if (dataEnergy.size() > 0) {
-				dataObj.setDataReports(dataEnergy);
-			}
+			obj.setHave_meter(dataObj.isHave_meter());
+			List<QuarterlyDateEntity> dataEnergy = quarterlyReportByMonth ? queryForList("Reports.getDataEnergyQuarterlyReportByMonth", obj) : queryForList("Reports.getDataEnergyQuarterlyReportByDay", obj);
 			
-			EnergyExpectationsEntity expec = (EnergyExpectationsEntity) queryForObject("Reports.getExpectationsRow", obj);
-			
-			List<QuarterlyDateEntity> categories = new ArrayList<QuarterlyDateEntity> ();
-			
-			SimpleDateFormat dateFormat;
-			SimpleDateFormat catFormat;
-			SimpleDateFormat monthFormat = new SimpleDateFormat("MM");
-			
-			boolean quarterlyReportByDay = dataObj.getData_intervals() == Constants.DAILY_INTERVAL;
-			
-			if (quarterlyReportByDay) {
-				dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-				catFormat = new SimpleDateFormat("MM/dd/yyyy");
-
-				List dataInverterAvailability = queryForList("Reports.getDataInverterAvailabilityByDay", obj);
-				if (dataInverterAvailability.size() > 0) { 
-					dataObj.setDataAvailability(dataInverterAvailability);
+			if (dataEnergy != null && dataEnergy.size() > 0) {
+				// fulfill data
+				DateTimeFormatter inputDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+				LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), inputDateFormat).withHour(0).withMinute(0).withSecond(0);
+				LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), inputDateFormat).withHour(23).withMinute(59).withSecond(59);
+				List<QuarterlyDateEntity> dateTimeList = new ArrayList<QuarterlyDateEntity>();
+				List<QuarterlyDateEntity> fulfilledDataList = new ArrayList<QuarterlyDateEntity>();
+				
+				while (!start.isAfter(end)) {
+					QuarterlyDateEntity dateTime = new QuarterlyDateEntity();
+					dateTime.setCategories_time(start.format(quarterlyReportByMonth ? DateTimeFormatter.ofPattern("MMM-yyyy") : DateTimeFormatter.ofPattern("MM/dd/yyyy")));
+					dateTimeList.add(dateTime);
+					start = start.plus(1, quarterlyReportByMonth ? ChronoUnit.MONTHS : ChronoUnit.DAYS);
 				}
 				
-				List dataWeatherStation = queryForList("Reports.getDataWeatherStationByDay", obj);
-				if (dataWeatherStation != null && dataWeatherStation.size() > 0) {
-					dataObj.setDataWeatherStation(dataWeatherStation);
-				}
-			} else {
-				dateFormat = new SimpleDateFormat("yyyy-MM");
-				catFormat = new SimpleDateFormat("MMM-yyyy");
-			}
-			
-			Date startDate = dateFormat.parse(obj.getStart_date());
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(startDate);
-			
-			for (int i = 0; i < 3; i++) {
-				int month = Integer.parseInt(monthFormat.format(cal.getTime()).toString());
-				int expecValue = 0;
-				if(expec != null) {
-					switch ( month ) {
-					case  1: expecValue = expec.getJan(); break;
-					case  2: expecValue = expec.getFeb(); break;
-					case  3: expecValue = expec.getMar(); break;
-					case  4: expecValue = expec.getApr(); break;
-					case  5: expecValue = expec.getMay(); break;
-					case  6: expecValue = expec.getJun(); break;
-					case  7: expecValue = expec.getJul(); break;
-					case  8: expecValue = expec.getAug(); break;
-					case  9: expecValue = expec.getSep(); break;
-					case  10: expecValue = expec.getOct(); break;
-					case  11: expecValue = expec.getNov(); break;
-					case  12: expecValue = expec.getDec(); break;
-					default:
-						expecValue = 0;
-					}
-				}
-				
-				if (quarterlyReportByDay) {
-					int numOfDaysInMonth = cal.getActualMaximum(Calendar.DATE);
+				for (QuarterlyDateEntity dateTime: dateTimeList) {
+					boolean isFound = false;
 					
-					for (int j = 0; j < numOfDaysInMonth; j++) {
-						QuarterlyDateEntity category = new QuarterlyDateEntity();
-						category.setTime_format(dateFormat.format(cal.getTime()));
-						category.setCategories_time(catFormat.format(cal.getTime()));
-						category.setEstimated((double) expecValue/numOfDaysInMonth);
-						categories.add(category);
-						cal.add(Calendar.DATE, 1);
-					}
-				} else {
-					QuarterlyDateEntity category = new QuarterlyDateEntity();
-					category.setTime_format(dateFormat.format(cal.getTime()));
-					category.setCategories_time(catFormat.format(cal.getTime()));
-					category.setEstimated((double) expecValue);
-					categories.add(category);
-					cal.add(Calendar.MONTH, 1);
-				}
-			}
-			
-			List data = dataObj.getDataReports();
-			List<QuarterlyDateEntity> dataNew = new ArrayList<QuarterlyDateEntity> ();
-			
-			if (categories.size() > 0) {
-				for (QuarterlyDateEntity item : categories) {
-					boolean flag = false;
-					QuarterlyDateEntity mapItemObj = new QuarterlyDateEntity();
-					
-					if(data != null && data.size() > 0) {
-						for( int v = 0; v < data.size(); v++) {
-							Map<String, Object> itemT = (Map<String, Object>) data.get(v);
-							String categoriesTime = item.getTime_format();
-							String powerTime = itemT.get(quarterlyReportByDay ? "time_format_by_day" : "time_format").toString();
-							
-							if (categoriesTime.equals(powerTime)) {
-								flag = true;
-								mapItemObj.setCategories_time(itemT.get(quarterlyReportByDay ? "categories_time_by_day" : "categories_time").toString());
-								mapItemObj.setTime_format(itemT.get(quarterlyReportByDay ? "time_format_by_day" : "time_format").toString());
-								mapItemObj.setActual(Double.parseDouble(itemT.get("chart_energy_kwh").toString()));
-								mapItemObj.setEstimated(item.getEstimated());
-								break;
-							}
-						}
-					}
-					
-					if(flag == false) {
-						QuarterlyDateEntity mapItem = new QuarterlyDateEntity();
-						mapItem.setCategories_time(item.getCategories_time());
-						mapItem.setTime_format(item.getTime_format());
-						mapItem.setActual(null);
-						mapItem.setEstimated(null);
-						dataNew.add(mapItem);
-					} else {
-						dataNew.add(mapItemObj);
-					}
-				}
-			}
-			
-			dataObj.setDataReports(dataNew);
-			
-			if (quarterlyReportByDay) {
-				List dataInverterAvailability = dataObj.getDataAvailability();
-				List<QuarterlyDateEntity> dataInverterNew = new ArrayList<QuarterlyDateEntity> ();
-				
-				if (categories.size() > 0) {
-					for (QuarterlyDateEntity item : categories) {
-						boolean flag = false;
-						QuarterlyDateEntity mapItemObj = new QuarterlyDateEntity();
+					for(QuarterlyDateEntity data: dataEnergy) {
+						String fullTime = dateTime.getCategories_time();
+						String powerTime = data.getCategories_time();
 						
-						if (dataInverterAvailability != null && dataInverterAvailability.size() > 0) {
-							for( int v = 0; v < dataInverterAvailability.size(); v++) {
-								Map<String, Object> itemT = (Map<String, Object>) dataInverterAvailability.get(v);
-								String categoriesTime = item.getTime_format();
-								String powerTime = itemT.get("time_format").toString();
-								
-								if (categoriesTime.equals(powerTime)) {
-									flag = true;
-									mapItemObj.setCategories_time(itemT.get("categories_time").toString());
-									mapItemObj.setTime_format(itemT.get("time_format").toString());
-									mapItemObj.setInverterAvailability(Double.parseDouble(itemT.get("InverterAvailability").toString()));
-									break;
-								}
-							}
-						}
-						
-						if(flag == false) {
-							QuarterlyDateEntity mapItem = new QuarterlyDateEntity();
-							mapItem.setCategories_time(item.getCategories_time());
-							mapItem.setTime_format(item.getTime_format());
-							mapItem.setInverterAvailability(null);
-							dataInverterNew.add(mapItem);
-						} else {
-							dataInverterNew.add(mapItemObj);
+						if (fullTime.equals(powerTime)) {
+							fulfilledDataList.add(data);
+							isFound = true;
+							break;
 						}
 					}
 					
-					dataObj.setDataAvailability(dataInverterNew);
+					if (!isFound) fulfilledDataList.add(dateTime);
 				}
 				
-				
-				List dataWeatherStation = dataObj.getDataWeatherStation();
-				List<QuarterlyDateEntity> dataWeatherStationNew = new ArrayList<QuarterlyDateEntity> ();
-				
-				if (categories.size() > 0) {
-					for (QuarterlyDateEntity item : categories) {
-						boolean flag = false;
-						QuarterlyDateEntity mapItemObj = new QuarterlyDateEntity();
-						
-						if (dataWeatherStation != null && dataWeatherStation.size() > 0) {
-							for( int v = 0; v < dataWeatherStation.size(); v++) {
-								Map<String, Object> itemT = (Map<String, Object>) dataWeatherStation.get(v);
-								String categoriesTime = item.getTime_format();
-								String powerTime = itemT.get("time_format").toString();
-								
-								if (categoriesTime.equals(powerTime)) {
-									flag = true;
-									mapItemObj.setCategories_time(itemT.get("categories_time").toString());
-									mapItemObj.setTime_format(itemT.get("time_format").toString());
-									mapItemObj.setPOAAVG(itemT.get("POAAVG") != null ? Double.parseDouble(itemT.get("POAAVG").toString()) : null);
-									mapItemObj.setTCellAVG(itemT.get("TCellAVG") != null ? Double.parseDouble(itemT.get("TCellAVG").toString()) : null);
-									break;
-								}
-							}
-						}
-						
-						if(flag == false) {
-							QuarterlyDateEntity mapItem = new QuarterlyDateEntity();
-							mapItem.setCategories_time(item.getCategories_time());
-							mapItem.setTime_format(item.getTime_format());
-							mapItem.setPOAAVG(null);
-							mapItem.setTCellAVG(null);
-							dataWeatherStationNew.add(mapItem);
-						} else {
-							dataWeatherStationNew.add(mapItemObj);
-						}
-					}
-					
-					dataObj.setDataWeatherStation(dataWeatherStationNew);
-				}
-				
+				dataObj.setDataReports(fulfilledDataList);
 			}
-			
 			
 			return dataObj;
 		} catch (Exception ex) {
@@ -485,6 +390,184 @@ public class ReportsService extends DB {
 		}
 	}
 	
+	/**
+	 * @description Get asset management and performance report
+	 * @author Hung.Bui
+	 * @since 2024-06-10
+	 * @param id_site, date_from, data_to
+	 */
+	
+	public AssetManagementAndOperationPerformanceReportEntity getAssetManagementAndOperationPerformanceReport(ViewReportEntity obj) {
+		try {
+			ViewReportEntity reportObj = (ViewReportEntity) queryForObject("Reports.getDetailReport", obj);
+			if (reportObj == null) return null;
+			
+			DateTimeFormatter inputDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			DateTimeFormatter mmm_yyFormat = DateTimeFormatter.ofPattern("MMM-yy");
+			DateTimeFormatter mm_dd_yyyyFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+			LocalDateTime startDate = LocalDateTime.parse(obj.getStart_date(), inputDateFormat).withHour(0).withMinute(0).withSecond(0);
+			LocalDateTime endDate = LocalDateTime.parse(obj.getEnd_date(), inputDateFormat).withHour(23).withMinute(59).withSecond(59);
+			AssetManagementAndOperationPerformanceReportEntity dataObj = new AssetManagementAndOperationPerformanceReportEntity();
+			dataObj.setReportDetail(reportObj);
+			
+			/* operation performance report */
+			reportObj.setStart_date(startDate.format(inputDateFormat));
+			reportObj.setEnd_date(endDate.format(inputDateFormat));
+			List<AssetManagementAndOperationPerformanceDataEntity> operationPerformanceData = queryForList("Reports.getOperationPerformanceReport", reportObj);
+			
+			if (operationPerformanceData != null && operationPerformanceData.size() > 0) {
+				// fulfill data
+				LocalDateTime start = startDate;
+				LocalDateTime end = endDate;
+				List<AssetManagementAndOperationPerformanceDataEntity> dateTimeList = new ArrayList<AssetManagementAndOperationPerformanceDataEntity>();
+				List<AssetManagementAndOperationPerformanceDataEntity> fulfilledDataList = new ArrayList<AssetManagementAndOperationPerformanceDataEntity>();
+				
+				while (!start.isAfter(end)) {
+					AssetManagementAndOperationPerformanceDataEntity dateTime = new AssetManagementAndOperationPerformanceDataEntity();
+					dateTime.setTime_full(start.format(mmm_yyFormat));
+					dateTimeList.add(dateTime);
+					start = start.plus(1, ChronoUnit.MONTHS);
+				}
+				
+				for (AssetManagementAndOperationPerformanceDataEntity dateTime: dateTimeList) {
+					boolean isFound = false;
+					
+					for(AssetManagementAndOperationPerformanceDataEntity data: operationPerformanceData) {
+						String fullTime = dateTime.getTime_full();
+						String powerTime = data.getTime_full();
+						
+						if (fullTime.equals(powerTime)) {
+							fulfilledDataList.add(data);
+							isFound = true;
+							break;
+						}
+					}
+					
+					if (!isFound) fulfilledDataList.add(dateTime);
+				}
+				
+				dataObj.setOperationPerformanceData(fulfilledDataList);
+			}
+			
+			AssetManagementAndOperationPerformanceDataEntity currentMonthOperationPerformanceData = operationPerformanceData.stream().filter(item -> YearMonth.parse(item.getTime_full(), mmm_yyFormat).equals(YearMonth.from(endDate))).findFirst().orElse(null);
+			List<AssetManagementAndOperationPerformanceDataEntity> currentYearOperationPerformanceData = operationPerformanceData.stream().filter(item -> YearMonth.parse(item.getTime_full(), mmm_yyFormat).getYear() == YearMonth.from(endDate).getYear()).collect(Collectors.toList());
+			
+			/* monthly performance report */
+			LocalDateTime startDateOfCurrentMonth = endDate.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+			reportObj.setStart_date(startDateOfCurrentMonth.format(inputDateFormat));
+			List<AssetManagementAndOperationPerformanceDataEntity> monthlyPerformanceData = queryForList("Reports.getMonthlyPerformanceReport", reportObj);
+			
+			if (monthlyPerformanceData != null && monthlyPerformanceData.size() > 0) {
+				// fulfill data
+				LocalDateTime start = startDateOfCurrentMonth;
+				LocalDateTime end = endDate;
+				List<AssetManagementAndOperationPerformanceDataEntity> dateTimeList = new ArrayList<AssetManagementAndOperationPerformanceDataEntity>();
+				List<AssetManagementAndOperationPerformanceDataEntity> fulfilledDataList = new ArrayList<AssetManagementAndOperationPerformanceDataEntity>();
+				
+				while (!start.isAfter(end)) {
+					AssetManagementAndOperationPerformanceDataEntity dateTime = new AssetManagementAndOperationPerformanceDataEntity();
+					dateTime.setTime_full(start.format(mm_dd_yyyyFormat));
+					dateTimeList.add(dateTime);
+					start = start.plus(1, ChronoUnit.DAYS);
+				}
+				
+				for (AssetManagementAndOperationPerformanceDataEntity dateTime: dateTimeList) {
+					boolean isFound = false;
+					
+					for(AssetManagementAndOperationPerformanceDataEntity data: monthlyPerformanceData) {
+						String fullTime = dateTime.getTime_full();
+						String powerTime = data.getTime_full();
+						
+						if (fullTime.equals(powerTime)) {
+							fulfilledDataList.add(data);
+							isFound = true;
+							break;
+						}
+					}
+					
+					if (!isFound) fulfilledDataList.add(dateTime);
+				}
+				
+				AssetManagementAndOperationPerformanceDataEntity initial = new AssetManagementAndOperationPerformanceDataEntity();
+				AssetManagementAndOperationPerformanceDataEntity totalMonthlyPerformanceData = monthlyPerformanceData.stream().reduce(initial, (acc, item) -> {
+					if (item.getActualEnergy() != null) acc.setActualEnergy((acc.getActualEnergy() != null ? acc.getActualEnergy() : 0) + item.getActualEnergy());
+					if (item.getExpectedEnergy() != null) acc.setExpectedEnergy((acc.getExpectedEnergy() != null ? acc.getExpectedEnergy() : 0) + item.getExpectedEnergy());
+					if (item.getModeledEnergy() != null) acc.setModeledEnergy((acc.getModeledEnergy() != null ? acc.getModeledEnergy() : 0) + item.getModeledEnergy());
+					
+					return acc;
+				});
+				
+				Double totalActualEnergy = totalMonthlyPerformanceData.getActualEnergy();
+				Double totalExpectedEnergy = totalMonthlyPerformanceData.getExpectedEnergy();
+				Double totalModeledEnergy = totalMonthlyPerformanceData.getModeledEnergy();
+				Double totalExpectedGenerationIndex = totalActualEnergy != null && totalExpectedEnergy != null ? totalActualEnergy / totalExpectedEnergy : null;
+				Double totalModeledGenerationIndex = totalActualEnergy != null && totalModeledEnergy != null ? totalActualEnergy / totalModeledEnergy : null;
+				Double totalWeatherIndex =  currentMonthOperationPerformanceData.getWeatherIndex();
+				Double totalInverterAvaiability = currentMonthOperationPerformanceData.getInverterAvailability();
+				totalMonthlyPerformanceData.setExpectedGenerationIndex(totalExpectedGenerationIndex);
+				totalMonthlyPerformanceData.setModeledGenerationIndex(totalModeledGenerationIndex);
+				totalMonthlyPerformanceData.setWeatherIndex(totalWeatherIndex);
+				totalMonthlyPerformanceData.setInverterAvailability(totalInverterAvaiability);
+				totalMonthlyPerformanceData.setTime_full(endDate.format(mmm_yyFormat));
+				
+				Map<String, Object> monthlyPerformanceDataObj = new HashMap<String, Object>();
+				monthlyPerformanceDataObj.put("data", fulfilledDataList);
+				monthlyPerformanceDataObj.put("total", totalMonthlyPerformanceData);
+				
+				dataObj.setMonthlyPerformanceData(monthlyPerformanceDataObj);
+			}
+			
+			/* monthly asset management report */
+			if (currentMonthOperationPerformanceData != null && currentYearOperationPerformanceData.size() > 0) {
+				AssetManagementAndOperationPerformanceDataEntity initial = new AssetManagementAndOperationPerformanceDataEntity();
+				AssetManagementAndOperationPerformanceDataEntity currentYearTotalAssetManagementData = currentYearOperationPerformanceData.stream().reduce(initial, (acc, item) -> {
+					if (item.getActualEnergy() != null) acc.setActualEnergy((acc.getActualEnergy() != null ? acc.getActualEnergy() : 0) + item.getActualEnergy());
+					if (item.getModeledEnergy() != null) acc.setModeledEnergy((acc.getModeledEnergy() != null ? acc.getModeledEnergy() : 0) + item.getModeledEnergy());
+					
+					return acc;
+				});
+				
+				Double monthActualEnergy =  currentMonthOperationPerformanceData.getActualEnergy();
+				Double monthModeledEnergy =  currentMonthOperationPerformanceData.getModeledEnergy();
+				Double monthEnergyDifference = monthActualEnergy != null && monthModeledEnergy != null ? monthActualEnergy - monthModeledEnergy : null;
+				Double monthActualEnergyRevenue = 0.224 * monthActualEnergy;
+				Double monthEstimatedEnergyRevenue = 0.224 * monthModeledEnergy;
+				Double monthEnergyRevenueDifference = monthActualEnergyRevenue != null && monthEstimatedEnergyRevenue != null ? monthActualEnergyRevenue - monthEstimatedEnergyRevenue : null;
+				currentMonthOperationPerformanceData.setEnergyDifference(monthEnergyDifference);
+				currentMonthOperationPerformanceData.setActualEnergyRevenue(monthActualEnergyRevenue);
+				currentMonthOperationPerformanceData.setEstimatedEnergyRevenue(monthEstimatedEnergyRevenue);
+				currentMonthOperationPerformanceData.setEnergyRevenueDifference(monthEnergyRevenueDifference);
+				
+				Double yearActualEnergy = currentYearTotalAssetManagementData.getActualEnergy();
+				Double yearModeledEnergy = currentYearTotalAssetManagementData.getModeledEnergy();
+				Double yearEnergyDifference = yearActualEnergy != null && yearModeledEnergy != null ? yearActualEnergy - yearModeledEnergy : null;
+				Double yearActualEnergyRevenue = 0.224 * yearActualEnergy;
+				Double yearEstimatedEnergyRevenue = 0.224 * yearModeledEnergy;
+				Double yearEnergyRevenueDifference = yearActualEnergyRevenue != null && yearEstimatedEnergyRevenue != null ? yearActualEnergyRevenue - yearEstimatedEnergyRevenue : null;
+				currentYearTotalAssetManagementData.setEnergyDifference(yearEnergyDifference);
+				currentYearTotalAssetManagementData.setActualEnergyRevenue(yearActualEnergyRevenue);
+				currentYearTotalAssetManagementData.setEstimatedEnergyRevenue(yearEstimatedEnergyRevenue);
+				currentYearTotalAssetManagementData.setEnergyRevenueDifference(yearEnergyRevenueDifference);
+				currentYearTotalAssetManagementData.setTime_full(String.valueOf(endDate.getYear()));
+				
+				List<AssetManagementAndOperationPerformanceDataEntity> monthlyAssetManagementData = new ArrayList<AssetManagementAndOperationPerformanceDataEntity>();
+				monthlyAssetManagementData.add(currentMonthOperationPerformanceData);
+				monthlyAssetManagementData.add(currentYearTotalAssetManagementData);
+				
+				dataObj.setMonthlyAssetManagementData(monthlyAssetManagementData);
+			}
+			
+			/* estimated loss by event report */
+			List<AssetManagementAndOperationPerformanceDataEntity> estimatedLossByEventData = queryForList("Reports.getEstimatedLossByEventReport", reportObj);
+			if (estimatedLossByEventData != null && estimatedLossByEventData.size() > 0) {
+				dataObj.setEstimatedLossByEventData(estimatedLossByEventData);
+			}
+			
+			return dataObj;
+		} catch (Exception ex) {
+			return null;
+		}
+	}
 	
 	/**
 	 * @description update site rec_id
@@ -564,10 +647,8 @@ public class ReportsService extends DB {
 			int insertLastId = obj.getId();
 			
 			List dataSite = obj.getDataSite();
-			if (insertLastId > 0 && dataSite.size() > 0) {
+			if (insertLastId > 0 && dataSite != null && dataSite.size() > 0) {
 				session.insert("Reports.insertReportSiteMap", obj);
-			} else {
-				return null;
 			}
 			
 			session.commit();
@@ -595,12 +676,9 @@ public class ReportsService extends DB {
 			session.update("Reports.updateReports", obj);
 			
 			List dataSite = obj.getDataSite();
-			if (dataSite.size() <= 0) {
-				throw new Exception();
-			}
 			
 			session.delete("Reports.deleteReportSiteMap", obj);
-			session.insert("Reports.insertReportSiteMap", obj);
+			if (dataSite != null && dataSite.size() > 0) session.insert("Reports.insertReportSiteMap", obj);
 			
 			session.commit();
 			return true;
@@ -621,15 +699,24 @@ public class ReportsService extends DB {
 	 */
 
 	public List getList(ReportsEntity obj) {
-		List dataList = new ArrayList();
 		try {
+			List<Map<String, Object>> dataList = new ArrayList();
 			dataList = queryForList("Reports.getList", obj);
-			if (dataList == null)
-				return new ArrayList();
+			if (dataList == null) return new ArrayList();
+			
+			ObjectMapper mapper = new ObjectMapper();
+			dataList.forEach(item -> {
+				try {
+					if (item.get("sitesListJSON") != null) item.put("sitesList", mapper.readValue(item.get("sitesListJSON").toString(), new TypeReference<List<Map<String, Object>>>(){}));
+				} catch (JsonProcessingException e) {
+					item.put("sitesList", new ArrayList<Map<String, Object>>());
+				}
+				item.remove("sitesListJSON");
+			});
+			return dataList;
 		} catch (Exception ex) {
 			return new ArrayList();
 		}
-		return dataList;
 	}
 
 	public int getTotalRecord(ReportsEntity obj) {
@@ -680,6 +767,7 @@ public class ReportsService extends DB {
 			}
 			
 			obj.setTable_data_report(dataObj.getTable_data_report());
+			obj.setHave_meter(dataObj.isHave_meter());
 			List dataEnergy = queryForList("Reports.getDataEnergyMonthlyReport", obj);
 			if (dataEnergy.size() > 0) {
 				dataObj.setDataReports(dataEnergy);
@@ -691,22 +779,17 @@ public class ReportsService extends DB {
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 
 			SimpleDateFormat catFormat = new SimpleDateFormat("MM/dd/yyyy");
 			
-			SimpleDateFormat dayFormat = new SimpleDateFormat("dd");
-			SimpleDateFormat monthFormat = new SimpleDateFormat("MM");
-			
-			Date startDate = dateFormat.parse(obj.getStart_date() + " AM");
+			Date startDate = dateFormat.parse(obj.getStart_date());
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(startDate);
 			
 			cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
 			
 			List<MonthlyDateEntity> categories = new ArrayList<MonthlyDateEntity> ();
-			int day = 1;
-			int forCount = Integer.parseInt(dayFormat.format(cal.getTime()).toString());
-			
-			int month = Integer.parseInt(monthFormat.format(cal.getTime()).toString());
-			
+			int forCount = cal.get(Calendar.DAY_OF_MONTH);
+			int month = cal.get(Calendar.MONTH) + 1;
 			int expecValue = 0;
+			
 			if(expec != null) {
 				switch ( month ) {
 				case  1: expecValue = expec.getJan(); break;
@@ -730,12 +813,10 @@ public class ReportsService extends DB {
 			for(int t = 0; t < forCount; t++) {
 				cal.setTime(startDate);
 				MonthlyDateEntity headerDate = new MonthlyDateEntity();
-				cal.add(Calendar.DATE, t * day);
+				cal.add(Calendar.DATE, t);
 				headerDate.setTime_format(dateFormat.format(cal.getTime()));
 				headerDate.setCategories_time(catFormat.format(cal.getTime()));
-				headerDate.setActual(0.0);
-				headerDate.setEstimated((double) expecValue / forCount);
-				headerDate.setPercent( expecValue > 0 ? (0.0 / expecValue) : 0);
+				headerDate.setEstimated(expec != null ? (double) expecValue/forCount : null);
 				categories.add(headerDate);
 			}
 			
@@ -756,13 +837,10 @@ public class ReportsService extends DB {
 							if (categoriesTime.equals(powerTime)) {
 								flag = true;
 								mapItemObj.setCategories_time(itemT.get("categories_time").toString());
-								
 								mapItemObj.setTime_format(itemT.get("time_format").toString());
-								mapItemObj.setActual(Double.parseDouble(itemT.get("chart_energy_kwh").toString()) );
-								mapItemObj.setEstimated( (double) expecValue/forCount );
-								double energy = Double.parseDouble(itemT.get("chart_energy_kwh")!= null ? itemT.get("chart_energy_kwh").toString() : "0.0");
-								Double percent = (expecValue / forCount > 0) ?  ((energy /  (expecValue / forCount)) * 100) : 0;
-								mapItemObj.setPercent(percent);
+								mapItemObj.setActual(itemT.get("chart_energy_kwh") != null ? Double.parseDouble(itemT.get("chart_energy_kwh").toString()) : null);
+								mapItemObj.setEstimated(item.getEstimated());
+								mapItemObj.setPercent(itemT.get("chart_energy_kwh") != null && expec != null && expecValue > 0 ? Double.parseDouble(itemT.get("chart_energy_kwh").toString()) / (expecValue / forCount) * 100 : null);
 								break;
 							}
 						}
@@ -771,10 +849,8 @@ public class ReportsService extends DB {
 					if(flag == false) {
 						MonthlyDateEntity mapItem = new MonthlyDateEntity();
 						mapItem.setCategories_time(item.getCategories_time());
-						mapItem.setActual(item.getActual());
-						mapItem.setEstimated(item.getEstimated());
-						mapItem.setPercent(item.getPercent());
 						mapItem.setTime_format(item.getTime_format());
+						mapItem.setEstimated(item.getEstimated());
 						dataNew.add(mapItem);
 					} else {
 						dataNew.add(mapItemObj);
@@ -799,19 +875,18 @@ public class ReportsService extends DB {
 	 */
 	
 	public Object getCustomReport(ViewReportEntity obj) {
-		ViewReportEntity dataObj = new ViewReportEntity();
 		try {
-			dataObj = (ViewReportEntity) queryForObject("Reports.getDetailReport", obj);
-
-			if (dataObj == null) {
-				return null;
-			}
+			ViewReportEntity dataObj = (ViewReportEntity) queryForObject("Reports.getDetailReport", obj);
+			if (dataObj == null) return null;
 			
 			obj.setTable_data_report(dataObj.getTable_data_report());
-			List dataPower = queryForList("Reports.getDataEnergyCustomReport", obj);
-			if (dataPower.size() > 0 ) {
-				dataObj.setDataReports(dataPower);
-			}
+			obj.setHave_meter(dataObj.isHave_meter());
+			List<Map<String, Object>> dataPower = queryForList("Reports.getDataEnergyCustomReport", obj);
+			
+			DateTimeFormatter inputDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			LocalDateTime startDate = LocalDateTime.parse(obj.getStart_date(), inputDateFormat).withHour(0).withMinute(0).withSecond(0);
+			LocalDateTime endDate = LocalDateTime.parse(obj.getEnd_date(), inputDateFormat).withHour(23).withMinute(59).withSecond(59);
+			dataObj.setDataReports(fulfillData(getDateTimeList(obj, startDate, endDate), dataPower));
 			
 			return dataObj;
 		} catch (Exception ex) {

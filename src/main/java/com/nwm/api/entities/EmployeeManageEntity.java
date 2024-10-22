@@ -51,19 +51,27 @@ public class EmployeeManageEntity{
 	private String offset_timezone;
 	private String page_login;
 	private int alert_per_page;
+	private int site_per_page;
 	private String alert_filter;
 	private int failed_attempt;
 	private int account_locked;
 	private String lock_time;
-	private String filter;
+	private String filterBy;
 	private int is_send_email_unblock;
 	private String hash_id_user;
 	private String created_by;
 	private int id_company;
 	private String note;
+	private String table;
 	
 	
 	
+	public int getSite_per_page() {
+		return site_per_page;
+	}
+	public void setSite_per_page(int site_per_page) {
+		this.site_per_page = site_per_page;
+	}
 	public String getNote() {
 		return note;
 	}
@@ -364,17 +372,23 @@ public class EmployeeManageEntity{
 	public void setPage_login(String page_login) {
 		this.page_login = page_login;
 	}
-	public String getFilter() {
-		return filter;
+	public String getFilterBy() {
+		return filterBy;
 	}
-	public void setFilter(String filter) {
-		this.filter = filter;
+	public void setFilterBy(String filterBy) {
+		this.filterBy = filterBy;
 	}
 	public String getCreated_by() {
 		return created_by;
 	}
 	public void setCreated_by(String created_by) {
 		this.created_by = created_by;
+	}
+	public String getTable() {
+		return table;
+	}
+	public void setTable(String table) {
+		this.table = table;
 	}
 	
 	

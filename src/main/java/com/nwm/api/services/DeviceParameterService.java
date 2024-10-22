@@ -26,15 +26,12 @@ public class DeviceParameterService extends DB {
 	 */
 	
 	public List getListCategorizeData(DeviceParameterEntity obj) {
-		List dataList = new ArrayList();
 		try {
-			dataList = queryForList("DeviceParameter.getListCategorizeData", obj);
-			if (dataList == null)
-				return new ArrayList();
+			List dataList = queryForList("DeviceParameter.getListCategorizeData", obj);
+			return dataList == null ? new ArrayList() : dataList;
 		} catch (Exception ex) {
 			return new ArrayList();
 		}
-		return dataList;
 	}
 	
 	/**
@@ -169,7 +166,22 @@ public class DeviceParameterService extends DB {
 		return dataList;
 	}
 	
+	/**
+	 * @description Get list device group and categorize data
+	 * @author Hung.Bui
+	 * @since 2024-07-26
+	 * @param id_device_group, id_categorize_data
+	 * @return data (status, message, array, total_row)
+	 */
 	
+	public List getListAllParameterByDeviceGroupAndCategorizeData(DeviceParameterEntity obj) {
+		try {
+			List dataList = queryForList("DeviceParameter.getListAllParameterByDeviceGroupAndCategorizeData", obj);
+			return dataList == null ? new ArrayList() : dataList;
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+	}
 	
 	
 	public int getTotalRecordParameterByDeviceGroup(DeviceParameterEntity obj) {
@@ -212,12 +224,10 @@ public class DeviceParameterService extends DB {
 	public boolean updateDeviceParameter(DeviceParameterEntity obj){
 		SqlSession session = this.beginTransaction();
 		try{
-			session.update("DeviceParameter.updateDeviceParameter", obj);
-			if (obj.getId_categorize_data() == 0) {
-				session.delete("DeviceParameter.deleteCategorizeDataDeviceParameterMap", obj);
-			} else {
-				session.update("DeviceParameter.insertCategorizeDataDeviceParameterMap", obj);
-			}
+			DeviceParameterEntity param = session.selectOne("DeviceParameter.getParameterDetail", obj);
+			update("DeviceParameter.updateDeviceParameter", obj);
+			if (obj.getId_generic_parameter() != null && obj.getId_generic_parameter() != param.getId_generic_parameter()) update("DeviceParameter.resetDuplicatedAssignedGenericParameter", obj);
+			if (param.getId_categorize_data() != obj.getId_categorize_data()) update("DeviceParameter.resetParameterFromTemplate", obj);
 			session.commit();
 			return true;
 		}catch (Exception ex) {

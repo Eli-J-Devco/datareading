@@ -22,14 +22,15 @@ public class ModelMeterIon8600V2Service extends DB {
 	 * @param data
 	 */
 	
-	public ModelMeterIon8600V2Entity setModelMeterIon8600V2(String line) {
+	public ModelMeterIon8600V2Entity setModelMeterIon8600V2(String line, double offset_data_old) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
 				ModelMeterIon8600V2Entity dataModelIon = new ModelMeterIon8600V2Entity();
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(23)) ? words.get(23) : "0.001");
-				
+				Double energy = Double.parseDouble(!Lib.isBlank(words.get(52)) ? words.get(52) : "0.001");
+				if(energy > 0) { energy = energy + offset_data_old; }
 				
 				dataModelIon.setTime(words.get(0).replace("'", ""));
 				dataModelIon.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -91,7 +92,7 @@ public class ModelMeterIon8600V2Service extends DB {
 				dataModelIon.setKVASdMxDR(Double.parseDouble(!Lib.isBlank(words.get(49)) ? words.get(49) : "0.001"));
 				dataModelIon.setKVARSdMxDR(Double.parseDouble(!Lib.isBlank(words.get(50)) ? words.get(50) : "0.001"));
 				dataModelIon.setPhaseRev(Double.parseDouble(!Lib.isBlank(words.get(51)) ? words.get(51) : "0.001"));
-				dataModelIon.setKWhDel(Double.parseDouble(!Lib.isBlank(words.get(52)) ? words.get(52) : "0.001"));
+				dataModelIon.setKWhDel(energy);
 				dataModelIon.setKWhRec(Double.parseDouble(!Lib.isBlank(words.get(53)) ? words.get(53) : "0.001"));
 				dataModelIon.setKWhDelRec(Double.parseDouble(!Lib.isBlank(words.get(54)) ? words.get(54) : "0.001"));
 				dataModelIon.setKWhDel_Rec(Double.parseDouble(!Lib.isBlank(words.get(55)) ? words.get(55) : "0.001"));
@@ -109,7 +110,7 @@ public class ModelMeterIon8600V2Service extends DB {
 				
 				// set custom field nvmActivePower and nvmActiveEnergy
 				dataModelIon.setNvmActivePower(power);
-				dataModelIon.setNvmActiveEnergy(Double.parseDouble(!Lib.isBlank(words.get(52)) ? words.get(52) : "0.001"));
+				dataModelIon.setNvmActiveEnergy(energy);
 				
 				return dataModelIon;
 				
@@ -138,11 +139,26 @@ public class ModelMeterIon8600V2Service extends DB {
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
-				 if(measuredProduction < 0 ) { measuredProduction = 0;}
-				 
-//				 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-//					 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-//				 }
+			 }
+			 
+			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
+				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				 obj.setKWhDel(dataObj.getNvmActiveEnergy());
+			 }
+			 
+			 if(measuredProduction > 3000) {
+				 switch(dataObj.getData_send_time()) {
+				 	// 1: 5 minutes, 2: 15 minutes, 3: 1 minute
+					 case 1:
+						 measuredProduction = obj.getNvmActivePower() >= 0 ? obj.getNvmActivePower() / (60/5) : 0;
+						 break;
+					 case 2:
+						 measuredProduction = obj.getNvmActivePower() >= 0 ? obj.getNvmActivePower() / (60/15) : 0;
+						 break;
+					 case 3:
+						 measuredProduction = obj.getNvmActivePower() >= 0 ? obj.getNvmActivePower() / (60/60) : 0;
+						 break;
+				 }
 			 }
 
 			 obj.setMeasuredProduction(measuredProduction);

@@ -5,65 +5,59 @@
 <mapper namespace="SitesAnalytics">
 	<select id="getListDeviceBySite" resultType="Map">
 		SELECT
-			d.serial_number,
 			d.id,
-			d.id_site,
+			d.devicename AS name,
 			d.id_device_group,
-			d.devicename,
+			d.datatablename,
 			d.view_tablename,
-			d.job_tablename,
-			d.datatablename AS datatablename, 
-			dg.group_name,
-			dg.table_name,
-			d.id AS id_device,
 			d.id_device_type,
 			d.hidden,
-			s.table_data_virtual,
-			1 AS is_paramerter_expand,
-			1 AS is_calculation_expand,
-			1 AS is_hidden,
-			0 AS is_checked
+			dg.group_name,
+			dg.table_name,
+			dt.name AS device_type_name,
+			dt.order,
+            s.table_data_virtual,
+			JSON_ARRAYAGG(JSON_OBJECT(
+				'id', dp.id,
+				'name', IF(gp.name IS NULL OR gp.name = '', IF(dp.standard_name IS NULL OR dp.standard_name = '', dp.name, dp.standard_name), gp.name),
+				'slug', dp.slug,
+				'unit', dp.unit,
+				'is_checked', dp.is_checked,
+				'is_common', dp.is_common,
+				'id_generic_parameter', gp.id,
+				'generic_parameter_name', gp.name,
+				'id_generic_parameter_type', gp.id_generic_parameter_type,
+				'value_chart_tool', dp.value_chart_tool,
+				'hide', dp.hide,
+				'min_value', IFNULL(dpf.min_value, 0.001),
+				'max_value', IFNULL(dpf.max_value, 0.001),
+				'rounding_decimals', dp.rounding_decimals
+			)) AS parameters,
+			0 AS checked
 		FROM
 			device d
 			LEFT JOIN device_group dg ON d.id_device_group = dg.id
+			LEFT JOIN device_parameters dp ON dp.id_device_group = dg.id
+			LEFT JOIN device_parameter_filter dpf ON dp.id = dpf.id_device_parameter AND d.id = dpf.id_device
+			LEFT JOIN generic_parameters gp ON gp.id = dp.id_generic_parameter
 			LEFT JOIN device_type dt ON dt.id = d.id_device_type
 			LEFT JOIN site s ON d.id_site = s.id
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone
-			
 		WHERE
-			d.id_site = #{id_site} AND d.`status` = 1 AND d.is_delete = 0 AND s.status = 1
+			SHA1(d.id_site) = #{hash_id_site}
+			AND d.status = 1
+			AND d.is_delete = 0
+			AND d.id_device_type != 5
+			AND s.status = 1
+			AND s.is_delete = 0
+			AND dp.status = 1
+			AND dp.is_delete = 0
+			AND dp.is_filter = 1
 			AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
-	</select>
-	
-	<select id="getListDeviceParameter" resultType="Map">
-		<foreach item="item" index="index" collection="list" separator="UNION ALL">
-			SELECT
-				dp.id,
-				dp.`name`,
-				dp.standard_name,
-				dp.slug,
-				dp.unit,
-				dp.value_chart_tool,
-				dp.chart_type,
-				dp.hide,
-				d.id AS id_device,
-				d.id_device_type,
-				d.id_device_group,
-				dp.is_checked,
-				dp.is_calculation,
-				IF(dp.is_common = 1, 1, 0) AS is_common,
-				dp.menu_order,
-				IFNULL(dpf.min_value, 0.001) AS min_value,
-				IFNULL(dpf.max_value, 0.001) AS max_value
-			FROM
-				device d
-				LEFT JOIN device_group dg ON dg.id = d.id_device_group 
-				LEFT JOIN device_parameters dp ON dp.id_device_group = dg.id
-				LEFT JOIN device_parameter_filter dpf ON dp.id = dpf.id_device_parameter AND d.id = dpf.id_device
-			WHERE
-				d.id = #{item.id} AND d.`status` = 1 AND dp.is_delete = 0 AND dp.`status` = 1 AND dp.is_filter = 1
-		</foreach>
-		ORDER BY id_device_group ASC, menu_order DESC;
+		GROUP BY
+			d.id
+		ORDER BY
+			dt.order ASC, d.devicename ASC
 	</select>
 	
 	<select id="getHiddenDataListByDevice" resultType="Map">
@@ -95,30 +89,26 @@
 	
 	<select id="getDataChartParameter" resultType="Map">
 		SELECT
-			time,
-			id_device,
-			id_device_group,
-			time_full,
 			categories_time,
 			<choose>
-				<when test="data_send_time == 6">
-					FLOOR(DATEDIFF(time_group_by, #{start_date}) / 7 )
+				<when test="data_send_time == 5">
+					DATE_FORMAT(DATE_SUB(time_group_by, INTERVAL (MOD(DATEDIFF(time_group_by, #{start_date}), 7 )) DAY), '%Y-%m-%d')
 				</when>
 				
-				<when test="data_send_time == 7">
+				<when test="data_send_time == 6">
 					DATE_FORMAT(time_group_by, '%m/%Y')
 				</when>
 				
-				<when test="data_send_time == 8">
+				<when test="data_send_time == 7">
 					DATE_FORMAT(time_group_by, '%Y')
 				</when>
 				
 				<otherwise>
 					time_group_by
 				</otherwise>
-			</choose> AS time_group_by,
+			</choose> AS time_full,
 			
-			<foreach collection="dataParameter" item="param" separator=",">
+			<foreach collection="parameters" item="param" separator=",">
 				<if test="param.is_checked == 1">
 					<choose>
 						<when test="
@@ -132,6 +122,7 @@
 							(table_name == 'model_sma_inverter_stp24ktlus10' and param.slug == 'GridMs_TotW') or
 							(table_name == 'model_sma_cluster_controller' and param.slug == 'GridMs_TotW') or
 							(table_name == 'model_solaredge_inverter' and param.slug == 'I_AC_Power') or
+							(table_name == 'model_solaredge_inverter_v1' and param.slug == 'I_AC_Power') or
 							(table_name == 'model_sungrow_umg604' and param.slug == 'M_AC_P') or
 							(table_name == 'model_sungrow_sg110cx' and param.slug == 'P_DC') or
 							(table_name == 'model_sungrow_sg50cx' and param.slug == 'P_DC') or
@@ -156,8 +147,10 @@
 							(table_name == 'model_w_kipp_zonen_rt1' and param.slug == 'SunPOATempComp') or
 							(table_name == 'model_elkor_wattson_pv_meter' and param.slug == 'TotalRealPower') or
 							(table_name == 'model_elkor_production_meter' and param.slug == 'ActivePowerTotal') or
+							(table_name == 'model_elkor_production_meterv1' and param.slug == 'ActivePowerTotal') or
 							(table_name == 'model_abb_trio_class6210' and param.slug == 'GridPower') or
 							(table_name == 'model_lufft_class8020' and param.slug == 'IrradianceActual') or
+							(table_name == 'model_sth01_temp_sensor' and param.slug == 'TEMPRATURE') or
 							(table_name == 'model_lufft_ws501_umb_weather' and param.slug == 'GlobalRadiation') or
 							(table_name == 'model_solectria_sgi_226ivt' and param.slug == 'ACPowerOutput') or
 							(table_name == 'model_solectria_inv_00_slc_3146' and param.slug == 'RealACPower') or
@@ -167,23 +160,23 @@
 							(table_name == 'model_eri_weather_icp_class8050' and param.slug == 'solar_irradiation') or
 							(table_name == 'model_sma_inverter_12_15_20_24_30tlus10' and param.slug == 'Power')
 						">
-							IFNULL(IF(${param.value_chart_tool}(${param.slug}) <![CDATA[<]]> 0, 0, ${param.value_chart_tool}(${param.slug})), 0.001) AS ${param.slug}
+							ROUND(IF(${param.value_chart_tool}(${param.slug}) <![CDATA[<]]> 0, 0, ${param.value_chart_tool}(${param.slug})), ${param.rounding_decimals}) AS ${param.slug}
 						</when>
 						
 						<when test="param.slug == 'MeasuredProduction'">
 							<choose>
 								<when test="filterBy == 'today' or filterBy == '3_day' or (filterBy == 'custom' and diff5Days)">
-									IFNULL(AVG(MeasuredProduction), 0.001) AS MeasuredProduction
+									ROUND(AVG(MeasuredProduction), ${param.rounding_decimals}) AS MeasuredProduction
 								</when>
 								
 								<otherwise>
-									IFNULL(SUM(MeasuredProduction), 0.001) AS MeasuredProduction
+									ROUND(SUM(MeasuredProduction), ${param.rounding_decimals}) AS MeasuredProduction
 								</otherwise>
 							</choose>
 						</when>
 						
 						<otherwise>
-							IFNULL(${param.value_chart_tool}(${param.slug}), 0.001) AS ${param.slug}
+							ROUND(${param.value_chart_tool}(${param.slug}), ${param.rounding_decimals}) AS ${param.slug}
 						</otherwise>
 					</choose>
 				</if>
@@ -195,11 +188,10 @@
 			
 		FROM (
 			SELECT
-				dv.time,
 				dv.id_device,
 				d.id_device_group,
 				
-				<foreach collection="dataParameter" item="param" separator="," close=",">
+				<foreach collection="parameters" item="param" separator="," close=",">
 					<if test="param.is_checked == 1">
 						<choose>
 							<when test="
@@ -213,6 +205,7 @@
 								(table_name == 'model_sma_inverter_stp24ktlus10' and param.slug == 'GridMs_TotW') or
 								(table_name == 'model_sma_cluster_controller' and param.slug == 'GridMs_TotW') or
 								(table_name == 'model_solaredge_inverter' and param.slug == 'I_AC_Power') or
+								(table_name == 'model_solaredge_inverter_v1' and param.slug == 'I_AC_Power') or
 								(table_name == 'model_sungrow_umg604' and param.slug == 'M_AC_P') or
 								(table_name == 'model_sungrow_sg110cx' and param.slug == 'P_DC') or
 								(table_name == 'model_sungrow_sg50cx' and param.slug == 'P_DC') or
@@ -237,8 +230,10 @@
 								(table_name == 'model_w_kipp_zonen_rt1' and param.slug == 'SunPOATempComp') or
 								(table_name == 'model_elkor_wattson_pv_meter' and param.slug == 'TotalRealPower') or
 								(table_name == 'model_elkor_production_meter' and param.slug == 'ActivePowerTotal') or
+								(table_name == 'model_elkor_production_meterv1' and param.slug == 'ActivePowerTotal') or
 								(table_name == 'model_abb_trio_class6210' and param.slug == 'GridPower') or
 								(table_name == 'model_lufft_class8020' and param.slug == 'IrradianceActual') or
+								(table_name == 'model_sth01_temp_sensor' and param.slug == 'TEMPRATURE') or
 								(table_name == 'model_lufft_ws501_umb_weather' and param.slug == 'GlobalRadiation') or
 								(table_name == 'model_solectria_sgi_226ivt' and param.slug == 'ACPowerOutput') or
 								(table_name == 'model_solectria_inv_00_slc_3146' and param.slug == 'RealACPower') or
@@ -300,14 +295,17 @@
 					</if>
 				</foreach>
 				
+				<if test="(filterBy == 'today') and data_send_time == 8">
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%H:%i' ) AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
+				</if>
+				
 				<if test="(filterBy == 'today') and data_send_time == 1">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%Y-%m-%d %H:%i' ) AS time_full,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%H:%i' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
 	
 				<if test="(filterBy == 'today') and data_send_time == 2">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_full,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%H:%i' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
@@ -317,143 +315,120 @@
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%H:00' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_group_by
 				</if>
-				
-				<if test="(filterBy == 'today') and data_send_time == 4">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_full,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%H:%i' ) AS categories_time,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
-				</if>
 	
-				<if test="(filterBy == 'today') and data_send_time == 5">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_full,
+				<if test="(filterBy == 'today') and data_send_time == 4">
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
+				<if test="(filterBy == '3_day') and data_send_time == 8">
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%d. %b %H:%i' ) AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
+				</if>
 	
 				<if test="(filterBy == '3_day') and data_send_time == 1">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%Y-%m-%d %H:%i' ) AS time_full,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%e. %b %H:%i' ) AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%d. %b %H:%i' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
 	
 				<if test="(filterBy == '3_day') and data_send_time == 2">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_full,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%e. %b %H:%i' ) AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%d. %b %H:%i' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
 	
-	
 				<if test="(filterBy == '3_day') and data_send_time == 3">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_full,
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%e. %b %H:00' ) AS categories_time,
+					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%d. %b %H:00' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_group_by
 				</if>
-				
-				<if test="(filterBy == '3_day') and data_send_time == 4">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_full,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%e. %b %H:%i' ) AS categories_time,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
-				</if>
 	
-				<if test="(filterBy == '3_day') and data_send_time == 5">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_full,
+				<if test="(filterBy == '3_day') and data_send_time == 4">
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%d. %b' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
+				
+				<if test="(filterBy == 'this_week' or filterBy == 'last_week') and data_send_time == 8">
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%d. %b %H:%i' ) AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
+				</if>
 	
 				<if test="(filterBy == 'this_week' or filterBy == 'last_week') and data_send_time == 1">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%Y-%m-%d %H:%i' ) AS time_full,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%e. %b %H:%i' ) AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%d. %b %H:%i' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
 	
 				<if test="(filterBy == 'this_week' or filterBy == 'last_week') and data_send_time == 2">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_full,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%e. %b %H:%i' ) AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%d. %b %H:%i' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
 	
-	
 				<if test="(filterBy == 'this_week' or filterBy == 'last_week') and data_send_time == 3">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_full,
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%e. %b %H:%i' ) AS categories_time,
+					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%d. %b %H:%i' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_group_by
 				</if>
 				
 				<if test="(filterBy == 'this_week' or filterBy == 'last_week') and data_send_time == 4">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_full,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%e. %b %H:%i' ) AS categories_time,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
-				</if>
-				
-				<if test="(filterBy == 'this_week' or filterBy == 'last_week') and data_send_time == 5">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_full,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%d. %b' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
 	
 				<if test="(filterBy == 'this_month' or filterBy == 'last_month') and data_send_time == 2">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_full,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%m/%d' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
 	
 				<if test="(filterBy == 'this_month' or filterBy == 'last_month') and data_send_time == 3">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_full,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_group_by
 				</if>
 	
-				<if test="(filterBy == 'this_month' or filterBy == 'last_month') and data_send_time == 5">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_full,
+				<if test="(filterBy == 'this_month' or filterBy == 'last_month') and data_send_time == 4">
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
 	
-				<if test="(filterBy == 'this_month' or filterBy == 'last_month') and data_send_time == 6">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_full,
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' ) AS categories_time,
+				<if test="(filterBy == 'this_month' or filterBy == 'last_month') and data_send_time == 5">
+					DATE_FORMAT( DATE_SUB(CONVERT_TZ( dv.time, '+00:00', t.`offset` ), INTERVAL (MOD(DATEDIFF(CONVERT_TZ( dv.time, '+00:00', t.`offset` ), #{start_date}), 7 )) DAY), '%m/%d' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
 	
 				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime') and data_send_time == 2">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_full,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%b. %Y' ) AS categories_time,
 					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_group_by
 				</if>
 				
 				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime') and data_send_time == 3">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_full,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_group_by
 				</if>
 				
-				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime') and data_send_time == 5">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_full,
+				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime') and data_send_time == 4">
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_group_by
 				</if>
 				
-				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime' or filterBy == 'custom') and data_send_time == 6">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_full,
+				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime' or filterBy == 'custom') and data_send_time == 5">
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
 				
-				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime' or filterBy == 'custom') and data_send_time == 7">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%Y' ) AS time_full,
+				<if test="(filterBy == '12_month' or filterBy == 'year' or filterBy == 'lifetime' or filterBy == 'custom') and data_send_time == 6">
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
 	
-				<if test="(filterBy == 'lifetime' or filterBy == 'custom') and data_send_time == 8">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y' ) AS time_full,
+				<if test="(filterBy == 'lifetime' or filterBy == 'custom') and data_send_time == 7">
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y' ) AS categories_time,
 					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d') AS time_group_by
 				</if>
 				
+				<if test="filterBy == 'custom' and data_send_time == 8">
+					CASE
+						WHEN DATEDIFF(#{end_date}, #{start_date}) <![CDATA[<=]]> 44 THEN DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' )
+						ELSE DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' )
+					END AS categories_time,
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
+				</if>
+				
 				<if test="filterBy == 'custom' and data_send_time == 1">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 300  )* 300, '%Y-%m-%d %H:%i' ) AS time_full,
 					CASE
 						WHEN DATEDIFF(#{end_date}, #{start_date}) <![CDATA[<=]]> 44 THEN DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' )
 						ELSE DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' )
@@ -462,7 +437,6 @@
 				</if>
 	
 				<if test="filterBy == 'custom' and data_send_time == 2">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 900  )* 900, '%Y-%m-%d %H:%i' ) AS time_full,
 					CASE
 						WHEN DATEDIFF(#{end_date}, #{start_date}) <![CDATA[<=]]> 44 THEN DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' )
 						ELSE DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' )
@@ -471,7 +445,6 @@
 				</if>
 	
 				<if test="filterBy == 'custom' and data_send_time == 3">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_full,
 					CASE
 						WHEN DATEDIFF(#{end_date}, #{start_date}) <![CDATA[<=]]> 44 THEN DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' )
 						ELSE DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' )
@@ -480,16 +453,6 @@
 				</if>
 				
 				<if test="filterBy == 'custom' and data_send_time == 4">
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_full,
-					CASE
-						WHEN DATEDIFF(#{end_date}, #{start_date}) <![CDATA[<=]]> 44 THEN DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' )
-						ELSE DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' )
-					END AS categories_time,
-					FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, '+00:00', t.`offset` ) ) DIV 60  )* 60, '%Y-%m-%d %H:%i' ) AS time_group_by
-				</if>
-				
-				<if test="filterBy == 'custom' and data_send_time == 5">
-					DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_full,
 					CASE
 						WHEN DATEDIFF(#{end_date}, #{start_date}) <![CDATA[<=]]> 44 THEN DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m/%d' )
 						ELSE DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%b. %Y' )
@@ -512,22 +475,74 @@
 			ORDER BY time_group_by ASC
 		) t
 		GROUP BY
-			<choose>
-				<when test="data_send_time == 6">
-	                FLOOR(DATEDIFF(time_group_by, #{start_date}) / 7 )
-				</when>
-				
-				<when test="data_send_time == 7">
-					DATE_FORMAT(time_group_by, '%m/%Y')
-				</when>
-				
-				<when test="data_send_time == 8">
-					DATE_FORMAT(time_group_by, '%Y')
-				</when>
-				
-				<otherwise>
-					time_group_by
-				</otherwise>
-			</choose>
+			time_full
 	</select>
+	
+	<select id="getListFilter" resultType="com.nwm.api.entities.EmployeeChartFilterEntity">
+		SELECT
+			id,
+			id_employee,
+			id_site,
+			params,
+			DATE_FORMAT(created_date, "%m/%d/%Y %H:%i:%s") AS created_date,
+			name,
+			is_favorite
+		FROM
+			employee_chart_filter
+		WHERE
+			id_employee = #{id_employee}
+			AND SHA1(id_site) = #{hash_id_site}
+		ORDER BY id DESC
+	</select>
+	
+	<insert id="saveFilter" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO employee_chart_filter (
+			`id_employee`,
+			`id_site`,
+			`params`,
+			`created_date`,
+			`name`,
+			`is_favorite`
+		)
+		SELECT
+			#{id_employee} AS id_employee,
+			id AS id_site,
+			#{params} AS params,
+			#{created_date} AS created_date,
+			#{name} AS name,
+			#{is_favorite} AS is_favorite
+		FROM
+			site
+		WHERE
+			SHA1(id) = #{hash_id_site};
+		
+		<selectKey keyProperty="id" resultType="int">
+	        SELECT 
+	        LAST_INSERT_ID() as id
+        </selectKey>
+	</insert>
+	
+	<select id="getFiltersCount" resultType="int">
+    	SELECT
+    		COUNT(*)
+		FROM
+			employee_chart_filter
+		WHERE
+			id_employee = #{id_employee}
+			AND SHA1(id_site) = #{hash_id_site}
+			AND is_favorite = #{is_favorite}
+  	</select>
+  	
+  	<delete id="deleteFilter">
+  		DELETE
+  		FROM
+  			employee_chart_filter
+	 	WHERE
+	 		id_employee = #{id_employee}
+	 		AND SHA1(id_site) = #{hash_id_site}
+	 		AND is_favorite = #{is_favorite}
+	 	ORDER BY id ASC
+	 	LIMIT 1
+	</delete>
+	
 </mapper>

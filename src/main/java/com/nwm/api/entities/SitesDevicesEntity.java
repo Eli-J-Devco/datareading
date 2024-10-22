@@ -11,6 +11,7 @@ public class SitesDevicesEntity {
 	private int id;
 	private int id_customer;
 	private int id_country;
+	private int id_company;
 	private int id_time_zone;
 	private int id_site_type;
 	private String name;
@@ -140,10 +141,94 @@ public class SitesDevicesEntity {
 	private String verifyCode;
 	private String sunrise;
 	private String sunset;
+	private String start_date;
+	private String end_date;
+	private String id_filter;
+	private double cost;
+	private String cost_unit;
+	private int site_domain_type;
+	private int time_queue;
+	private int threshold_item_max;
+	private int disable_alert;
+	private String advance_tech_host;
+	private String advance_tech_pass;
+	private int advance_tech_status;
 
 	
 	
 	
+	public String getAdvance_tech_host() {
+		return advance_tech_host;
+	}
+	public void setAdvance_tech_host(String advance_tech_host) {
+		this.advance_tech_host = advance_tech_host;
+	}
+	public String getAdvance_tech_pass() {
+		return advance_tech_pass;
+	}
+	public void setAdvance_tech_pass(String advance_tech_pass) {
+		this.advance_tech_pass = advance_tech_pass;
+	}
+	public int getAdvance_tech_status() {
+		return advance_tech_status;
+	}
+	public void setAdvance_tech_status(int advance_tech_status) {
+		this.advance_tech_status = advance_tech_status;
+	}
+	public int getTime_queue() {
+		return time_queue;
+	}
+	public void setTime_queue(int time_queue) {
+		this.time_queue = time_queue;
+	}
+	public int getThreshold_item_max() {
+		return threshold_item_max;
+	}
+	public void setThreshold_item_max(int threshold_item_max) {
+		this.threshold_item_max = threshold_item_max;
+	}
+	public int getSite_domain_type() {
+		return site_domain_type;
+	}
+	public void setSite_domain_type(int site_domain_type) {
+		this.site_domain_type = site_domain_type;
+	}
+	public double getCost() {
+		return cost;
+	}
+	public void setCost(double cost) {
+		this.cost = cost;
+	}
+	public String getCost_unit() {
+		return cost_unit;
+	}
+	public void setCost_unit(String cost_unit) {
+		this.cost_unit = cost_unit;
+	}
+	public int getId_company() {
+		return id_company;
+	}
+	public void setId_company(int id_company) {
+		this.id_company = id_company;
+	}
+	public String getId_filter() {
+		return id_filter;
+	}
+	public void setId_filter(String id_filter) {
+		this.id_filter = id_filter;
+	}
+	public String getStart_date() {
+		return start_date;
+	}
+	public void setStart_date(String start_date) {
+		this.start_date = start_date;
+	}
+	public String getEnd_date() {
+		return end_date;
+	}
+	public void setEnd_date(String end_date) {
+		this.end_date = end_date;
+	}
 	public int getNumber_devices() {
 		return number_devices;
 	}
@@ -906,6 +991,12 @@ public class SitesDevicesEntity {
 	}
 	public void setSunset(String sunset) {
 		this.sunset = sunset;
+	}
+	public int getDisable_alert() {
+		return disable_alert;
+	}
+	public void setDisable_alert(int disable_alert) {
+		this.disable_alert = disable_alert;
 	}
 	
 	

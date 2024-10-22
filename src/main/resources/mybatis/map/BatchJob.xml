@@ -704,7 +704,7 @@
   	
   	
   	<insert id="insertAlert" useGeneratedKeys="true" keyProperty="id">
-		INSERT INTO `alert`(
+		INSERT INTO `alert_queue`(
 			`id_device`,
 			`id_error`,
 			`start_date`,
@@ -837,16 +837,18 @@
   	</select>
   	
   	
-  	<select id="getListDeviceMeterAndInverter" resultType="Map">
+  	<select id="getListDeviceMeterAndInverter" resultType="com.nwm.api.entities.DeviceEntity">
 		SELECT
 			d.id,
 			d.devicename,
 			d.devicename AS export_devicename,
 			d.datatablename,
-			d.id_site
+			d.id_site,
+			s.table_data_report
 		FROM
 			device d
 			LEFT JOIN device_type dt ON d.id_device_type = dt.id 
+			LEFT JOIN site s ON s.id = d.id_site
 		WHERE
 			dt.id IN(1,3) 
 			AND d.id_site = #{id}
@@ -918,13 +920,12 @@
 	
 	<select id="getSiteDataReportIIMW" resultType="com.nwm.api.entities.SiteDataReportEntity">
 		SELECT
-			t.id_device,
-			t.time_full AS `time`,
+			ac.id_device,
+			ac.time_full AS `time`,
 			t.InverterUptime,
-			s.table_data_report,
 			IFNULL((t.end_date_time - t.start_date_time), 10) AS DayTime,
 			ROUND(t.InverterUptime/ (IFNULL((t.end_date_time - t.start_date_time), 10 )), 2 ) AS InverterUptimeDaytime,
-			ROUND(ac.nvmActiveEnergy, 2) AS ActualGeneration,
+			ac.nvmActiveEnergy AS ActualGeneration,
 			ROUND(ac.estimated, 2) AS EstimatedGeneration,
 			ROUND(ac.nvmActiveEnergy/ac.estimated, 2) AS EstimatedGenerationIndex,
 			IF(ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2) > 1, 1, ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2)) AS InverterAvailability,
@@ -934,73 +935,33 @@
 			NULL AS POAAVG
 		FROM (
 			SELECT 
-				iv.id_site,
-				iv.id_device,
-				iv.time_full,
-				iv.start_date_time,
-				iv.end_date_time,
-				iv.format_date,
-				COUNT(IF(iv.nvmActivePower > 0, format_date, NULL)) AS InverterUptime
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						s.start_date_time,
-						s.end_date_time,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND dv.nvmActiveEnergy > 0
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-					GROUP BY time_format
-			)iv
-			GROUP BY iv.format_date
-		)t
-		
-		
-		LEFT JOIN (
-			SELECT 
 				iv.id_device,
 				iv.time_full,
 				iv.format_date,
-				ROUND(iv.nvmActiveEnergy, 0) AS nvmActiveEnergy,
-				iv.time_month,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower,
-				ROUND(SUM(iv.avg_nvmActivePower), 2) AS avg_nvmActivePower,
+				iv.nvmActiveEnergy,
+				iv.nvmActivePower,
+				iv.avg_nvmActivePower,
 				CASE
-					 when iv.time_month = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/28)
-					 when iv.time_month = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
+					 when iv.time_month = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/31)
+					 when iv.time_month = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/DAY(LAST_DAY(iv.time_full)))
+					 when iv.time_month = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/31)
+					 when iv.time_month = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/30)
+					 when iv.time_month = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/31)
+					 when iv.time_month = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/30)
+					 when iv.time_month = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/31)
+					 when iv.time_month = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/31)
+					 when iv.time_month = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/30)
+					 when iv.time_month = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/31)
+					 when iv.time_month = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/30)
+					 when iv.time_month = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=iv.time_year)/31)
 					END as estimated
 			FROM (
-				SELECT
-						d.id_site,
+					SELECT
 						dv.id_device,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
 						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
 						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
 						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m' ) AS time_month,
+						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y' ) AS time_year,
 						<!--MAX(dv.nvmActiveEnergy) - MIN(dv.nvmActiveEnergy) AS nvmActiveEnergy, -->
 						SUM(dv.MeasuredProduction) AS nvmActiveEnergy,
 						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower,
@@ -1012,57 +973,27 @@
 						LEFT JOIN time_zone t ON t.id = s.id_time_zone
 					WHERE
 						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN DATE_FORMAT(#{start_date}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{end_date}, '%Y-%m-%d 23:59:59'))
+						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
 						AND s.`status` = 1 
 						AND d.`status` = 1 
-						AND dv.nvmActiveEnergy > 0
-					GROUP BY d.id, time_format
-			)iv
-			GROUP BY iv.format_date
-			
-		)ac ON ac.format_date = t.format_date
-		LEFT JOIN site s ON s.id = t.id_site
-		LIMIT 1
-		
-	</select>
-	
-	
-	
-	<select id="getSiteDataReportMIMW" resultType="com.nwm.api.entities.SiteDataReportEntity">
-		
-		SELECT
-			t.id_device,
-			t.time_full AS `time`,
-			t.InverterUptime,
-			s.table_data_report,
-			IFNULL((t.end_date_time - t.start_date_time), 10) AS DayTime,
-			ROUND(t.InverterUptime/ (IFNULL((t.end_date_time - t.start_date_time), 10 )), 2 ) AS InverterUptimeDaytime,
-			ROUND(ac.nvmActiveEnergy, 2) AS ActualGeneration,
-			ROUND(ac.estimated, 2) AS EstimatedGeneration,
-			ROUND(ac.nvmActiveEnergy/ac.estimated, 2) AS EstimatedGenerationIndex,
-			IF(ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2) > 1, 1, ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2)) AS InverterAvailability,
-			ROUND(ac.nvmActivePower, 2) AS PowerTodayTotal,
-			ROUND(ac.avg_nvmActivePower, 2) AS PowerTodayAVG,
-			NULL AS POATotal,
-			NULL AS POAAVG
-		FROM (
+					GROUP BY
+						d.id,
+						format_date
+			) iv
+		) ac
+		LEFT JOIN (
 			SELECT 
-				iv.id_site,
 				iv.id_device,
-				iv.time_full,
 				iv.start_date_time,
 				iv.end_date_time,
 				iv.format_date,
-				COUNT(IF(iv.nvmActivePower > 0, format_date, NULL)) AS InverterUptime
+				COUNT(IF(iv.nvmActivePower > 0, 1, NULL)) AS InverterUptime
 			FROM (
-				SELECT
-						d.id_site,
+					SELECT
 						dv.id_device,
 						s.start_date_time,
 						s.end_date_time,
-						dv.time,
 						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
 						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
 						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower
 					FROM
@@ -1072,71 +1003,18 @@
 						LEFT JOIN time_zone t ON t.id = s.id_time_zone
 					WHERE
 						dv.id_device = #{id}
-						AND dv.nvmActiveEnergy > 0
 						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
 						AND s.`status` = 1 
 						AND d.`status` = 1 
-					GROUP BY time_format
-			)iv
-			GROUP BY iv.format_date
-		)t
-		
-		
-		LEFT JOIN (
-			SELECT 
-				iv.id_device,
-				iv.time_full,
-				iv.format_date,
-				SUM(iv.nvmActiveEnergy) AS nvmActiveEnergy,
-				iv.time_month,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower,
-				ROUND(SUM(iv.avg_nvmActivePower), 2) AS avg_nvmActivePower,
-				CASE
-					 when iv.time_month = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/28)
-					 when iv.time_month = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					END as estimated
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m' ) AS time_month,
-						<!--MAX(dv.nvmActiveEnergy) - MIN(dv.nvmActiveEnergy) AS nvmActiveEnergy, -->
-						SUM(dv.MeasuredProduction) AS nvmActiveEnergy,
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower,
-						IF(AVG(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, AVG(dv.nvmActivePower)) AS avg_nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN DATE_FORMAT(#{start_date}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{end_date}, '%Y-%m-%d 23:59:59'))
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-						AND dv.nvmActiveEnergy > 0
-					GROUP BY d.id, time_format
-			)iv
-			GROUP BY iv.format_date
-			
-		)ac ON ac.format_date = t.format_date
-		LEFT JOIN site s ON s.id = t.id_site
-		LIMIT 1
-		
+					GROUP BY
+						time_format
+			) iv
+			WHERE
+				HOUR(iv.time_format) <![CDATA[>=]]> 8
+				AND HOUR(iv.time_format) <![CDATA[<]]> 18
+			GROUP BY
+				iv.format_date
+		) t ON t.format_date = ac.format_date
 	</select>
 	
 	
@@ -1144,7 +1022,6 @@
 		SELECT
 			t.id_device,
 			t.time_full AS `time`,
-			s.table_data_report,
 			0 AS InverterUptime,
 			IFNULL((t.end_date_time - t.start_date_time), 10) AS DayTime,
 			0 AS InverterUptimeDaytime,
@@ -1159,7 +1036,6 @@
 			ROUND(t.avg_nvm_temperature, 1) AS TCellAVG
 		FROM (
 			SELECT
-				d.id_site,
 				dv.id_device,
 				s.start_date_time,
 				s.end_date_time,
@@ -1177,13 +1053,11 @@
 				LEFT JOIN time_zone t ON t.id = s.id_time_zone
 			WHERE
 				dv.id_device = #{id}
-				AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN DATE_FORMAT(#{start_date}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{end_date}, '%Y-%m-%d 23:59:59'))
+				AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
 				AND s.`status` = 1 
 				AND d.`status` = 1 
 			GROUP BY d.id, time_format
 		)t
-		LEFT JOIN site s ON s.id = t.id_site
-		
 	</select>
 	
 	
@@ -1206,488 +1080,41 @@
 				`TCellAVG`,
 		</trim>
 		
-		<trim prefix="values (" suffix=")" suffixOverrides=",">
-				#{time},
-				#{id_device},
-				#{InverterUptime},
-				#{DayTime},
-				#{InverterUptimeDaytime},
-				#{ActualGeneration},
-				#{EstimatedGeneration},
-				#{EstimatedGenerationIndex},
-				#{InverterAvailability},
-				#{PowerTodayTotal},
-				#{PowerTodayAVG},
-				#{POATotal},
-				#{POAAVG},
-				#{TCellAVG},
-		</trim>
+		<foreach collection="dataDevice" item="item" open="VALUES" separator=",">
+			<trim prefix="(" suffix=")" suffixOverrides=",">
+				#{item.time},
+				#{item.id_device},
+				#{item.InverterUptime},
+				#{item.DayTime},
+				#{item.InverterUptimeDaytime},
+				#{item.ActualGeneration},
+				#{item.EstimatedGeneration},
+				#{item.EstimatedGenerationIndex},
+				#{item.InverterAvailability},
+				#{item.PowerTodayTotal},
+				#{item.PowerTodayAVG},
+				#{item.POATotal},
+				#{item.POAAVG},
+				#{item.TCellAVG},
+			</trim>
+		</foreach>
 		
 		<trim prefix="ON DUPLICATE KEY UPDATE " suffix="" suffixOverrides=",">
-				`InverterUptime` = #{InverterUptime},
-				`DayTime` = #{DayTime},
-				`InverterUptimeDaytime` = #{InverterUptimeDaytime},
-				`ActualGeneration` = #{ActualGeneration},
-				`EstimatedGeneration` = #{EstimatedGeneration},
-				`EstimatedGenerationIndex` = #{EstimatedGenerationIndex},
-				`InverterAvailability` = #{InverterAvailability},
-				`PowerTodayTotal` = #{PowerTodayTotal},
-				`PowerTodayAVG` = #{PowerTodayAVG},
-				`POATotal` = #{POATotal},
-				`POAAVG` = #{POAAVG},
-				`TCellAVG` = #{TCellAVG},
+				`InverterUptime` = VALUES(InverterUptime),
+				`DayTime` = VALUES(DayTime),
+				`InverterUptimeDaytime` = VALUES(InverterUptimeDaytime),
+				`ActualGeneration` = VALUES(ActualGeneration),
+				`EstimatedGeneration` = VALUES(EstimatedGeneration),
+				`EstimatedGenerationIndex` = VALUES(EstimatedGenerationIndex),
+				`InverterAvailability` = VALUES(InverterAvailability),
+				`PowerTodayTotal` = VALUES(PowerTodayTotal),
+				`PowerTodayAVG` = VALUES(PowerTodayAVG),
+				`POATotal` = VALUES(POATotal),
+				`POAAVG` = VALUES(POAAVG),
+				`TCellAVG` = VALUES(TCellAVG),
 		</trim>
 		
 	</insert>
-	
-	
-	<select id="getSiteDataReportIIM" resultType="com.nwm.api.entities.SiteDataReportEntity">
-		SELECT
-			t.id_device,
-			t.time_full AS `time`,
-			t.InverterUptime,
-			s.table_data_report,
-			IFNULL((t.end_date_time - t.start_date_time), 10) AS DayTime,
-			ROUND(t.InverterUptime/ (IFNULL((t.end_date_time - t.start_date_time), 10 )), 2 ) AS InverterUptimeDaytime,
-			ROUND(ac.nvmActiveEnergy, 2) AS ActualGeneration,
-			ROUND(ac.estimated, 2) AS EstimatedGeneration,
-			ROUND(ac.nvmActiveEnergy/ac.estimated, 2) AS EstimatedGenerationIndex,
-			IF(ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2) > 1, 1, ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2)) AS InverterAvailability,
-			ROUND(ac.nvmActivePower, 2) AS PowerTodayTotal,
-			ROUND(ac.avg_nvmActivePower, 2) AS PowerTodayAVG,
-			NULL AS POATotal,
-			NULL AS POAAVG
-			
-			
-		FROM (
-			SELECT 
-				iv.id_site,
-				iv.id_device,
-				iv.time_full,
-				iv.start_date_time,
-				iv.end_date_time,
-				iv.format_date,
-				COUNT(IF(iv.nvmActivePower > 0, format_date, NULL)) AS InverterUptime,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						s.start_date_time,
-						s.end_date_time,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-					GROUP BY time_format
-			)iv
-			GROUP BY iv.format_date
-		)t
-	
-		
-		LEFT JOIN (
-			SELECT 
-				iv.id_device,
-				iv.time_full,
-				iv.format_date,
-				SUM(iv.nvmActiveEnergy) AS nvmActiveEnergy,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower,
-				ROUND(SUM(iv.avg_nvmActivePower), 2) AS avg_nvmActivePower,
-				iv.time_month,
-				CASE
-					 when iv.time_month = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/28)
-					 when iv.time_month = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					END as estimated
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m' ) AS time_month,
-						<!--MAX(dv.nvmActiveEnergy) - MIN(dv.nvmActiveEnergy) AS nvmActiveEnergy, -->
-						SUM(dv.MeasuredProduction) AS nvmActiveEnergy,
-						
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower,
-						IF(AVG(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, AVG(dv.nvmActivePower)) AS avg_nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN DATE_FORMAT(#{start_date}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{end_date}, '%Y-%m-%d 23:59:59'))
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-						AND dv.nvmActiveEnergy > 0
-					GROUP BY d.id, time_format
-			)iv
-			GROUP BY iv.format_date
-		)ac ON ac.format_date = t.format_date
-		LEFT JOIN site s ON s.id = t.id_site
-		LIMIT 1
-		
-	</select>
-	
-	<select id="getSiteDataReportMIM" resultType="com.nwm.api.entities.SiteDataReportEntity">
-		SELECT
-			t.id_device,
-			t.time_full AS `time`,
-			t.InverterUptime,
-			s.table_data_report,
-			IFNULL((t.end_date_time - t.start_date_time), 10) AS DayTime,
-			ROUND(t.InverterUptime/ (IFNULL((t.end_date_time - t.start_date_time), 10 )), 2 ) AS InverterUptimeDaytime,
-			ROUND(ac.nvmActiveEnergy, 2) AS ActualGeneration,
-			ROUND(ac.estimated, 2) AS EstimatedGeneration,
-			ROUND(ac.nvmActiveEnergy/ac.estimated, 2) AS EstimatedGenerationIndex,
-			IF(ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2) > 1, 1, ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2)) AS InverterAvailability,
-			ROUND(ac.nvmActivePower, 2) AS PowerTodayTotal,
-			ROUND(ac.avg_nvmActivePower, 2) AS PowerTodayAVG,
-			NULL AS POATotal,
-			NULL AS POAAVG
-		FROM (
-			SELECT 
-				iv.id_site,
-				iv.id_device,
-				iv.time_full,
-				iv.start_date_time,
-				iv.end_date_time,
-				iv.format_date,
-				COUNT(IF(iv.nvmActivePower > 0, format_date, NULL)) AS InverterUptime,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower
-				
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						s.start_date_time,
-						s.end_date_time,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-					GROUP BY time_format
-			)iv
-			GROUP BY iv.format_date
-		)t
-		
-		LEFT JOIN (
-		
-			SELECT 
-				iv.id_device,
-				iv.time_full,
-				iv.format_date,
-				SUM(iv.nvmActiveEnergy) AS nvmActiveEnergy,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower,
-				ROUND(SUM(iv.avg_nvmActivePower), 2) AS avg_nvmActivePower,
-				iv.time_month,
-				CASE
-					 when iv.time_month = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/28)
-					 when iv.time_month = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					 when iv.time_month = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-					 when iv.time_month = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-					END as estimated
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m' ) AS time_month,
-						<!--MAX(dv.nvmActiveEnergy) - MIN(dv.nvmActiveEnergy) AS nvmActiveEnergy, -->
-						SUM(dv.MeasuredProduction) AS nvmActiveEnergy,
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower,
-						IF(AVG(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, AVG(dv.nvmActivePower)) AS avg_nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN DATE_FORMAT(#{start_date}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{end_date}, '%Y-%m-%d 23:59:59'))
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-						AND dv.nvmActiveEnergy > 0
-					GROUP BY d.id, time_format
-			)iv
-			GROUP BY iv.format_date
-			
-		)ac ON ac.format_date = t.format_date
-		LEFT JOIN site s ON s.id = t.id_site
-		LIMIT 1
-		
-	</select>
-	
-	<select id="getSiteDataReportIIW" resultType="com.nwm.api.entities.SiteDataReportEntity">
-		SELECT
-			t.id_device,
-			t.time_full AS `time`,
-			t.InverterUptime,
-			s.table_data_report,
-			IFNULL((t.end_date_time - t.start_date_time), 10) AS DayTime,
-			ROUND(t.InverterUptime/ (IFNULL((t.end_date_time - t.start_date_time), 10 )), 2 ) AS InverterUptimeDaytime,
-			ROUND(ac.nvmActiveEnergy, 2) AS ActualGeneration,
-			ROUND(ac.estimated, 2) AS EstimatedGeneration,
-			ROUND(ac.nvmActiveEnergy/ac.estimated, 2) AS EstimatedGenerationIndex,
-			IF(ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2) > 1, 1, ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2)) AS InverterAvailability,
-			ROUND(ac.nvmActivePower, 2) AS PowerTodayTotal,
-			ROUND(ac.avg_nvmActivePower, 2) AS PowerTodayAVG,
-			NULL AS POATotal,
-			NULL AS POAAVG
-		FROM (
-			SELECT 
-				iv.id_site,
-				iv.id_device,
-				iv.time_full,
-				iv.start_date_time,
-				iv.end_date_time,
-				iv.format_date,
-				COUNT(IF(iv.nvmActivePower > 0.1, format_date, NULL)) AS InverterUptime,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						s.start_date_time,
-						s.end_date_time,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND dv.nvmActiveEnergy > 0
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-					GROUP BY time_format
-			)iv
-			GROUP BY iv.format_date
-		)t
-		
-		LEFT JOIN (
-		
-			SELECT 
-					iv.id_device,
-					iv.time_full,
-					iv.format_date,
-					SUM(iv.nvmActiveEnergy) AS nvmActiveEnergy,
-					ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower,
-					ROUND(SUM(iv.avg_nvmActivePower), 2) AS avg_nvmActivePower,
-					iv.time_month,
-					CASE
-						 when iv.time_month = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/28)
-						 when iv.time_month = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						END as estimated
-				FROM (
-					SELECT
-							d.id_site,
-							dv.id_device,
-							dv.time,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m' ) AS time_month,
-							<!--MAX(dv.nvmActiveEnergy) - MIN(dv.nvmActiveEnergy) AS nvmActiveEnergy, -->
-							SUM(dv.MeasuredProduction) AS nvmActiveEnergy,
-							IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower,
-							IF(AVG(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, AVG(dv.nvmActivePower)) AS avg_nvmActivePower
-						FROM
-							${datatablename} dv
-							LEFT JOIN device d ON d.id = dv.id_device
-							LEFT JOIN site s ON s.id = d.id_site 
-							LEFT JOIN time_zone t ON t.id = s.id_time_zone
-						WHERE
-							dv.id_device = #{id}
-							AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN DATE_FORMAT(#{start_date}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{end_date}, '%Y-%m-%d 23:59:59'))
-							AND s.`status` = 1 
-							AND d.`status` = 1 
-							AND dv.nvmActiveEnergy > 0
-						GROUP BY d.id, time_format
-				)iv
-				GROUP BY iv.format_date
-			
-		)ac ON ac.format_date = t.format_date
-		LEFT JOIN site s ON s.id = t.id_site
-		LIMIT 1
-		
-	</select>
-	
-	
-	<select id="getSiteDataReportMM" resultType="com.nwm.api.entities.SiteDataReportEntity">
-		SELECT
-			t.id_device,
-			t.time_full AS `time`,
-			t.InverterUptime,
-			s.table_data_report,
-			IFNULL((t.end_date_time - t.start_date_time), 10) AS DayTime,
-			ROUND(t.InverterUptime/ (IFNULL((t.end_date_time - t.start_date_time), 10 )), 2 ) AS InverterUptimeDaytime,
-			ROUND(ac.nvmActiveEnergy, 2) AS ActualGeneration,
-			ROUND(ac.estimated, 2) AS EstimatedGeneration,
-			ROUND(ac.nvmActiveEnergy/ac.estimated, 2) AS EstimatedGenerationIndex,
-			IF(ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2) > 1, 1, ROUND(t.InverterUptime / IFNULL((t.end_date_time - t.start_date_time), 10) ,2)) AS InverterAvailability,
-			ROUND(ac.nvmActivePower, 2) AS PowerTodayTotal,
-			ROUND(ac.avg_nvmActivePower, 2) AS PowerTodayAVG,
-			NULL AS POATotal,
-			NULL AS POAAVG
-		FROM (
-			SELECT 
-				iv.id_site,
-				iv.id_device,
-				iv.time_full,
-				iv.start_date_time,
-				iv.end_date_time,
-				iv.format_date,
-				COUNT(IF(iv.nvmActivePower > 0.1, format_date, NULL)) AS InverterUptime,
-				ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower
-				
-			FROM (
-				SELECT
-						d.id_site,
-						dv.id_device,
-						s.start_date_time,
-						s.end_date_time,
-						dv.time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower
-					FROM
-						${datatablename} dv
-						LEFT JOIN device d ON d.id = dv.id_device
-						LEFT JOIN site s ON s.id = d.id_site 
-						LEFT JOIN time_zone t ON t.id = s.id_time_zone
-					WHERE
-						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
-						AND s.`status` = 1 
-						AND d.`status` = 1 
-					GROUP BY time_format
-			)iv
-			GROUP BY iv.format_date
-		)t
-		
-		LEFT JOIN (
-		
-			SELECT 
-					iv.id_device,
-					iv.time_full,
-					iv.format_date,
-					SUM(iv.nvmActiveEnergy) AS nvmActiveEnergy,
-					ROUND(SUM(iv.nvmActivePower), 2) AS nvmActivePower,
-					ROUND(SUM(iv.avg_nvmActivePower), 2) AS avg_nvmActivePower,
-					iv.time_month,
-					CASE
-						 when iv.time_month = '01' then ROUND((SELECT en.jan FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '02' then ROUND((SELECT en.feb FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/28)
-						 when iv.time_month = '03' then ROUND((SELECT en.mar FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '04' then ROUND((SELECT en.apr FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '05' then ROUND((SELECT en.may FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '06' then ROUND((SELECT en.jun FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '07' then ROUND((SELECT en.jul FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '08' then ROUND((SELECT en.aug FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '09' then ROUND((SELECT en.sep FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '10' then ROUND((SELECT en.oct FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						 when iv.time_month = '11' then ROUND((SELECT en.nov FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/30)
-						 when iv.time_month = '12' then ROUND((SELECT en.`dec` FROM energy_expectations en WHERE en.id_site=#{id_site} AND `year`=${year})/31)
-						END as estimated
-				FROM (
-					SELECT
-							d.id_site,
-							dv.id_device,
-							dv.time,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m' ) AS time_month,
-							<!--MAX(dv.nvmActiveEnergy) - MIN(dv.nvmActiveEnergy) AS nvmActiveEnergy, -->
-							SUM(dv.MeasuredProduction) AS nvmActiveEnergy,
-							IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower,
-							IF(AVG(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, AVG(dv.nvmActivePower)) AS avg_nvmActivePower
-						
-						FROM
-							${datatablename} dv
-							LEFT JOIN device d ON d.id = dv.id_device
-							LEFT JOIN site s ON s.id = d.id_site 
-							LEFT JOIN time_zone t ON t.id = s.id_time_zone
-						WHERE
-							dv.id_device = #{id}
-							AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN DATE_FORMAT(#{start_date}, '%Y-%m-%d 00:00:00') AND DATE_FORMAT(#{end_date}, '%Y-%m-%d 23:59:59'))
-							AND s.`status` = 1 
-							AND d.`status` = 1 
-							AND dv.nvmActiveEnergy > 0
-						GROUP BY d.id, time_format
-				)iv
-				GROUP BY iv.format_date
-			
-		)ac ON ac.format_date = t.format_date
-		LEFT JOIN site s ON s.id = t.id_site
-		LIMIT 1
-		
-	</select>
-	
 	
 	
 	<select id="getDataIrradianceYesterday" resultType="com.nwm.api.entities.SiteEntity" >
@@ -1849,58 +1276,11 @@
 	<select id="getListReports" resultType="com.nwm.api.entities.ViewReportEntity" >
 		SELECT
 			r.id,
-			r.id_site,
-			r.data_intervals,
-			r.type_report,
-			r.cadence_range,
-			r.subscribers,
-			r.file_type,
-			r.date_from,
-			r.date_to,
-			t.`value` AS time_zone,
 			r.schedule_enable,
 			DATE_FORMAT(r.time_schedule, '%Y-%m-%d %H:%i') AS time_schedule,
 			r.periodicity,
 			r.days_week,
-			r.offset_timezone,
-			CASE
-				WHEN r.type_report = 2 AND r.type_option = 1 THEN (
-					SELECT 
-						GROUP_CONCAT(s.id SEPARATOR ',')
-					FROM
-						site_employee_map sem
-						LEFT JOIN site s ON s.id = sem.id_site
-					WHERE
-						sem.id_employee = r.id_employee
-						AND s.`status` = 1
-						AND s.is_delete = 0
-					GROUP BY sem.id_employee
-				)
-				WHEN r.type_report = 2 AND r.type_option = 2 THEN (
-					SELECT
-						GROUP_CONCAT(s.id SEPARATOR ',')
-					FROM
-						report_site_map rsm
-						LEFT JOIN site s ON s.id = rsm.id_site
-					WHERE
-						s.`status` = 1
-						AND s.is_delete = 0
-						AND rsm.id_report = r.id
-					GROUP BY rsm.id_report
-				)
-				WHEN r.type_report = 2 AND r.type_option = 3 THEN (
-					SELECT
-						GROUP_CONCAT(s.id SEPARATOR ',')
-					FROM 
-						site s
-					WHERE 
-						s.`status` = 1
-						AND s.is_delete = 0
-						AND s.id_site_sub_group = r.id_sub_group
-					GROUP BY s.id_site_sub_group
-				)
-				ELSE NULL
-			END AS id_sites
+			r.offset_timezone
 		FROM
 			report r
 			LEFT JOIN site s ON s.id = r.id_site
@@ -1922,21 +1302,77 @@
 			r.file_type,
 			r.date_from,
 			r.date_to,
-			t.`value` AS time_zone,
+			tz.`value` AS time_zone,
 			r.schedule_enable,
 			DATE_FORMAT(r.time_schedule, '%Y-%m-%d %H:%i') AS time_schedule,
 			r.periodicity,
 			r.days_week,
-			r.offset_timezone
+			r.offset_timezone,
+			r.subscribers,
+			CASE
+		    	WHEN r.cadence_range = 1 THEN "Daily"
+				WHEN r.cadence_range = 2 THEN "Monthly"
+				WHEN r.cadence_range = 3 THEN "Quarterly"
+				WHEN r.cadence_range = 4 THEN "Annual"
+				WHEN r.cadence_range = 5 THEN "Custom"
+				WHEN r.cadence_range = 6 THEN "Weekly"
+		    	ELSE ""
+			END	AS cadence_range_name,
+			s.id AS id_site,
+			CASE
+				WHEN r.type_option = 1 THEN t1.ids_site
+				WHEN r.type_option = 2 THEN t2.ids_site
+				WHEN r.type_option = 3 THEN t3.ids_site
+				ELSE NULL
+			END AS id_sites
 		FROM
 			report r
 			LEFT JOIN site s ON s.id = r.id_site
-			LEFT JOIN time_zone t ON t.id = s.id_time_zone
+			LEFT JOIN time_zone tz ON tz.id = s.id_time_zone
+			LEFT JOIN (
+				SELECT
+					sem.id_employee,
+					GROUP_CONCAT(s.id SEPARATOR ',') AS ids_site
+				FROM
+					site_employee_map sem 
+					LEFT JOIN site s ON s.id = sem.id_site
+				WHERE
+					s.`status` = 1
+					AND s.is_delete = 0
+				GROUP BY
+					sem.id_employee
+			) t1 ON t1.id_employee = r.id_employee
+			LEFT JOIN (
+				SELECT
+					rsm.id_report,
+					GROUP_CONCAT(s.id SEPARATOR ',') AS ids_site
+				FROM
+					report_site_map rsm
+					LEFT JOIN site s ON s.id = rsm.id_site
+				WHERE
+					s.`status` = 1
+					AND s.is_delete = 0
+				GROUP BY
+					rsm.id_report
+			) t2 ON t2.id_report = r.id
+			LEFT JOIN (
+				SELECT
+					s.id_site_sub_group,
+					GROUP_CONCAT(s.id SEPARATOR ',') AS ids_site
+				FROM
+					site s
+					LEFT JOIN site_sub_group ssg ON ssg.id = s.id_site_sub_group
+				WHERE 
+					s.`status` = 1
+					AND s.is_delete = 0
+				GROUP BY
+					s.id_site_sub_group
+			) t3 ON t3.id_site_sub_group = r.id_sub_group
 		WHERE
 			r.id = #{id}
 			AND r.status = 1
 			AND r.schedule_enable = 1
-			AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+			AND (CONVERT_TZ(NOW(), '+00:00', tz.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
 	</select>
 	
 	<update id="updateReportScheduleNextRunTime">

@@ -32,6 +32,7 @@
 			d.ip_address,
 			d.hidden,
 			d.modbusdevicenumber,
+			d.disable_alert,
 			tag.tags,
 			DATE_FORMAT( CONVERT_TZ( d.last_updated, '+00:00', t.`offset` ) , '%m/%d/%Y %h:%i %p') AS last_updated,
 			CASE
@@ -64,6 +65,8 @@
 				WHEN dg.table_name = 'model_datalogger' AND d.field_value_default = 'MemFree' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kB" )))
 				
 				WHEN dg.table_name = 'model_solaredge_inverter' AND d.field_value_default = 'I_AC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+
+				WHEN dg.table_name = 'model_solaredge_inverter_v1' AND d.field_value_default = 'I_AC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_sunny_central_class9775_inverter' AND d.field_value_default = 'ACPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				WHEN dg.table_name = 'model_sunny_central_class9775_inverter' AND d.field_value_default = 'ACVoltage' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "V" )))
@@ -104,6 +107,8 @@
 				
 				WHEN dg.table_name = 'model_lufft_class8020' AND d.field_value_default = 'AirTemperatureActual' THEN IF(s.unit_type_temp = 2,CONCAT_WS(" ", ROUND(IFNULL((d.field_value1 * 1.8 + 32), 0 ),2), "°F" ), CONCAT_WS(" ", ROUND(IFNULL(d.field_value1, 0 ),2), "°C" ))
 				WHEN dg.table_name = 'model_lufft_class8020' AND d.field_value_default = 'IrradianceActual' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "W/m²" )))
+
+				WHEN dg.table_name = 'model_sth01_temp_sensor' AND d.field_value_default = 'TEMPRATURE' THEN IF(s.unit_type_temp = 2,CONCAT_WS(" ", ROUND(IFNULL((d.field_value1 * 1.8 + 32), 0 ),2), "°F" ), CONCAT_WS(" ", ROUND(IFNULL(d.field_value1, 0 ),2), "°C" ))
 				
 				WHEN dg.table_name = 'model_lufft_ws501_umb_weather' AND d.field_value_default = 'AirTemperatureCActual' THEN IF(s.unit_type_temp = 2,CONCAT_WS(" ", ROUND(IFNULL((d.field_value1 * 1.8 + 32), 0 ),2), "°F" ), CONCAT_WS(" ", ROUND(IFNULL(d.field_value1, 0 ),2), "°C" ))
 				WHEN dg.table_name = 'model_lufft_ws501_umb_weather' AND d.field_value_default = 'GlobalRadiation' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "W/m²" )))
@@ -165,6 +170,10 @@
 				WHEN dg.table_name = 'model_elkor_production_meter' AND d.field_value_default = 'ActivePowerTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				WHEN dg.table_name = 'model_elkor_production_meter' AND d.field_value_default = 'VoltageA' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "Volts" )))
 				WHEN dg.table_name = 'model_elkor_production_meter' AND d.field_value_default = 'VoltageB' THEN  (IF(d.field_value3 = -1 or d.field_value3 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value3, 2), "Volts" )))
+				
+				WHEN dg.table_name = 'model_elkor_production_meterv1' AND d.field_value_default = 'ActivePowerTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				WHEN dg.table_name = 'model_elkor_production_meterv1' AND d.field_value_default = 'VoltageA' THEN  (IF(d.field_value2 = -1 or d.field_value2 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value2, 2), "Volts" )))
+				WHEN dg.table_name = 'model_elkor_production_meterv1' AND d.field_value_default = 'VoltageB' THEN  (IF(d.field_value3 = -1 or d.field_value3 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value3, 2), "Volts" )))
 				
 				WHEN dg.table_name = 'model_elkor_wattson_pv_meter' AND d.field_value_default = 'TotalRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
@@ -253,6 +262,11 @@
 				
 				WHEN dg.table_name = 'model_acuvim_IIR' AND d.field_value_default = 'SystempowerPsum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
+				WHEN dg.table_name = 'model_gas_meter' AND d.field_value_default = 'ReadingValue' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				WHEN dg.table_name = 'model_water_meter' AND d.field_value_default = 'ReadingValue' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_dent_48pshd_meter' AND d.field_value_default = 'PowerSum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
 				
 				ELSE "N/A"
 			END AS key_indicator,
@@ -313,9 +327,29 @@
 						) t
 				GROUP BY t.id_device
 			) tag ON tag.id_device = d.id
+			
+			<if test="keyword != null and keyword != '' and sort_column == 'tag_device'">			        
+		      LEFT JOIN (
+		        SELECT
+		          d.id_site,
+		          d.id,
+		          t.`name`
+		        FROM tag t
+		          LEFT JOIN tag_device_map td ON td.id_tag = t.id
+		          LEFT JOIN device d ON d.id = td.id_device
+		        WHERE
+				 	t.`name` = #{keyword}	         
+		          GROUP BY id_site
+		      ) td ON td.id= d.id
+ 			</if>
+			
 		WHERE
 			d.id_site = #{id_site} AND d.`status` = 1 AND d.is_delete = 0
 			AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+			
+			<if test="keyword != null and keyword != '' and sort_column == 'tag_device'">
+				AND td.name = #{keyword}
+			</if>
 			
 			order by
 	        <choose> 
@@ -369,6 +403,181 @@
 		 
 	</select>
 	
+	<select id="getListYieldByDevice" resultType="Map" parameterType="com.nwm.api.entities.SitesDevicesEntity">
+		<foreach collection="list_device" item="item" separator="UNION ALL">
+			SELECT
+				id,
+				SHA1(id) AS hash_id,
+				devicename,
+				image,
+				totalError,
+				upTime,
+				ROUND(currentPower, 1) AS currentPower,
+				ROUND(MAX(yieldToday), 1) AS yieldToday,
+				ROUND(MAX(yieldYesterday), 1) AS yieldYesterday,
+				ROUND(MAX(yieldLast7Days), 1) AS yieldLast7Days,
+				ROUND(MAX(yieldYTD), 1) AS yieldYTD
+			FROM (
+				SELECT
+					id,
+					devicename,
+					image,
+					totalError,
+					upTime,
+					time_full,
+					currentPower,
+					CASE time_full
+						WHEN todayFormat THEN energy
+						ELSE NULL
+					END AS yieldToday,
+					CASE time_full
+						WHEN yesterdayFormat THEN energy
+						ELSE NULL
+					END AS yieldYesterday,
+					CASE time_full
+						WHEN last7DaysFormat THEN cummulativeEnergy
+						ELSE NULL
+					END AS yieldLast7Days,
+					CASE time_full
+						WHEN ytdFormat THEN cummulativeEnergy
+						ELSE NULL
+					END AS yieldYTD
+				FROM (
+					SELECT
+						id,
+						devicename,
+						image,
+						`offset`,
+						totalError,
+						upTime,
+						time_full,
+						DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', `offset`), '%Y-%m-%d') AS todayFormat,
+						DATE_FORMAT(DATE_SUB(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', `offset`), INTERVAL 1 DAY), '%Y-%m-%d') AS yesterdayFormat,
+						DATE_FORMAT(IF(time_full > DATE_SUB(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', `offset`), INTERVAL 6 DAY), time_full, DATE_SUB(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', `offset`), INTERVAL 6 DAY)), '%Y-%m-%d') AS last7DaysFormat,
+						DATE_FORMAT(MIN(time_full) OVER (ORDER BY time_full ASC), '%Y-%m-%d') AS ytdFormat,
+						currentPower,
+						MeasuredProduction AS energy,
+						SUM(MeasuredProduction) OVER (ORDER BY time_full DESC) AS cummulativeEnergy
+					FROM (
+						SELECT
+							d.id,
+							d.devicename,
+							dt.image,
+							tz.`offset`,
+							e.totalError,
+							IF(e.noComm > 0, '-', CONCAT(u.upTime, ' ', IF(u.upTime > 1, 'days', 'day'))) AS upTime,
+							DATE_FORMAT(CONVERT_TZ(dv.time, '+00:00', tz.`offset`), '%Y-%m-%d') AS time_full,
+							<choose>
+								<when test="item.id_device_type == 1 or item.id_device_type == 3 or item.id_device_type == 7 or item.id_device_type == 9">
+									d.last_value AS currentPower,
+									SUM(dv.MeasuredProduction) AS MeasuredProduction
+								</when>
+								<otherwise>
+									NULL AS currentPower,
+									NULL AS MeasuredProduction
+								</otherwise>
+							</choose>
+						FROM
+							device d
+							LEFT JOIN ${item.datatablename} dv ON dv.id_device = d.id
+							LEFT JOIN device_type dt ON dt.id = d.id_device_type
+							LEFT JOIN site s ON s.id = d.id_site
+							LEFT JOIN time_zone tz ON tz.id = s.id_time_zone
+							LEFT JOIN (
+								SELECT
+									a.id_device,
+									COUNT(a.id) AS totalError,
+									SUM(IF(e.error_code = '1001', 1, 0)) AS noComm
+								FROM
+									alert a
+									LEFT JOIN error e ON e.id = a.id_error
+								WHERE
+									a.`status` = 1
+									AND a.is_delete = 0
+									AND e.`status` = 1
+									AND e.is_delete = 0
+									AND a.id_device = #{item.id}
+								GROUP BY
+									a.id_device
+							) e ON e.id_device = d.id
+							LEFT JOIN (
+								SELECT
+									dv.id_device,
+									DATEDIFF(UTC_TIMESTAMP(), IF(a.upTime IS NOT NULL, a.upTime, dv.time)) AS upTime
+								FROM
+									(
+										<choose>
+											<when test="item.id_device_type == 5">
+												SELECT
+													d.id AS id_device,
+													s.commissioning AS time
+												FROM
+													site s
+													LEFT JOIN device d ON d.id_site = s.id
+												WHERE
+													d.id = #{item.id}
+											</when>
+											<otherwise>
+												SELECT
+													id_device,
+													time
+												FROM
+													${item.datatablename} dv
+												WHERE
+													id_device = #{item.id}
+												ORDER BY time ASC
+												LIMIT 1
+											</otherwise>
+										</choose>
+									) dv
+									LEFT JOIN (
+										SELECT
+											a.id_device,
+											MAX(a.end_date) AS upTime
+										FROM
+											alert a
+											LEFT JOIN error e ON e.id = a.id_error
+										WHERE
+											a.`status` = 0
+											AND a.is_delete = 0
+											AND e.`status` = 1
+											AND e.is_delete = 0
+											AND a.id_device = #{item.id}
+											AND e.error_code = '1001'
+										GROUP BY
+											a.id_device
+									) a ON a.id_device = dv.id_device
+							) u ON u.id_device = d.id
+						WHERE
+							(
+								dv.id_device = #{item.id}
+								AND dv.time BETWEEN CONVERT_TZ(DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', tz.`offset`), '%Y-01-01 00:00:00'), tz.`offset`, '+00:00') AND UTC_TIMESTAMP()
+							) 
+							OR <!-- case: include device that have no data -->
+							(
+								dv.id_device IS NULL
+								AND d.id = #{item.id}
+							)
+						GROUP BY
+							DAYOFYEAR(time_full)
+					) t
+				) t
+				WHERE
+					time_full = todayFormat
+					OR time_full = yesterdayFormat
+					OR time_full = last7DaysFormat
+					OR time_full = ytdFormat
+					OR time_full IS NULL <!-- case: include device that have no data -->
+			) t
+			GROUP BY
+				id
+		</foreach>
+		
+		<if test="sort_column != null and sort_column != '' and order_by != null and order_by != ''">
+			ORDER BY ${sort_column} ${order_by}
+		</if>
+	</select>
+	
 	<select id="getDeviceDetail" resultType="com.nwm.api.entities.DeviceEntity" parameterType="com.nwm.api.entities.DeviceEntity">
 		SELECT
 			d.id,
@@ -376,7 +585,6 @@
 			d.id_site,
 			SHA1(d.id_site) AS hash_site_id,
 			d.id_vendor,
-			d.serial_number,
 			d.modbusdevicenumber,
 			d.devicename,
 			d.devicetype,
@@ -393,20 +601,26 @@
 			d.ssh_port,
 			dt.`name` AS device_type_name,
 			dt.image,
+			dg.group_name,
 			s.name AS site_name,
+			d.ip_address,
+			d.serialnumber AS serial_number,
+			s.ac_capacity,
+			s.dc_capacity,
 			CONCAT_WS(" ", DATE_FORMAT( CONVERT_TZ( d.last_updated, '+00:00', t.`offset` ), '%m/%d/%Y %H:%i:%s %p' ), t.abbreviation_std) AS last_communication,
 			t.abbreviation_std,
 			t.`value` AS timezone,
 			g.total_error,
 			s.kiosk_view,
 			s.unit_type_temp,
-			s.unit_wind_speed
-			
+			s.unit_wind_speed,
+			IF(noComm > 0, 'Offline', 'Online') AS device_status
 			
 			
 		FROM
 			device AS d
 			LEFT JOIN device_type dt ON dt.id = d.id_device_type
+			LEFT JOIN device_group dg ON dg.id = d.id_device_group
 			LEFT JOIN site s ON s.id = d.id_site
 			LEFT JOIN site_employee_map sem ON sem.id_site = s.id
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone
@@ -416,6 +630,21 @@
 					LEFT JOIN alert a ON a.id_device = d.id
 				WHERE SHA1(d.id_site) = #{hash_id_site} AND d.`status` = 1 AND a.`status` = 1
 			)g ON g.id_site = d.id_site
+			LEFT JOIN (
+				SELECT
+					a.id_device,
+					COUNT(a.id) AS noComm
+				FROM
+					alert a
+					LEFT JOIN error e ON e.id = a.id_error
+				WHERE
+					SHA1(a.id_device) = #{hash_id}
+					AND a.status = 1
+					AND a.is_delete = 0
+					AND e.status = 1
+					AND e.is_delete = 0
+					AND e.error_code = '1001'
+			) a ON a.id_device = d.id
 		WHERE
 			SHA1(d.id) = #{hash_id}
 			
@@ -459,16 +688,19 @@
 			dp.standard_name,
 			dp.writable,
 			ct.id AS id_categorize_data,
-			dps.scale
+			dps.scale,
+			dp.rounding_decimals
 		FROM
 			device d
 			LEFT JOIN device_group dg ON dg.id = d.id_device_group 
 			LEFT JOIN device_parameters dp ON dp.id_device_group = dg.id
-			LEFT JOIN categorize_data_device_parameter_map m ON m.id_device_parameter = dp.id
-			LEFT JOIN categorize_data ct ON ct.id = m.id_categorize_data AND ct.status = 1 AND ct.is_delete = 0
+			LEFT JOIN categorize_data ct ON ct.id = dp.id_categorize_data AND ct.status = 1 AND ct.is_delete = 0
 			LEFT JOIN device_parameter_scale dps ON dps.id_device_parameter = dp.id AND dps.id_device = d.id
 		WHERE
-			SHA1(d.id) = #{hash_id} AND d.`status` = 1 AND dp.`status` = 1;
+			SHA1(d.id) = #{hash_id}
+			AND d.`status` = 1
+			AND dp.`status` = 1
+			AND (dp.is_user_defined = 0 OR dg.id_device_type = 12)
 	</select>
 	
 	
@@ -493,15 +725,15 @@
 			JSON_ARRAYAGG(IF(t.id_device_type = 2 AND t.totalNoCom > 0, JSON_OBJECT("device", t.devicename, "dateChanged", "N/A"), NULL )) AS noComTrackerList,
 			
 			
-			COUNT(IF(t.id_device_type = 3, 1, NULL)) AS totalMeter,
-			COUNT(IF(t.id_device_type = 3 AND t.totalNoCom > 0, 1, NULL)) AS noComMeter,
-			COUNT(IF(t.id_device_type = 3 AND t.totalNoProuduction > 0, 1, NULL)) AS noProductionMeter,
-			COUNT(IF(t.id_device_type = 3, 1, NULL)) - (COUNT(IF(t.id_device_type = 3 AND t.totalNoCom > 0 , 1, NULL)) + COUNT(IF(t.id_device_type = 3 AND t.totalNoProuduction > 0, 1, NULL)) + COUNT(IF(t.id_device_type = 3 AND t.totalLowProduction > 0, 1, NULL )) ) AS healthyMeter,
-			COUNT(IF(t.id_device_type = 3 AND t.totalLowProduction > 0, 1, NULL)) AS lowMeter,
-			JSON_ARRAYAGG(IF(t.id_device_type = 3 AND t.totalNoCom > 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedNoCom), NULL)) AS noComMeterList,
-			JSON_ARRAYAGG(IF(t.id_device_type = 3 AND t.totalNoProuduction > 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedNoProuduction), NULL)) AS noProductionMeterList,
-			JSON_ARRAYAGG(IF(t.id_device_type = 3 AND t.totalNoCom = 0 AND t.totalNoProuduction = 0 AND t.totalLowProduction = 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedHealthy), NULL )) AS healthyMeterList,
-			JSON_ARRAYAGG(IF(t.id_device_type = 3 AND t.totalLowProduction > 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedLowProduction), NULL )) AS lowMeterList,
+			COUNT(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0, 1, NULL)) AS totalMeter,
+			COUNT(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0 AND t.totalNoCom > 0, 1, NULL)) AS noComMeter,
+			COUNT(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0 AND t.totalNoProuduction > 0, 1, NULL)) AS noProductionMeter,
+			COUNT(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0, 1, NULL)) - (COUNT(IF(t.id_device_type = 3 AND t.totalNoCom > 0 , 1, NULL)) + COUNT(IF(t.id_device_type = 3 AND t.totalNoProuduction > 0, 1, NULL)) + COUNT(IF(t.id_device_type = 3 AND t.totalLowProduction > 0, 1, NULL )) ) AS healthyMeter,
+			COUNT(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0 AND t.totalLowProduction > 0, 1, NULL)) AS lowMeter,
+			JSON_ARRAYAGG(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0 AND t.totalNoCom > 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedNoCom), NULL)) AS noComMeterList,
+			JSON_ARRAYAGG(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0 AND t.totalNoProuduction > 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedNoProuduction), NULL)) AS noProductionMeterList,
+			JSON_ARRAYAGG(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0 AND t.totalNoCom = 0 AND t.totalNoProuduction = 0 AND t.totalLowProduction = 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedHealthy), NULL )) AS healthyMeterList,
+			JSON_ARRAYAGG(IF(t.id_device_type IN (3,7,9) AND t.is_excluded_meter = 0 AND t.totalLowProduction > 0, JSON_OBJECT("device", t.devicename, "dateChanged", t.dateChangedLowProduction), NULL )) AS lowMeterList,
 		
 			COUNT(IF(t.id_device_type = 4, 1, NULL)) AS totalWeatherStation,
 			COUNT(IF(t.id_device_type = 4 AND t.totalNoCom > 0, 1, NULL)) AS noComWeatherStation,
@@ -521,6 +753,7 @@
 			IFNULL(IF(noc.id_device = com.id_device, com.totalNoCom - 1, com.totalNoCom), 0) AS totalNoCom,
 			IFNULL(IF(noc.totalNoProuduction > 0 OR com.totalNoCom > 0, 0, low.totalLowProduction), 0) AS totalLowProduction,
 			dt.id as id_device_type,
+			d.is_excluded_meter,
 			DATE_FORMAT(CONVERT_TZ( noc.dateChanged, '+00:00', tz.`offset` ), '%m/%d/%Y') AS dateChangedNoProuduction,
 			DATE_FORMAT(CONVERT_TZ( com.dateChanged, '+00:00', tz.`offset` ), '%m/%d/%Y') AS dateChangedNoCom,
 			DATE_FORMAT(CONVERT_TZ( low.dateChanged, '+00:00', tz.`offset` ), '%m/%d/%Y') AS dateChangedLowProduction,
@@ -538,7 +771,7 @@
 					LEFT JOIN error e ON e.id = a.id_error AND e.id_error_level = 32
 					WHERE a.end_date IS NULL AND e.`status` = 1 AND a.`status` = 1 AND e.is_delete = 0 AND a.is_delete = 0
 					AND d.`status` = 1 AND d.id_site = #{id_site}
-					AND d.id_device_type IN (1,3)
+					AND (d.id_device_type = 1 OR (d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0))
 					GROUP BY a.id_device
 				)noc ON d.id = noc.id_device
 				
@@ -549,7 +782,7 @@
 					LEFT JOIN error e ON e.id = a.id_error AND e.id_error_level = 33
 					WHERE a.end_date IS NULL AND e.`status` = 1 AND a.`status` = 1 AND e.is_delete = 0 AND a.is_delete = 0
 					AND d.`status` = 1 AND d.id_site = #{id_site}
-					AND d.id_device_type IN (1,2,3,4)
+					AND (d.id_device_type IN (1,2,4) OR (d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0))
 					GROUP BY a.id_device
 				)com ON d.id = com.id_device
 				
@@ -560,7 +793,7 @@
 					LEFT JOIN error e ON e.id = a.id_error AND e.error_code = 1002
 					WHERE a.end_date IS NULL AND e.`status` = 1 AND a.`status` = 1 AND e.is_delete = 0 AND a.is_delete = 0
 					AND d.`status` = 1 AND d.id_site = #{id_site}
-					AND d.id_device_type IN (1,3)
+					AND (d.id_device_type = 1 OR (d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0))
 					GROUP BY a.id_device
 				)low ON d.id = low.id_device
 				
@@ -571,13 +804,13 @@
 					LEFT JOIN error e ON e.id = a.id_error AND (e.id_error_level = 32 OR e.id_error_level = 33 OR e.error_code = 1002)
 					WHERE a.end_date IS NOT NULL AND e.`status` = 1 AND a.`status` = 0 AND e.is_delete = 0 AND a.is_delete = 0
 					AND d.`status` = 1 AND d.id_site = #{id_site}
-					AND d.id_device_type IN (1,2,3,4)
+					AND (d.id_device_type IN (1,2,4) OR (d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0))
 					GROUP BY a.id_device
 				)hth ON d.id = hth.id_device
 				
 			WHERE
 				d.id_site = #{id_site} AND d.`status` = 1 AND d.is_delete = 0 AND d.hidden = 0
-				AND d.id_device_type IN (1,2,3,4)
+				AND (d.id_device_type IN (1,2,4) OR (d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0))
 				AND (CONVERT_TZ(NOW(), '+00:00', tz.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
 		)t
 		 GROUP BY t.id_device_group ORDER BY t.id_device_type ASC;

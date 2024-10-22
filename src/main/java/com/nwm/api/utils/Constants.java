@@ -48,6 +48,7 @@ public class Constants {
 	public static final String uploadFilePathConfigKeyGallery="uploadpath.galleries";
 	public static final String uploadFilePathConfigKeyDiagram="uploadpath.diagrams";
 	public static final String uploadFilePathConfigKeyIcons="uploadpath.icons";
+	public static final String uploadFilePathConfigKeyOverviewWidget="uploadpath.overviewwwidget";
 	public static final String uploadFilePathConfigKeySupport="uploadpath.supports";
 	public static final String uploadFilePathConfigKeyLogoReport="uploadpath.reports";
 	public static final String uploadFilePathReportFiles="uploadpath.files";
@@ -120,6 +121,9 @@ public class Constants {
 	
 	public static final String mailMonthlyPortfolioTitle = "mailMonthlyPortfolioTitle";
 	public static final String mailMonthlyPortfolioBody = "mailMonthlyPortfolioBody";
+	
+	public static final String mailAssetManagementAndOperationPerformanceTitle = "mailAssetManagementAndOperationPerformanceTitle";
+	public static final String mailAssetManagementAndOperationPerformanceBody = "mailAssetManagementAndOperationPerformanceBody";
 	
 	public static final String mailOTPTitle = "mailOTPTitle";
 	public static final String mailOTPBody = "mailOTPBody";
@@ -538,6 +542,9 @@ public class Constants {
 		case 19:
 			// annual production trend report (monthly interval)
 				return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailMonthlyPortfolioBody);
+		case 21:
+			// asset management and operation performance report
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailAssetManagementAndOperationPerformanceBody);
 		
 		case 20:
 			// Send OTP
@@ -597,6 +604,9 @@ public class Constants {
 		case 19:
 			// monthly portfolio production trend report (monthly interval)
 			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailMonthlyPortfolioTitle);
+		case 21:
+			// asset management and operation performance report
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailAssetManagementAndOperationPerformanceTitle);
 		
 		case 20:
 			// Send OTP

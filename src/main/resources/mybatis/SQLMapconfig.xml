@@ -45,9 +45,12 @@
 		<mapper resource="mybatis/map/Site.xml" />
 		<mapper resource="mybatis/map/TimeZone.xml" />
 		<mapper resource="mybatis/map/Country.xml" />
+		<mapper resource="mybatis/map/State.xml" />
 		<mapper resource="mybatis/map/MiniSite.xml" />
 		<mapper resource="mybatis/map/DeviceType.xml" />
 		<mapper resource="mybatis/map/DeviceParameter.xml" />
+		<mapper resource="mybatis/map/DeviceParameterScaleOldData.xml" />
+		<mapper resource="mybatis/map/GenericParameters.xml" />
 		<mapper resource="mybatis/map/Alert.xml" />
 		<mapper resource="mybatis/map/AlertFilter.xml" />
 		<mapper resource="mybatis/map/CustomerView.xml" />
@@ -73,8 +76,10 @@
 		<mapper resource="mybatis/map/ModelElkorWattsonPVMeter.xml" />
 		<mapper resource="mybatis/map/ModelWKippZonenRT1.xml" />
 		<mapper resource="mybatis/map/ModelElkorProductionMeter.xml" />
+		<mapper resource="mybatis/map/ModelElkorProductionMeterv1.xml" />
 		<mapper resource="mybatis/map/ModelAbbTrioClass6210.xml" />
 		<mapper resource="mybatis/map/ModelLufftClass8020.xml" />
+		<mapper resource="mybatis/map/ModelSth01TempSensor.xml" />
 		<mapper resource="mybatis/map/ModelLufftWS501UMBWeather.xml" />
 		<mapper resource="mybatis/map/ModelShark100Test.xml" />
 		<mapper resource="mybatis/map/ModelPVPowered3550260500kwInverter.xml" />
@@ -91,10 +96,12 @@
 		<mapper resource="mybatis/map/ModelSungrowWeatherPvmet75200.xml"/>
 		<mapper resource="mybatis/map/ModelSungrowLogger1000.xml"/>
 		<mapper resource="mybatis/map/ModelSolarEdgeInverter.xml"/>
+		<mapper resource="mybatis/map/ModelSolarEdgeInverterV1.xml"/>
 		<mapper resource="mybatis/map/ModelSmaClusterController.xml"/>
 		<mapper resource="mybatis/map/ModelSmaInverterStp1200tlus10.xml"/>
 		<mapper resource="mybatis/map/ModelSmaInverterStp24ktlus10.xml"/>
 		<mapper resource="mybatis/map/ModelAdam4017WSClass8110Nelis190.xml"/>
+		<mapper resource="mybatis/map/ModelDent48PSHDMeter.xml"/>
 		
 		<mapper resource="mybatis/map/ModelCampellScientificMeter1.xml"/>
 		<mapper resource="mybatis/map/ModelCampellScientificMeter2.xml"/>
@@ -140,6 +147,14 @@
 		<mapper resource="mybatis/map/ModelAcuvimIIR.xml"/>
 		<mapper resource="mybatis/map/ModelPVMet200.xml"/>
 		<mapper resource="mybatis/map/ModelSolectriaINV00SLC3146.xml"/>
+		<mapper resource="mybatis/map/ModelGasMeter.xml"/>
+		<mapper resource="mybatis/map/ModelWaterMeter.xml"/>
+		<mapper resource="mybatis/map/UploadWaterAndGas.xml"/>
+		<mapper resource="mybatis/map/ModelKyPulseMeter.xml"/>
+		<mapper resource="mybatis/map/ModelSunSpecInverter.xml"/>
+		
+		
+		
 		
 		
 		
@@ -161,6 +176,7 @@
 		<mapper resource="mybatis/map/SiteQuery.xml" />
 		<mapper resource="mybatis/map/ErrorType.xml" />
 		<mapper resource="mybatis/map/Icons.xml" />
+		<mapper resource="mybatis/map/LevitonOverviewWidget.xml"/>
 		<mapper resource="mybatis/map/ChartTool.xml" />
 		<mapper resource="mybatis/map/Avatar.xml" />
 		<mapper resource="mybatis/map/Configuration.xml" />
@@ -187,7 +203,8 @@
 		 <mapper resource="mybatis/map/VirtualDevice.xml" />
 		 <mapper resource="mybatis/map/CalculationMeasuredProduction.xml" />
 		 <mapper resource="mybatis/map/System.xml" />
-		  <mapper resource="mybatis/map/Tag.xml" />
+		 <mapper resource="mybatis/map/Tag.xml" />
+		 <mapper resource="mybatis/map/DeviceLayout.xml" />
 		 
 		 <mapper resource="mybatis/map/BuiltInReport.xml"/>
 		 <mapper resource="mybatis/map/FileImportDataOld.xml"/>
@@ -197,7 +214,9 @@
 		 
 		 <mapper resource="mybatis/map/ThirdPartyAPI.xml"/>
 		 <mapper resource="mybatis/map/UploadJSON.xml"/>
-		 
+		 <mapper resource="mybatis/map/LevitonReports.xml" />
+		 <mapper resource="mybatis/map/CronFindLogAlert.xml" />
+		  <mapper resource="mybatis/map/EmailTracking.xml"/>
 		 
 		 
 		 
@@ -207,6 +226,11 @@
 		<mapper resource="mybatis/map/ScadaOverview.xml"/>
 		<mapper resource="mybatis/map/ScadaAlert.xml"/>
 		<mapper resource="mybatis/map/ScadaCharting.xml"/>
+		
+		
+		
+		
+		
 		
 	</mappers>
 </configuration>

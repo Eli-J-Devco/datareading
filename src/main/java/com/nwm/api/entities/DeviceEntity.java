@@ -118,7 +118,6 @@ public class DeviceEntity {
 	private String error_code;
 	private String device_group_table;
 	private String table_data_report;
-	private int consumption_meter;
 	private String datalogger_table;
 	private int enable_alert;
 	private Integer max_value;
@@ -137,9 +136,29 @@ public class DeviceEntity {
 	private int id_site_share;
 	private boolean filterEnabled;
 	private Double maxPower;
+	private Double offset_data_old;
+	private String date_time_offset;
+	private boolean is_excluded_meter;
+	private String group_name;
+	private String device_status;
+	private String ac_capacity;
+	private String dc_capacity;
+	
 	
 
 	
+	public String getDate_time_offset() {
+		return date_time_offset;
+	}
+	public void setDate_time_offset(String date_time_offset) {
+		this.date_time_offset = date_time_offset;
+	}
+	public Double getOffset_data_old() {
+		return offset_data_old;
+	}
+	public void setOffset_data_old(Double offset_data_old) {
+		this.offset_data_old = offset_data_old;
+	}
 	public int getId_site_share() {
 		return id_site_share;
 	}
@@ -176,14 +195,6 @@ public class DeviceEntity {
 	}
 	public void setDevice_group_table(String device_group_table) {
 		this.device_group_table = device_group_table;
-	}
-	
-	
-	public int getConsumption_meter() {
-		return consumption_meter;
-	}
-	public void setConsumption_meter(int consumption_meter) {
-		this.consumption_meter = consumption_meter;
 	}
 	public int getId_error() {
 		return id_error;
@@ -893,6 +904,36 @@ public class DeviceEntity {
 	}
 	public void setMaxPower(Double maxPower) {
 		this.maxPower = maxPower;
+	}
+	public boolean isIs_excluded_meter() {
+		return is_excluded_meter;
+	}
+	public void setIs_excluded_meter(boolean is_excluded_meter) {
+		this.is_excluded_meter = is_excluded_meter;
+	}
+	public String getGroup_name() {
+		return group_name;
+	}
+	public void setGroup_name(String group_name) {
+		this.group_name = group_name;
+	}
+	public String getDevice_status() {
+		return device_status;
+	}
+	public void setDevice_status(String device_status) {
+		this.device_status = device_status;
+	}
+	public String getAc_capacity() {
+		return ac_capacity;
+	}
+	public void setAc_capacity(String ac_capacity) {
+		this.ac_capacity = ac_capacity;
+	}
+	public String getDc_capacity() {
+		return dc_capacity;
+	}
+	public void setDc_capacity(String dc_capacity) {
+		this.dc_capacity = dc_capacity;
 	}
 	
 }

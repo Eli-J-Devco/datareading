@@ -316,6 +316,10 @@ public class ImportOldDataController extends BaseController {
 										case "model_lufft_class8020":
 											service.setModelLufftClass8020(rowItem, r);	
 											break;
+
+										case "model_sth01_temp_sensor":
+											service.setModelSth01TempSensor(rowItem, r);	
+											break;
 											
 										case "model_lufft_ws501_umb_weather":
 											service.setModelLufftWS501UMBWeather(rowItem, r);										
@@ -327,6 +331,9 @@ public class ImportOldDataController extends BaseController {
 											
 										case "model_elkor_production_meter":
 											service.setModelElkorProductionMeter(rowItem, r);
+											break;
+										case "model_elkor_production_meterv1":
+											service.setModelElkorProductionMeterv1(rowItem, r);
 											break;
 											
 										case "model_w_kipp_zonen_rt1":
@@ -418,6 +425,10 @@ public class ImportOldDataController extends BaseController {
 										case "model_solaredge_inverter":
 											service.setModelSolaredgeInverter(rowItem, r);
 											break;
+										
+										case "model_solaredge_inverter_v1":
+											service.setModelSolaredgeInverterV1(rowItem, r);
+											break;
 											
 										case "model_phoenix_contact_quint_ups":
 											service.setModelPhoenixContactQuintUPS(rowItem, r);
@@ -456,6 +467,20 @@ public class ImportOldDataController extends BaseController {
 										case "model_sma_inverter_stp62us41":
 											service.setModelSmaInverterStp62tlus41(rowItem, r);
 											break;
+										case "model_gas_meter":
+											service.setModelGasMeter(rowItem, r);
+											break;
+										case "model_water_meter":
+											service.setModelWaterMeter(rowItem, r);
+											break;
+											
+										case "model_ky_pulse_meter":
+											service.setModelKyPulseMeter(rowItem, r);
+											break;
+											
+										case "model_dent_48pshd_meter":
+											service.setModelDent48pshdMeter(rowItem, r);
+											break;
 											
 										}
 										
@@ -487,10 +512,11 @@ public class ImportOldDataController extends BaseController {
 								for (String s : setDate) {	
 									String[] year = s.split("-");
 									obj.setYear(year[0]);
-									obj.setStart_date(s + " 08:00:00");
-									obj.setEnd_date(s + " 17:59:59");
+									obj.setStart_date(s + " 00:00:00");
+									obj.setEnd_date(s + " 23:59:59");
 									obj.setDatatablename(obj.getTable_name());
 									obj.setId(dataFile.getId_device()); 
+									obj.setTable_data_report(getRowComplete.getTable_data_report());
 									
 									service.insertSiteDataReport(obj);
 									

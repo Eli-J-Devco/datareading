@@ -119,7 +119,8 @@ public class SiteEntity {
 	private int value;
 	private double totalGeneration;
 	private int is_hiding;
-	private String tag;
+	private String tag_device;
+	private String tag_site;
 	
 	private double view_lat;
 	private double view_lng;
@@ -216,13 +217,630 @@ public class SiteEntity {
 	private String sunrise;
 	private String sunset;
 	private Integer reporting_region;
+	private int is_solar_site;
+	private String domain;
+	private String site_domain_type;
+	private boolean have_poa;
+	private int time_queue;
+	private int threshold_item_max;
+
+	private int site_type; // 1: Solar 2: Building
+	private String dashboard_overview_note;
+	private String g_company_name;
+	private String g_account_number;
+	private int g_voltage_level_type; // 1: 120/208V 2: 277/480V 3: Other
+	private String g_voltage_level;
+	private String g_pcc_location;
+	private double g_maximum_capacity;
+	private String g_interconnection_agreement_details;
+	private String g_grid_contraints;
+	private String g_existing_ders;
+	private double g_der_capacities;
+	private double g_tariff_structure_rate_schedule;
+	private double g_net_metering_feed_in_tariff;
+	private String g_power_quality_requirements;
+	private double g_transformer_size;
+	private double g_transformer_type;
+	private int g_status;
+	private double g_lat;
+	private double g_lng;
+	
+	private List floorList;
+	private List areaList;
+	private List buildingList;
+	private List roomList;
+	private String siteAreaJSON;
+	private String siteAreaBuildingJSON;
+	private String siteAreaBuildingFloorJSON;
+	private String siteAreaBuildingFloorRoomJSON;
+	private String dataEmployeeJSON;
+	
+	private int tab_menu;
+	
+	private String gas_company_name;
+	private String gas_account_number;
+	private double gas_average_daily_consumption;
+	private double gas_peak_demand;
+	private int gas_service_type;
+	private double gas_service_pressure;
+	private String gas_interconnection_agreement;
+	private String gas_complicance_standard;
+	private String gas_safety_features;
+	private String gas_additional_notes;
+	private int gas_billing_cycle;
+	private int gas_billing_type;
+	private String gas_tariff_structure;
+	private String gas_billing_address;
+	private int gas_status;
+	private List gasRateSchedulesList;
+	private String siteGasRateSchedulesJSON;
+	
+	private String water_company_name;
+	private String water_account_number;
+	private int water_service_connection_type;
+	private double water_quality_standard;
+	private double water_quality_parameter;
+	private int water_billing_cycle;
+	private int water_billing_type;
+	private String water_tariff_structure;
+	private String water_billing_address;
+	private String water_additional_notes;
+	private int water_status;
+	private List waterRateSchedulesList;
+	private String siteWaterRateSchedulesJSON;
+	
+	private String electricity_company_name;
+	private String electricity_account_number;
+	private double electricity_average_daily_consumption;
+	private double electricity_peak_demand;
+	private int electricity_service_type;
+	private double electricity_service_pressure;
+	private String electricity_interconnection_agreement;
+	private String electricity_complicance_standard;
+	private String electricity_safety_features;
+	private String electricity_additional_notes;
+	private int electricity_billing_cycle;
+	private int electricity_billing_type;
+	private String electricity_tariff_structure;
+	private String electricity_billing_address;
+	private double electricity_limit_power;
+	private String electricity_limit_power_unit;
+	private double electricity_over_limit_power_cost;
+	private double electricity_over_limit_power_per;
+	private String electricity_over_limit_power_unit;	
+	private int electricity_status;
+	private List electricityRateSchedulesList;
+	private String siteElectricityRateSchedulesJSON;
 	
 	
-	public String getTag() {
-		return tag;
+	
+	public String getElectricity_company_name() {
+		return electricity_company_name;
 	}
-	public void setTag(String tag) {
-		this.tag = tag;
+	public void setElectricity_company_name(String electricity_company_name) {
+		this.electricity_company_name = electricity_company_name;
+	}
+	public String getElectricity_account_number() {
+		return electricity_account_number;
+	}
+	public void setElectricity_account_number(String electricity_account_number) {
+		this.electricity_account_number = electricity_account_number;
+	}
+	public double getElectricity_average_daily_consumption() {
+		return electricity_average_daily_consumption;
+	}
+	public void setElectricity_average_daily_consumption(double electricity_average_daily_consumption) {
+		this.electricity_average_daily_consumption = electricity_average_daily_consumption;
+	}
+	public double getElectricity_peak_demand() {
+		return electricity_peak_demand;
+	}
+	public void setElectricity_peak_demand(double electricity_peak_demand) {
+		this.electricity_peak_demand = electricity_peak_demand;
+	}
+	public int getElectricity_service_type() {
+		return electricity_service_type;
+	}
+	public void setElectricity_service_type(int electricity_service_type) {
+		this.electricity_service_type = electricity_service_type;
+	}
+	public double getElectricity_service_pressure() {
+		return electricity_service_pressure;
+	}
+	public void setElectricity_service_pressure(double electricity_service_pressure) {
+		this.electricity_service_pressure = electricity_service_pressure;
+	}
+	public String getElectricity_interconnection_agreement() {
+		return electricity_interconnection_agreement;
+	}
+	public void setElectricity_interconnection_agreement(String electricity_interconnection_agreement) {
+		this.electricity_interconnection_agreement = electricity_interconnection_agreement;
+	}
+	public String getElectricity_complicance_standard() {
+		return electricity_complicance_standard;
+	}
+	public void setElectricity_complicance_standard(String electricity_complicance_standard) {
+		this.electricity_complicance_standard = electricity_complicance_standard;
+	}
+	public String getElectricity_safety_features() {
+		return electricity_safety_features;
+	}
+	public void setElectricity_safety_features(String electricity_safety_features) {
+		this.electricity_safety_features = electricity_safety_features;
+	}
+	public String getElectricity_additional_notes() {
+		return electricity_additional_notes;
+	}
+	public void setElectricity_additional_notes(String electricity_additional_notes) {
+		this.electricity_additional_notes = electricity_additional_notes;
+	}
+	public int getElectricity_billing_cycle() {
+		return electricity_billing_cycle;
+	}
+	public void setElectricity_billing_cycle(int electricity_billing_cycle) {
+		this.electricity_billing_cycle = electricity_billing_cycle;
+	}
+	public int getElectricity_billing_type() {
+		return electricity_billing_type;
+	}
+	public void setElectricity_billing_type(int electricity_billing_type) {
+		this.electricity_billing_type = electricity_billing_type;
+	}
+	public String getElectricity_tariff_structure() {
+		return electricity_tariff_structure;
+	}
+	public void setElectricity_tariff_structure(String electricity_tariff_structure) {
+		this.electricity_tariff_structure = electricity_tariff_structure;
+	}
+	public String getElectricity_billing_address() {
+		return electricity_billing_address;
+	}
+	public void setElectricity_billing_address(String electricity_billing_address) {
+		this.electricity_billing_address = electricity_billing_address;
+	}
+	public double getElectricity_limit_power() {
+		return electricity_limit_power;
+	}
+	public void setElectricity_limit_power(double electricity_limit_power) {
+		this.electricity_limit_power = electricity_limit_power;
+	}
+	public String getElectricity_limit_power_unit() {
+		return electricity_limit_power_unit;
+	}
+	public void setElectricity_limit_power_unit(String electricity_limit_power_unit) {
+		this.electricity_limit_power_unit = electricity_limit_power_unit;
+	}
+	public double getElectricity_over_limit_power_cost() {
+		return electricity_over_limit_power_cost;
+	}
+	public void setElectricity_over_limit_power_cost(double electricity_over_limit_power_cost) {
+		this.electricity_over_limit_power_cost = electricity_over_limit_power_cost;
+	}
+	public double getElectricity_over_limit_power_per() {
+		return electricity_over_limit_power_per;
+	}
+	public void setElectricity_over_limit_power_per(double electricity_over_limit_power_per) {
+		this.electricity_over_limit_power_per = electricity_over_limit_power_per;
+	}
+	public String getElectricity_over_limit_power_unit() {
+		return electricity_over_limit_power_unit;
+	}
+	public void setElectricity_over_limit_power_unit(String electricity_over_limit_power_unit) {
+		this.electricity_over_limit_power_unit = electricity_over_limit_power_unit;
+	}
+	public int getElectricity_status() {
+		return electricity_status;
+	}
+	public void setElectricity_status(int electricity_status) {
+		this.electricity_status = electricity_status;
+	}
+	public List getElectricityRateSchedulesList() {
+		return electricityRateSchedulesList;
+	}
+	public void setElectricityRateSchedulesList(List electricityRateSchedulesList) {
+		this.electricityRateSchedulesList = electricityRateSchedulesList;
+	}
+	public String getSiteElectricityRateSchedulesJSON() {
+		return siteElectricityRateSchedulesJSON;
+	}
+	public void setSiteElectricityRateSchedulesJSON(String siteElectricityRateSchedulesJSON) {
+		this.siteElectricityRateSchedulesJSON = siteElectricityRateSchedulesJSON;
+	}
+	public String getWater_additional_notes() {
+		return water_additional_notes;
+	}
+	public void setWater_additional_notes(String water_additional_notes) {
+		this.water_additional_notes = water_additional_notes;
+	}
+	public int getWater_service_connection_type() {
+		return water_service_connection_type;
+	}
+	public void setWater_service_connection_type(int water_service_connection_type) {
+		this.water_service_connection_type = water_service_connection_type;
+	}
+	public String getWater_company_name() {
+		return water_company_name;
+	}
+	public void setWater_company_name(String water_company_name) {
+		this.water_company_name = water_company_name;
+	}
+	public String getWater_account_number() {
+		return water_account_number;
+	}
+	public void setWater_account_number(String water_account_number) {
+		this.water_account_number = water_account_number;
+	}
+	public double getWater_quality_standard() {
+		return water_quality_standard;
+	}
+	public void setWater_quality_standard(double water_quality_standard) {
+		this.water_quality_standard = water_quality_standard;
+	}
+	public double getWater_quality_parameter() {
+		return water_quality_parameter;
+	}
+	public void setWater_quality_parameter(double water_quality_parameter) {
+		this.water_quality_parameter = water_quality_parameter;
+	}
+	public int getWater_billing_cycle() {
+		return water_billing_cycle;
+	}
+	public void setWater_billing_cycle(int water_billing_cycle) {
+		this.water_billing_cycle = water_billing_cycle;
+	}
+	public int getWater_billing_type() {
+		return water_billing_type;
+	}
+	public void setWater_billing_type(int water_billing_type) {
+		this.water_billing_type = water_billing_type;
+	}
+	public String getWater_tariff_structure() {
+		return water_tariff_structure;
+	}
+	public void setWater_tariff_structure(String water_tariff_structure) {
+		this.water_tariff_structure = water_tariff_structure;
+	}
+	public String getWater_billing_address() {
+		return water_billing_address;
+	}
+	public void setWater_billing_address(String water_billing_address) {
+		this.water_billing_address = water_billing_address;
+	}
+	public int getWater_status() {
+		return water_status;
+	}
+	public void setWater_status(int water_status) {
+		this.water_status = water_status;
+	}
+	public List getWaterRateSchedulesList() {
+		return waterRateSchedulesList;
+	}
+	public void setWaterRateSchedulesList(List waterRateSchedulesList) {
+		this.waterRateSchedulesList = waterRateSchedulesList;
+	}
+	public String getSiteWaterRateSchedulesJSON() {
+		return siteWaterRateSchedulesJSON;
+	}
+	public void setSiteWaterRateSchedulesJSON(String siteWaterRateSchedulesJSON) {
+		this.siteWaterRateSchedulesJSON = siteWaterRateSchedulesJSON;
+	}
+	public int getGas_billing_type() {
+		return gas_billing_type;
+	}
+	public void setGas_billing_type(int gas_billing_type) {
+		this.gas_billing_type = gas_billing_type;
+	}
+	public int getGas_status() {
+		return gas_status;
+	}
+	public void setGas_status(int gas_status) {
+		this.gas_status = gas_status;
+	}
+	public List getGasRateSchedulesList() {
+		return gasRateSchedulesList;
+	}
+	public void setGasRateSchedulesList(List gasRateSchedulesList) {
+		this.gasRateSchedulesList = gasRateSchedulesList;
+	}
+	public String getSiteGasRateSchedulesJSON() {
+		return siteGasRateSchedulesJSON;
+	}
+	public void setSiteGasRateSchedulesJSON(String siteGasRateSchedulesJSON) {
+		this.siteGasRateSchedulesJSON = siteGasRateSchedulesJSON;
+	}
+	public int getTab_menu() {
+		return tab_menu;
+	}
+	public void setTab_menu(int tab_menu) {
+		this.tab_menu = tab_menu;
+	}
+	public String getDataEmployeeJSON() {
+		return dataEmployeeJSON;
+	}
+	public void setDataEmployeeJSON(String dataEmployeeJSON) {
+		this.dataEmployeeJSON = dataEmployeeJSON;
+	}
+	public List getRoomList() {
+		return roomList;
+	}
+	public void setRoomList(List roomList) {
+		this.roomList = roomList;
+	}
+	public String getSiteAreaBuildingFloorRoomJSON() {
+		return siteAreaBuildingFloorRoomJSON;
+	}
+	public void setSiteAreaBuildingFloorRoomJSON(String siteAreaBuildingFloorRoomJSON) {
+		this.siteAreaBuildingFloorRoomJSON = siteAreaBuildingFloorRoomJSON;
+	}
+	public String getSiteAreaBuildingFloorJSON() {
+		return siteAreaBuildingFloorJSON;
+	}
+	public void setSiteAreaBuildingFloorJSON(String siteAreaBuildingFloorJSON) {
+		this.siteAreaBuildingFloorJSON = siteAreaBuildingFloorJSON;
+	}
+	public String getSiteAreaBuildingJSON() {
+		return siteAreaBuildingJSON;
+	}
+	public void setSiteAreaBuildingJSON(String siteAreaBuildingJSON) {
+		this.siteAreaBuildingJSON = siteAreaBuildingJSON;
+	}
+	public List getBuildingList() {
+		return buildingList;
+	}
+	public void setBuildingList(List buildingList) {
+		this.buildingList = buildingList;
+	}
+	public String getSiteAreaJSON() {
+		return siteAreaJSON;
+	}
+	public void setSiteAreaJSON(String siteAreaJSON) {
+		this.siteAreaJSON = siteAreaJSON;
+	}
+	public List getAreaList() {
+		return areaList;
+	}
+	public void setAreaList(List areaList) {
+		this.areaList = areaList;
+	}
+	public int getSite_type() {
+		return site_type;
+	}
+	public void setSite_type(int site_type) {
+		this.site_type = site_type;
+	}
+	public String getDashboard_overview_note() {
+		return dashboard_overview_note;
+	}
+	public void setDashboard_overview_note(String dashboard_overview_note) {
+		this.dashboard_overview_note = dashboard_overview_note;
+	}
+	public String getG_company_name() {
+		return g_company_name;
+	}
+	public void setG_company_name(String g_company_name) {
+		this.g_company_name = g_company_name;
+	}
+	public String getG_account_number() {
+		return g_account_number;
+	}
+	public void setG_account_number(String g_account_number) {
+		this.g_account_number = g_account_number;
+	}
+	public int getG_voltage_level_type() {
+		return g_voltage_level_type;
+	}
+	public void setG_voltage_level_type(int g_voltage_level_type) {
+		this.g_voltage_level_type = g_voltage_level_type;
+	}
+	public String getG_voltage_level() {
+		return g_voltage_level;
+	}
+	public void setG_voltage_level(String g_voltage_level) {
+		this.g_voltage_level = g_voltage_level;
+	}
+	public String getG_pcc_location() {
+		return g_pcc_location;
+	}
+	public void setG_pcc_location(String g_pcc_location) {
+		this.g_pcc_location = g_pcc_location;
+	}
+	public double getG_maximum_capacity() {
+		return g_maximum_capacity;
+	}
+	public void setG_maximum_capacity(double g_maximum_capacity) {
+		this.g_maximum_capacity = g_maximum_capacity;
+	}
+	public String getG_interconnection_agreement_details() {
+		return g_interconnection_agreement_details;
+	}
+	public void setG_interconnection_agreement_details(String g_interconnection_agreement_details) {
+		this.g_interconnection_agreement_details = g_interconnection_agreement_details;
+	}
+	public String getG_grid_contraints() {
+		return g_grid_contraints;
+	}
+	public void setG_grid_contraints(String g_grid_contraints) {
+		this.g_grid_contraints = g_grid_contraints;
+	}
+	public String getG_existing_ders() {
+		return g_existing_ders;
+	}
+	public void setG_existing_ders(String g_existing_ders) {
+		this.g_existing_ders = g_existing_ders;
+	}
+	public double getG_der_capacities() {
+		return g_der_capacities;
+	}
+	public void setG_der_capacities(double g_der_capacities) {
+		this.g_der_capacities = g_der_capacities;
+	}
+	public double getG_tariff_structure_rate_schedule() {
+		return g_tariff_structure_rate_schedule;
+	}
+	public void setG_tariff_structure_rate_schedule(double g_tariff_structure_rate_schedule) {
+		this.g_tariff_structure_rate_schedule = g_tariff_structure_rate_schedule;
+	}
+	public double getG_net_metering_feed_in_tariff() {
+		return g_net_metering_feed_in_tariff;
+	}
+	public void setG_net_metering_feed_in_tariff(double g_net_metering_feed_in_tariff) {
+		this.g_net_metering_feed_in_tariff = g_net_metering_feed_in_tariff;
+	}
+	public String getG_power_quality_requirements() {
+		return g_power_quality_requirements;
+	}
+	public void setG_power_quality_requirements(String g_power_quality_requirements) {
+		this.g_power_quality_requirements = g_power_quality_requirements;
+	}
+	public double getG_transformer_size() {
+		return g_transformer_size;
+	}
+	public void setG_transformer_size(double g_transformer_size) {
+		this.g_transformer_size = g_transformer_size;
+	}
+	public double getG_transformer_type() {
+		return g_transformer_type;
+	}
+	public void setG_transformer_type(double g_transformer_type) {
+		this.g_transformer_type = g_transformer_type;
+	}
+	public int getG_status() {
+		return g_status;
+	}
+	public void setG_status(int g_status) {
+		this.g_status = g_status;
+	}
+	public double getG_lat() {
+		return g_lat;
+	}
+	public void setG_lat(double g_lat) {
+		this.g_lat = g_lat;
+	}
+	public double getG_lng() {
+		return g_lng;
+	}
+	public void setG_lng(double g_lng) {
+		this.g_lng = g_lng;
+	}
+	public List getFloorList() {
+		return floorList;
+	}
+	public void setFloorList(List floorList) {
+		this.floorList = floorList;
+	}
+	public String getGas_company_name() {
+		return gas_company_name;
+	}
+	public void setGas_company_name(String gas_company_name) {
+		this.gas_company_name = gas_company_name;
+	}
+	public String getGas_account_number() {
+		return gas_account_number;
+	}
+	public void setGas_account_number(String gas_account_number) {
+		this.gas_account_number = gas_account_number;
+	}
+	public double getGas_average_daily_consumption() {
+		return gas_average_daily_consumption;
+	}
+	public void setGas_average_daily_consumption(double gas_average_daily_consumption) {
+		this.gas_average_daily_consumption = gas_average_daily_consumption;
+	}
+	public double getGas_peak_demand() {
+		return gas_peak_demand;
+	}
+	public void setGas_peak_demand(double gas_peak_demand) {
+		this.gas_peak_demand = gas_peak_demand;
+	}
+	public int getGas_service_type() {
+		return gas_service_type;
+	}
+	public void setGas_service_type(int gas_service_type) {
+		this.gas_service_type = gas_service_type;
+	}
+	public double getGas_service_pressure() {
+		return gas_service_pressure;
+	}
+	public void setGas_service_pressure(double gas_service_pressure) {
+		this.gas_service_pressure = gas_service_pressure;
+	}
+	public String getGas_interconnection_agreement() {
+		return gas_interconnection_agreement;
+	}
+	public void setGas_interconnection_agreement(String gas_interconnection_agreement) {
+		this.gas_interconnection_agreement = gas_interconnection_agreement;
+	}
+	public String getGas_complicance_standard() {
+		return gas_complicance_standard;
+	}
+	public void setGas_complicance_standard(String gas_complicance_standard) {
+		this.gas_complicance_standard = gas_complicance_standard;
+	}
+	public String getGas_safety_features() {
+		return gas_safety_features;
+	}
+	public void setGas_safety_features(String gas_safety_features) {
+		this.gas_safety_features = gas_safety_features;
+	}
+	public String getGas_additional_notes() {
+		return gas_additional_notes;
+	}
+	public void setGas_additional_notes(String gas_additional_notes) {
+		this.gas_additional_notes = gas_additional_notes;
+	}
+	public int getGas_billing_cycle() {
+		return gas_billing_cycle;
+	}
+	public void setGas_billing_cycle(int gas_billing_cycle) {
+		this.gas_billing_cycle = gas_billing_cycle;
+	}
+	public String getGas_tariff_structure() {
+		return gas_tariff_structure;
+	}
+	public void setGas_tariff_structure(String gas_tariff_structure) {
+		this.gas_tariff_structure = gas_tariff_structure;
+	}
+	public String getGas_billing_address() {
+		return gas_billing_address;
+	}
+	public void setGas_billing_address(String gas_billing_address) {
+		this.gas_billing_address = gas_billing_address;
+	}
+	public int getTime_queue() {
+		return time_queue;
+	}
+	public void setTime_queue(int time_queue) {
+		this.time_queue = time_queue;
+	}
+	public int getThreshold_item_max() {
+		return threshold_item_max;
+	}
+	public void setThreshold_item_max(int threshold_item_max) {
+		this.threshold_item_max = threshold_item_max;
+	}
+	public String getSite_domain_type() {
+		return site_domain_type;
+	}
+	public void setSite_domain_type(String site_domain_type) {
+		this.site_domain_type = site_domain_type;
+	}
+	public String getDomain() {
+		return domain;
+	}
+	public void setDomain(String domain) {
+		this.domain = domain;
+	}
+	public String getTag_device() {
+		return tag_device;
+	}
+	public void setTag_device(String tag_device) {
+		this.tag_device = tag_device;
+	}
+	public String getTag_site() {
+		return tag_site;
+	}
+	public void setTag_site(String tag_site) {
+		this.tag_site = tag_site;
 	}
 	public String getSunrise() {
 		return sunrise;
@@ -1387,6 +2005,18 @@ public class SiteEntity {
 	}
 	public void setReporting_region(Integer reporting_region) {
 		this.reporting_region = reporting_region;
+	}
+	public int getIs_solar_site() {
+		return is_solar_site;
+	}
+	public void setIs_solar_site(int is_solar_site) {
+		this.is_solar_site = is_solar_site;
+	}
+	public boolean isHave_poa() {
+		return have_poa;
+	}
+	public void setHave_poa(boolean have_poa) {
+		this.have_poa = have_poa;
 	}
 	
 	
