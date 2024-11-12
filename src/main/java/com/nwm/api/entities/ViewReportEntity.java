@@ -54,6 +54,7 @@ public class ViewReportEntity {
 	private int is_supper_admin;
 	private boolean have_poa;
 	private boolean have_meter;
+	private boolean have_inverter;
 	
 	
 	private int type_report;
@@ -67,6 +68,8 @@ public class ViewReportEntity {
 	private String datatablename;
 	
 	private List<Map<String, Object>> dataFields;
+	private boolean transposed;
+	private boolean showTotal;
 	
 	
 
@@ -399,6 +402,24 @@ public class ViewReportEntity {
 	}
 	public void setHave_meter(boolean have_meter) {
 		this.have_meter = have_meter;
+	}
+	public boolean isHave_inverter() {
+		return have_inverter;
+	}
+	public void setHave_inverter(boolean have_inverter) {
+		this.have_inverter = have_inverter;
+	}
+	public boolean isTransposed() {
+		return transposed;
+	}
+	public void setTransposed(boolean transposed) {
+		this.transposed = transposed;
+	}
+	public boolean isShowTotal() {
+		return showTotal;
+	}
+	public void setShowTotal(boolean showTotal) {
+		this.showTotal = showTotal;
 	}
 	
 	

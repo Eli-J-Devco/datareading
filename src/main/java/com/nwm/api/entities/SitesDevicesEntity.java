@@ -85,6 +85,7 @@ public class SitesDevicesEntity {
 	private int display_time_format;
 	private int display_date_format;
 	private String date_format;
+	private String java_date_format;
 	private int checkall;
 	private int pv_model;
 	private Double pv_module_temperature_coeff;
@@ -153,10 +154,31 @@ public class SitesDevicesEntity {
 	private String advance_tech_host;
 	private String advance_tech_pass;
 	private int advance_tech_status;
+	private String advance_tech_field_restart;
+	private String advance_tech_field_stop;
+	private String advance_tech_field_start;
 
 	
 	
 	
+	public String getAdvance_tech_field_restart() {
+		return advance_tech_field_restart;
+	}
+	public void setAdvance_tech_field_restart(String advance_tech_field_restart) {
+		this.advance_tech_field_restart = advance_tech_field_restart;
+	}
+	public String getAdvance_tech_field_stop() {
+		return advance_tech_field_stop;
+	}
+	public void setAdvance_tech_field_stop(String advance_tech_field_stop) {
+		this.advance_tech_field_stop = advance_tech_field_stop;
+	}
+	public String getAdvance_tech_field_start() {
+		return advance_tech_field_start;
+	}
+	public void setAdvance_tech_field_start(String advance_tech_field_start) {
+		this.advance_tech_field_start = advance_tech_field_start;
+	}
 	public String getAdvance_tech_host() {
 		return advance_tech_host;
 	}
@@ -997,6 +1019,12 @@ public class SitesDevicesEntity {
 	}
 	public void setDisable_alert(int disable_alert) {
 		this.disable_alert = disable_alert;
+	}
+	public String getJava_date_format() {
+		return java_date_format;
+	}
+	public void setJava_date_format(String java_date_format) {
+		this.java_date_format = java_date_format;
 	}
 	
 	

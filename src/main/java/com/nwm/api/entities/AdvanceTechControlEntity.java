@@ -16,6 +16,52 @@ public class AdvanceTechControlEntity {
 	private int id_employee;
 	private String device_type;
 	private String status_type;
+	private String advance_tech_field_restart;
+	private String advance_tech_field_stop;
+	private String advance_tech_field_start;
+	
+	private String advance_tech_value_restart;
+	private String advance_tech_value_stop;
+	private String advance_tech_value_start;
+	
+	
+	
+	public String getAdvance_tech_value_restart() {
+		return advance_tech_value_restart;
+	}
+	public void setAdvance_tech_value_restart(String advance_tech_value_restart) {
+		this.advance_tech_value_restart = advance_tech_value_restart;
+	}
+	public String getAdvance_tech_value_stop() {
+		return advance_tech_value_stop;
+	}
+	public void setAdvance_tech_value_stop(String advance_tech_value_stop) {
+		this.advance_tech_value_stop = advance_tech_value_stop;
+	}
+	public String getAdvance_tech_value_start() {
+		return advance_tech_value_start;
+	}
+	public void setAdvance_tech_value_start(String advance_tech_value_start) {
+		this.advance_tech_value_start = advance_tech_value_start;
+	}
+	public String getAdvance_tech_field_restart() {
+		return advance_tech_field_restart;
+	}
+	public void setAdvance_tech_field_restart(String advance_tech_field_restart) {
+		this.advance_tech_field_restart = advance_tech_field_restart;
+	}
+	public String getAdvance_tech_field_stop() {
+		return advance_tech_field_stop;
+	}
+	public void setAdvance_tech_field_stop(String advance_tech_field_stop) {
+		this.advance_tech_field_stop = advance_tech_field_stop;
+	}
+	public String getAdvance_tech_field_start() {
+		return advance_tech_field_start;
+	}
+	public void setAdvance_tech_field_start(String advance_tech_field_start) {
+		this.advance_tech_field_start = advance_tech_field_start;
+	}
 	public int getId_site() {
 		return id_site;
 	}

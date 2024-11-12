@@ -56,6 +56,7 @@
 			s.display_time_format,
 			s.display_date_format,
 			d.name AS date_format,
+			d.java_format AS java_date_format,
 			s.pv_model,
 			s.pv_module_temperature_coeff,
 			s.global_solar_irradiance_at_stc,
@@ -99,7 +100,8 @@
 			s.time_queue,
 			s.advance_tech_pass,
 			s.advance_tech_host,
-			advance_tech_status
+			s.advance_tech_status,
+			s.serial_number
 		FROM
 			site s 
 			LEFT JOIN site_employee_map sem ON sem.id_site = s.id
@@ -497,6 +499,10 @@
 				WHEN dg.table_name = 'model_water_meter' AND d.field_value_default = 'ReadingValue' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				WHEN dg.table_name = 'model_dent_48pshd_meter' AND d.field_value_default = 'PowerSum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_power_logic_pm8000_load_meter' AND d.field_value_default = 'ActivePowerTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+				
+				WHEN dg.table_name = 'model_shark250' AND d.field_value_default = 'ActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "N/A", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 				
 				ELSE "N/A"
 			END AS key_indicator,

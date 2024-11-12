@@ -958,10 +958,10 @@
 			FROM (
 					SELECT
 						dv.id_device,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m' ) AS time_month,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y' ) AS time_year,
+						DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y-%m-%d 00:00' ) AS time_full,
+						DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y-%m-%d' ) AS format_date,
+						DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%m' ) AS time_month,
+						DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y' ) AS time_year,
 						<!--MAX(dv.nvmActiveEnergy) - MIN(dv.nvmActiveEnergy) AS nvmActiveEnergy, -->
 						SUM(dv.MeasuredProduction) AS nvmActiveEnergy,
 						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower,
@@ -973,7 +973,7 @@
 						LEFT JOIN time_zone t ON t.id = s.id_time_zone
 					WHERE
 						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
+						AND (CONVERT_TZ( dv.time, 'UTC', t.value ) BETWEEN #{start_date} AND #{end_date})
 						AND s.`status` = 1 
 						AND d.`status` = 1 
 					GROUP BY
@@ -993,8 +993,8 @@
 						dv.id_device,
 						s.start_date_time,
 						s.end_date_time,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d %H:00' ) AS time_format,
-						DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
+						DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y-%m-%d %H:00' ) AS time_format,
+						DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y-%m-%d' ) AS format_date,
 						IF(SUM(dv.nvmActivePower) <![CDATA[<]]> 0.1, 0, SUM(dv.nvmActivePower)) AS nvmActivePower
 					FROM
 						${datatablename} dv
@@ -1003,7 +1003,7 @@
 						LEFT JOIN time_zone t ON t.id = s.id_time_zone
 					WHERE
 						dv.id_device = #{id}
-						AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
+						AND (CONVERT_TZ( dv.time, 'UTC', t.value ) BETWEEN #{start_date} AND #{end_date})
 						AND s.`status` = 1 
 						AND d.`status` = 1 
 					GROUP BY
@@ -1040,9 +1040,9 @@
 				s.start_date_time,
 				s.end_date_time,
 				dv.time,
-				DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS time_format,
-				DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d 00:00' ) AS time_full,
-				DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%Y-%m-%d' ) AS format_date,
+				DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y-%m-%d' ) AS time_format,
+				DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y-%m-%d 00:00' ) AS time_full,
+				DATE_FORMAT( CONVERT_TZ( dv.time, 'UTC', t.value ), '%Y-%m-%d' ) AS format_date,
 				IF(SUM(dv.nvm_irradiance) <![CDATA[<]]> 0.1, 0, SUM(dv.nvm_irradiance)) AS nvm_irradiance,
 				IF(AVG(dv.nvm_irradiance) <![CDATA[<]]> 0.1, 0, AVG(dv.nvm_irradiance)) AS avg_nvm_irradiance,
 				IF(AVG(dv.nvm_temperature) <![CDATA[<]]> 0.1, 0, AVG(dv.nvm_temperature)) AS avg_nvm_temperature
@@ -1053,7 +1053,7 @@
 				LEFT JOIN time_zone t ON t.id = s.id_time_zone
 			WHERE
 				dv.id_device = #{id}
-				AND (CONVERT_TZ( dv.time, '+00:00', t.`offset` ) BETWEEN #{start_date} AND #{end_date})
+				AND (CONVERT_TZ( dv.time, 'UTC', t.value ) BETWEEN #{start_date} AND #{end_date})
 				AND s.`status` = 1 
 				AND d.`status` = 1 
 			GROUP BY d.id, time_format
@@ -1269,7 +1269,7 @@
 			site s
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone 
 		WHERE
-			s.`status` = 1
+			s.`status` = 1 AND s.id = 331
 	</select>
 	
 	
@@ -1302,7 +1302,6 @@
 			r.file_type,
 			r.date_from,
 			r.date_to,
-			tz.`value` AS time_zone,
 			r.schedule_enable,
 			DATE_FORMAT(r.time_schedule, '%Y-%m-%d %H:%i') AS time_schedule,
 			r.periodicity,
@@ -1318,7 +1317,6 @@
 				WHEN r.cadence_range = 6 THEN "Weekly"
 		    	ELSE ""
 			END	AS cadence_range_name,
-			s.id AS id_site,
 			CASE
 				WHEN r.type_option = 1 THEN t1.ids_site
 				WHEN r.type_option = 2 THEN t2.ids_site
@@ -1327,8 +1325,6 @@
 			END AS id_sites
 		FROM
 			report r
-			LEFT JOIN site s ON s.id = r.id_site
-			LEFT JOIN time_zone tz ON tz.id = s.id_time_zone
 			LEFT JOIN (
 				SELECT
 					sem.id_employee,
@@ -1372,7 +1368,6 @@
 			r.id = #{id}
 			AND r.status = 1
 			AND r.schedule_enable = 1
-			AND (CONVERT_TZ(NOW(), '+00:00', tz.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
 	</select>
 	
 	<update id="updateReportScheduleNextRunTime">

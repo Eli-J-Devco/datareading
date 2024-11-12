@@ -63,7 +63,11 @@
 		<mapper resource="mybatis/map/CustomerViewTypeG.xml" />
 		<mapper resource="mybatis/map/CustomerViewTypeH.xml" />
 		<mapper resource="mybatis/map/CustomerViewTypeI.xml" />
-		
+		<mapper resource="mybatis/map/ModelShark250.xml" />
+		<mapper resource="mybatis/map/ModelXGI1500.xml" />
+		<mapper resource="mybatis/map/ModelSEL651R.xml" />
+		<mapper resource="mybatis/map/ModelATiTracker.xml" />
+		<mapper resource="mybatis/map/ModelQuint4UPS.xml" />
 		
 		
 		<mapper resource="mybatis/map/ModelIMTSolarClass8000.xml" />
@@ -217,6 +221,8 @@
 		 <mapper resource="mybatis/map/LevitonReports.xml" />
 		 <mapper resource="mybatis/map/CronFindLogAlert.xml" />
 		  <mapper resource="mybatis/map/EmailTracking.xml"/>
+		  <mapper resource="mybatis/map/BuildingDashboard.xml"/>
+		  
 		 
 		 
 		 
