@@ -94,7 +94,8 @@
 			s.enable_alert,
 			s.data_send_time,
 			IFNULL(d.offset_data_old, 0) AS offset_data_old,
-			d.date_time_offset
+			d.date_time_offset,
+			d.mfa_control
 		FROM
 			device AS d
 			LEFT JOIN site s ON s.id = d.id_site
@@ -211,7 +212,8 @@
 			s.table_share_data,
 			IFNULL(s.offset_data_old, 0) AS offset_data_old,
 			s.date_time_offset,
-			s.is_excluded_meter
+			s.is_excluded_meter,
+			s.mfa_control
 		FROM
 			device s
 			LEFT JOIN device_type dt ON dt.id = s.id_device_type
@@ -355,7 +357,8 @@
 			`table_share_data`,
 			`offset_data_old`,
 			`date_time_offset`,
-			`is_excluded_meter`
+			`is_excluded_meter`,
+			`mfa_control`
 		)VALUES(
 			#{id_site},
 			#{id_vendor},
@@ -391,7 +394,8 @@
 			#{table_share_data},
 			#{offset_data_old},
 			#{date_time_offset},
-			#{is_excluded_meter}
+			#{is_excluded_meter},
+			#{mfa_control}
 		);
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
@@ -443,7 +447,8 @@
 				table_share_data = #{table_share_data},
 				offset_data_old = #{offset_data_old},
 				date_time_offset = #{date_time_offset},
-				is_excluded_meter = #{is_excluded_meter}
+				is_excluded_meter = #{is_excluded_meter},
+				mfa_control = #{mfa_control}
 			WHERE
 				`id` = #{id}
 		</if>
@@ -5814,7 +5819,7 @@
 							`Fault1` double DEFAULT NULL,
 							`Fault2` double DEFAULT NULL,
 							`Fault3` double DEFAULT NULL,
-							`SerialNumberHex4Reg` double DEFAULT NULL,
+							`SerialNumberHex4Reg` varchar(200) DEFAULT NULL,
 							`CabinetTemperature` double DEFAULT NULL,
 							`HeatSinkTemperature` double DEFAULT NULL,
 							`OtherTemperature` double DEFAULT NULL,
@@ -6019,6 +6024,43 @@
 							`Battery1MaxTemperatureWarning` double DEFAULT NULL,
 							`Battery1MinTemperatureWarning` double DEFAULT NULL,
 							`Battery1DischargeEndvoltageLowCurrent` double DEFAULT NULL,
+							
+							PRIMARY KEY (`time`,`id_device`) USING BTREE,
+							KEY `id_device` (`id_device`),
+							CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	            
+	            
+	            <when test="id_device_group == 103">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+						(
+							`time` datetime NOT NULL,
+							`id_device` int NOT NULL,
+							`error` int unsigned DEFAULT '0',
+							`low_alarm` int unsigned DEFAULT '0',
+							`high_alarm` int unsigned DEFAULT '0',
+							
+							`InputsStatus164` double DEFAULT NULL,
+							`InputsManualFlag164` double DEFAULT NULL,
+							`ZonesStatus164` double DEFAULT NULL,
+							`ZonesManualFlag164` double DEFAULT NULL,
+							`ZonesFeedbackState164` double DEFAULT NULL,
+							`ZonesAlarmState164` double DEFAULT NULL,
+							`ZoneswithNonRespondingBreaker164` double DEFAULT NULL,
+							`BreakersPanel0L` double DEFAULT NULL,
+							`BreakersPanel0R` double DEFAULT NULL,
+							`BreakersPanel1L` double DEFAULT NULL,
+							`BreakersPanel1R` double DEFAULT NULL,
+							`BreakersPanel2L` double DEFAULT NULL,
+							`BreakersPanel2R` double DEFAULT NULL,
+							`BreakerUnresponsivePanel0L` double DEFAULT NULL,
+							`BreakerUnresponsivePanel0R` double DEFAULT NULL,
+							`BreakerUnresponsivePanel1L` double DEFAULT NULL,
+							`BreakerUnresponsivePanel1R` double DEFAULT NULL,
+							`BreakerUnresponsivePanel2L` double DEFAULT NULL,
+							`BreakerUnresponsivePanel2R` double DEFAULT NULL,
 							
 							PRIMARY KEY (`time`,`id_device`) USING BTREE,
 							KEY `id_device` (`id_device`),

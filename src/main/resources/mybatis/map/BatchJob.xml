@@ -1269,7 +1269,7 @@
 			site s
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone 
 		WHERE
-			s.`status` = 1 AND s.id = 331
+			s.`status` = 1 AND s.id = 250
 	</select>
 	
 	
