@@ -17,7 +17,7 @@
 		<result property="alert_filter" column="alert_filter" />
 		<result property="hash_id_user" column="hash_id_user" />
 		<result property="id_company" column="id_company" />
-		
+		<result property="portfolio_metrics_enable" column="portfolio_metrics_enable" />
 	</resultMap>
 	
 	
@@ -58,6 +58,7 @@
 		<result property="lock_time" column="lock_time" />
 		<result property="id_company" column="id_company" />
 		<result property="note" column="note" />
+		<result property="portfolio_metrics_enable" column="portfolio_metrics_enable" />
 		
 	</resultMap>
 	
@@ -111,7 +112,7 @@
 			u.`email` AS user_name,
 			concat( u.first_name, ', ', u.last_name ) AS `name`,
 			u.avatar,
-			t.roles,
+			k.roles,
 			k.id_sites,
 			u.table_column,
 			u.alert_filter,
@@ -121,24 +122,36 @@
 			u.failed_attempt,
 			u.is_send_email_unblock,
 			u.id_company,
+			u.portfolio_metrics_enable,
 			( SELECT `value` FROM system_setup WHERE type = 'max_failed_attempt' ) AS max_failed_attempt,
 			( SELECT `value` FROM system_setup WHERE type = 'time_account_locked' ) AS time_account_locked
 			
 		FROM
 			`employee` u
 			LEFT JOIN (
-				SELECT id_employee, GROUP_CONCAT(er.id_role) AS roles FROM employee_role_map er GROUP BY er.id_employee
-			)t ON t.id_employee = u.id
-			
-			LEFT JOIN (
 				SELECT 
-					si.id_employee, 
-					GROUP_CONCAT(si.id_site) AS id_sites 
-				FROM site_employee_map si 
-				LEFT JOIN employee em ON em.id = si.id_employee  
+					em.id AS id_employee,
+					r.roles,
+					GROUP_CONCAT(s.id) AS id_sites
+				FROM
+					employee em
+					JOIN (
+						SELECT
+							em.id,
+							GROUP_CONCAT(er.id_role) AS roles,
+							MIN(er.id_role) = 1 AS isSuperAdmin
+						FROM
+							employee em
+							JOIN employee_role_map er ON er.id_employee = em.id
+						WHERE
+							em.email = #{value}
+						GROUP BY em.id
+					) r ON r.id = em.id
+					JOIN site s ON s.`status` = 1 AND s.is_delete = 0
+					LEFT JOIN site_employee_map si ON si.id_employee = em.id AND si.id_site = s.id
 				WHERE
 					em.email = #{value}
-					AND si.is_hiding = 0
+					AND (r.isSuperAdmin OR si.is_hiding = 0)
 				GROUP BY em.id
 			)k ON k.id_employee = u.id
 		WHERE email = #{value} AND u.status = 1 AND u.is_delete = 0 GROUP BY u.id;
@@ -212,7 +225,7 @@
 			t.group_roles,
 			t.role_ids,
 			t.color,
-			IFNULL(st.manage_site_total, 0) AS manage_site_total,
+			m.manage_site_total,
 			m.ids_site,
 			s.last_login,
 			s.offset_timezone,
@@ -223,16 +236,27 @@
 			e.created_by,
 			SHA2(e.`id`, 256) AS hash_id_user,
 			e.id_company,
-			e.note
+			e.note,
+			e.portfolio_metrics_enable
 		FROM
 			`employee` e	
 			
 			LEFT JOIN (
-						SELECT id_employee, GROUP_CONCAT(sem.`id_site`) AS ids_site, GROUP_CONCAT(s.`name`) AS site_name
-						FROM site_employee_map sem
-						LEFT JOIN site s ON s.id = sem.id_site
-						GROUP BY sem.id_employee
-					)m ON m.id_employee = e.id
+						SELECT
+							id_employee,
+							GROUP_CONCAT(sem.`id_site`) AS ids_site,
+							GROUP_CONCAT(s.`name`) AS site_name,
+							COUNT(sem.id_employee) AS manage_site_total
+						FROM
+							site_employee_map sem
+							LEFT JOIN site s ON s.id = sem.id_site
+						WHERE
+							s.status = 1
+							AND s.is_delete = 0
+			            <include refid="com.nwm.common.siteByDomainCondition"/>
+						GROUP BY
+							sem.id_employee
+			)m ON m.id_employee = e.id
 					
 					
 			LEFT JOIN (
@@ -254,10 +278,6 @@
 						GROUP BY er.id_employee
 					)t ON t.id_employee = e.id
 					
-			LEFT JOIN (
-				SELECT COUNT(se.id_employee) AS manage_site_total, se.id_employee FROM site_employee_map se GROUP BY se.id_employee
-			)st ON st.id_employee = e.id
-
 			LEFT JOIN (
 				SELECT *
 				FROM account_status
@@ -299,42 +319,34 @@
 		</if> 	
 		    order by
 	        <choose>  
-	            <when test="sort_column == 'id'">
-	                e.id ${order_by}
-	            </when>         
 	            <when test="sort_column == 'first_name'">
-	                e.first_name ${order_by}
-	            </when>
-	            <when test="sort_column == 'last_name'">
-	                e.last_name ${order_by}
+	                CONCAT(e.first_name, ' ', e.last_name) ${order_by}
 	            </when>
 	            <when test="sort_column == 'roles'">
 	                t.group_roles ${order_by}
-	            </when>
-	            <when test="sort_column == 'phone'">
-	                e.phone ${order_by}
-	            </when>
-	            <when test="sort_column == 'email'">
-	                e.email ${order_by}
 	            </when>
 	            <when test="sort_column == 'status'">
 	                s.last_login ${order_by}
 	            </when>
 	            <when test="sort_column == 'manage_site'">
-	                st.manage_site_total ${order_by}
+	                m.manage_site_total ${order_by}
 	            </when>
 	            <when test="sort_column == 'locked'">
-	                e.status ${order_by}
+	                e.account_locked ${order_by}
 	            </when>
-	            <when test="sort_column == 'created_by'">
-	                e.created_by ${order_by}
+	            
+	            <when test="sort_column != null and sort_column != ''">
+	                e.${sort_column} ${order_by}
 	            </when>
+	            
 	            <otherwise>
 			      t.group_roles ASC
 			    </otherwise>                                                  
-	        </choose>  
+	        </choose> , e.id DESC 
 		 	 
-		 LIMIT ${limit} OFFSET ${offset};
+		<if test="limit > 0">
+			LIMIT ${limit} OFFSET ${offset};
+		</if>		 	 
 	</select>
 	
 	<select id="getListCount"  resultType="int" parameterType="com.nwm.api.entities.EmployeeManageEntity">
@@ -492,7 +504,8 @@
 			created_by,
 			created_date,
 			id_company,
-			note
+			note,
+			portfolio_metrics_enable
 		)VALUES(
 			#{first_name},
 			#{last_name},
@@ -506,7 +519,8 @@
 			#{created_by},
 			NOW(),
 			#{id_company},
-			#{note}
+			#{note},
+			#{portfolio_metrics_enable}
 		);
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
@@ -556,7 +570,8 @@
 			`updated_by` = #{created_by},
 			`updated_date` = NOW(),
 			`id_company` = #{id_company},
-			`note` = #{note}
+			`note` = #{note},
+			`portfolio_metrics_enable` = #{portfolio_metrics_enable}
 			
 		WHERE
 			`id` = #{id}
@@ -583,6 +598,9 @@
 			<if test="table_width != null">
 				`table_width` = JSON_SET(IF(table_width IS NULL OR table_width = '', '{}', table_width), '$."${table}"', CAST(#{table_width} AS JSON))
 			</if>
+			<if test="table_sort != null">
+				`table_sort` = JSON_SET(IF(table_sort IS NULL OR table_sort = '', '{}', table_sort), '$."${table}"', CAST(#{table_sort} AS JSON))
+			</if>
 		WHERE
 			`id` = #{id};
 	</update>
@@ -591,7 +609,8 @@
     	SELECT
 	    	JSON_VALUE(table_column, '$."${table}"' RETURNING JSON) AS table_column,
 	    	JSON_VALUE(table_order, '$."${table}"' RETURNING JSON) AS table_order,
-	    	JSON_VALUE(table_width, '$."${table}"' RETURNING JSON) AS table_width
+	    	JSON_VALUE(table_width, '$."${table}"' RETURNING JSON) AS table_width,
+	    	JSON_VALUE(table_sort, '$."${table}"' RETURNING JSON) AS table_sort
 		FROM `employee` u
 		WHERE u.id = #{id};
   	</select>

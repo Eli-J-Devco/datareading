@@ -20,6 +20,11 @@
 		<result property="updated_date" column="updated_by" />
 		<result property="contact_person" column="contact_person" />
 		
+		<result property="title" column="title" />
+		<result property="company" column="company" />
+		<result property="issue_type" column="issue_type" />
+		<result property="subject" column="subject" />
+		
 	</resultMap>
 	
 	<insert id="insertCustomerSupport" useGeneratedKeys="true" keyProperty="id">
@@ -31,12 +36,13 @@
 			`note`,
 			`parent`,
 			`id_support_type`,
-			`status`,
 			`created_date`,
 			`updated_date`,
 			`created_by`,
 			`updated_by`,
-			`contact_person`
+			`contact_person`,
+			`subject`,
+			`issue_type`
 		)VALUES(
 			#{id_site},
 			#{account_name},
@@ -45,12 +51,13 @@
 			#{note},
 			#{parent},
 			#{id_support_type},
-			#{status},
 			NOW(),
 			NOW(),
 			#{created_by},
 			#{updated_by},
-			#{contact_person}
+			#{contact_person},
+			#{subject},
+			#{issue_type}
 		);
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
@@ -79,22 +86,24 @@
 	
 	<select id="getList" resultType="Map" >
 		SELECT
-			s.id,
-			s.id_site,
-			ss.name AS site_name,
-			s.contact_person,
-			s.account_name,
-			s.phone,
-			s.email,
-			s.note,
-			s.parent,
-			s.id_support_type,
-			s.status,
-			DATE_FORMAT( CONVERT_TZ( s.created_date, '+00:00', t.`offset` ), '%Y-%m-%d %H:%i:%s' ) AS created_date,
+			sp.id,
+			sp.id_site,
+			<include refid="com.nwm.common.siteName"/> AS site_name,
+			sp.contact_person,
+			sp.account_name,
+			sp.phone,
+			sp.email,
+			sp.note,
+			sp.parent,
+			sp.id_support_type,
+			sp.`status`,
+			sp.issue_type,
+			sp.subject,
+			DATE_FORMAT( CONVERT_TZ( sp.created_date, '+00:00', t.`offset` ), '%Y-%m-%d %H:%i:%s' ) AS created_date,
 			JSON_ARRAYAGG(obj_support_file) AS support_file
 			
 		FROM
-			support s
+			support sp
 			LEFT JOIN (
 				SELECT
 						u.id_support,
@@ -107,33 +116,41 @@
 						) AS obj_support_file 
 					FROM
 						support_file u
-			) t ON t.id_support = s.id
-			LEFT JOIN site ss ON ss.id = s.id_site
-			LEFT JOIN time_zone t ON t.id = ss.id_time_zone
-			GROUP BY s.id
+			) t ON t.id_support = sp.id
+			LEFT JOIN site s ON s.id = sp.id_site
+			LEFT JOIN time_zone t ON t.id = s.id_time_zone
+		WHERE
+			sp.id_site is not null
+			<if test="inactive_support_tickets == 1">
+				AND sp.`status` = 0
+			</if>
+			GROUP BY sp.id
 		    order by
 	        <choose>  
 	            <when test="sort_column == 'id'">
-	                s.id ${order_by}
+	                sp.id ${order_by}
 	            </when>         
 	            <when test="sort_column == 'site_name'">
-	                ss.name ${order_by}
+	                s.name ${order_by}
 	            </when>            
 	            <when test="sort_column == 'account_name'">
-	                s.account_name ${order_by}
+	                sp.account_name ${order_by}
 	            </when>
 	            <when test="sort_column == 'contact_person'">
-	                s.contact_person ${order_by}
+	                sp.contact_person ${order_by}
 	            </when>
 	            <when test="sort_column == 'email'">
-	                s.email ${order_by}
+	                sp.email ${order_by}
 	            </when>
 	            <when test="sort_column == 'phone'">
-	                s.phone ${order_by}
+	                sp.phone ${order_by}
+	            </when>
+	            <when test="sort_column == 'status'">
+	                sp.status ${order_by}
 	            </when>
 	            
 	            <otherwise>
-			      s.id DESC
+			      sp.id DESC
 			    </otherwise>                                                  
 	        </choose>  
 		 	 
@@ -143,7 +160,19 @@
 	<select id="getTotalRecord"  resultType="int" parameterType="com.nwm.api.entities.CustomerSupportEntity">
     	SELECT count(*) as totalRow
 		FROM support s 
-		
+		WHERE
+			s.id_site is not null
+			<if test="inactive_support_tickets == 1">
+				AND s.`status` = 0
+			</if>
   	</select>
+  	
+  	<update id="updateStatus">
+		UPDATE `support`
+		SET	
+			`status` = #{status}
+		WHERE
+			`id` = #{id}
+	</update>
 	
 </mapper>

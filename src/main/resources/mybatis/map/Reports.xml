@@ -21,42 +21,10 @@
 		<result property="updated_by" column="updated_by" />
 	</resultMap>
 	
-	<select id="getListSiteByEmployee" resultType="Map">
-		SELECT
-			sg.id,
-			sg.id AS value,
-			sg.name AS text,
-			sg.name AS label,
-			JSON_ARRAYAGG(JSON_OBJECT(
-				'id', s.id,
-				'value', s.id,
-				'text', s.name,
-				'label', s.name,
-				'id_site_group', s.id_site_group
-			)) AS sitesJSON
-		FROM
-			site_group AS sg
-			LEFT JOIN site s ON s.id_site_group = sg.id
-		WHERE
-			sg.status = 1
-			AND sg.is_delete = 0 
-			AND s.`status` = 1 
-			AND s.is_delete = 0
-			<if test="is_supper_admin != 1 and id_sites != null">
-				AND s.id IN  (
-					<foreach item="item" index="index" collection="id_sites" separator=" , ">
-						#{item.id}
-					</foreach>
-				)
-			</if>
-		GROUP BY
-			sg.id
-	</select>
-	
 	<select id="getListSiteByIdEmployee" resultType="Map">
 		SELECT
 			s.id,
-			s.`name`
+            <include refid="com.nwm.common.siteName"/> AS `name`
 		FROM
 			site_employee_map sem
 			LEFT JOIN site s ON s.id = sem.id_site
@@ -94,7 +62,7 @@
 	<select id="getListSiteBySubGroup" resultType="Map" >
 		SELECT
 			s.id,
-			s.`name`
+            <include refid="com.nwm.common.siteName"/> AS `name`
 		FROM
 			site s
 			LEFT JOIN site_sub_group ssg ON ssg.id = s.id_site_sub_group
@@ -112,7 +80,7 @@
 	<select id="getListSelectedSiteByIdSite" resultType="Map" >
 		SELECT
 			s.id,
-			s.`name`
+			<include refid="com.nwm.common.siteName"/> AS `name`
 		FROM
 			site s
 		WHERE 
@@ -238,7 +206,15 @@
 			r.cadence_range,
 			r.type_report,
 			r.data_intervals,
-			r.subscribers,
+			<choose> 
+	            <when test="domain =='demo.nextwavemonitoring.com' || domain_role == '1ff1de774005f8da13f42943881c655f'">
+	                CONCAT_WS("#", "#subscribers", s.id) AS `subscribers`,
+	            </when>
+	            <otherwise>
+			      r.subscribers,
+			    </otherwise>                                                  
+	        </choose>
+	        
 			r.file_type,
 			r.type_option,
 			r.id_sub_group,
@@ -275,8 +251,8 @@
 					JSON_ARRAYAGG(JSON_OBJECT(
 						'id', s.id,
 						'value', s.id,
-						'text', s.name,
-						'label', s.name,
+						'text', <include refid="com.nwm.common.siteName"/>,
+						'label', <include refid="com.nwm.common.siteName"/>,
 						'id_site_group', s.id_site_group
 					)) AS sitesListJSON
 				FROM
@@ -291,13 +267,13 @@
 			LEFT JOIN (
 				SELECT
 					rsm.id_report,
-					GROUP_CONCAT(s.name SEPARATOR ' - ') AS sites_name,
 					GROUP_CONCAT(s.id SEPARATOR ',') AS ids_site,
+					GROUP_CONCAT(<include refid="com.nwm.common.siteName"/> SEPARATOR ' - ') AS sites_name,
 					JSON_ARRAYAGG(JSON_OBJECT(
 						'id', s.id,
 						'value', s.id,
-						'text', s.name,
-						'label', s.name,
+						'text', <include refid="com.nwm.common.siteName"/>,
+						'label', <include refid="com.nwm.common.siteName"/>,
 						'id_site_group', s.id_site_group
 					)) AS sitesListJSON
 				FROM
@@ -317,8 +293,8 @@
 					JSON_ARRAYAGG(JSON_OBJECT(
 						'id', s.id,
 						'value', s.id,
-						'text', s.name,
-						'label', s.name,
+						'text', <include refid="com.nwm.common.siteName"/>,
+						'label', <include refid="com.nwm.common.siteName"/>,
 						'id_site_group', s.id_site_group
 					)) AS sitesListJSON
 				FROM
@@ -352,8 +328,10 @@
 			      r.id DESC
 			    </otherwise>                                                  
 	        </choose>  
-		 	 
-		 LIMIT ${limit} OFFSET ${offset};
+
+		<if test="limit > 0">
+			LIMIT ${limit} OFFSET ${offset};
+		</if>
 	</select>
 	
   	
@@ -382,7 +360,7 @@
 		SELECT
 			s.id,
 			s.id AS id_site,
-			s.`name` AS site_name,
+			<include refid="com.nwm.common.siteName"/> AS site_name,
 			DATE_FORMAT(NOW(), '%m/%d/%Y') AS report_date,
 			s.ac_capacity,
 			s.dc_capacity,
@@ -398,10 +376,10 @@
 		SELECT
 			r.id,
 			s.id AS id_site,
-			s.`name` AS site_name,
+			<include refid="com.nwm.common.siteName"/> AS site_name,
 			s.table_data_report,
 			s.table_data_virtual,
-			DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', tz.value), '%m/%d/%Y') AS report_date,
+			DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', IFNULL(r.offset_timezone, 'UTC')), '%m/%d/%Y') AS report_date,
 			s.ac_capacity,
 			s.dc_capacity,
 			r.subscribers,
@@ -458,7 +436,7 @@
 			d.id_site,
 			s.cost,
 			s.cost_unit,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS name,
 			dt.`name` AS device_type
 		FROM
 			device d
@@ -500,11 +478,11 @@
 		FROM (
 			SELECT
 				DATE_FORMAT( sdr.time, '%m/%d/%Y' ) AS categories_time,
-				IF(
+				GREATEST(0, IF(
 					#{have_meter},
 					SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0)),
 					SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0))
-				) AS actual,
+				)) AS actual,
 				CASE
 					WHEN MONTH(#{start_date}) = 01 then (ee.jan / DAY(LAST_DAY(#{end_date})))
 					WHEN MONTH(#{start_date}) = 02 then (ee.feb / DAY(LAST_DAY(#{end_date})))
@@ -540,7 +518,7 @@
 	<select id="getListSiteREC" resultType="Map" >
 		SELECT
 			s.id,
-			s.name,
+			<include refid="com.nwm.common.siteName"/> AS name,
 			s.id AS id_site,
 			IF(s.rec_id IS NULL || s.rec_id = '', CONCAT_WS("-", "NWM", s.id), s.rec_id) AS rec_id,
 			IF(s.gu_id IS NULL || s.gu_id = '', CONCAT_WS("-", "NWM", s.id), s.gu_id) AS gu_id,
@@ -571,7 +549,7 @@
 		<foreach item="item" index="index" collection="id_sites" separator="UNION">
 		SELECT
 			d.id,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS name,
 			d.devicename,
 			IF(d.ru_id IS NULL || d.ru_id = '', CONCAT_WS("-", "NWM", d.id), d.ru_id) AS ru_id,
 			IF(d.gu_id IS NULL || d.gu_id = '', CONCAT_WS("-", "NWM", d.id), d.gu_id) AS gu_id,
@@ -580,7 +558,7 @@
 			DATE_FORMAT(#{end_date}, "%m/%Y") AS vintage_date,
 			0 AS is_edit,
 			CASE
-			    WHEN DATE_FORMAT( sdr.time, '%m/%Y' ) != DATE_FORMAT(CONVERT_TZ(NOW(),'UTC', t.`value`), '%m/%Y') THEN FORMAT(CAST(SUM(sdr.ActualGeneration) AS DECIMAL) / 1000 * 0.97, 2) 
+			    WHEN DATE_FORMAT( sdr.time, '%m/%Y' ) != DATE_FORMAT(CONVERT_TZ(NOW(),'UTC', t.`value`), '%m/%Y') THEN CAST((GREATEST(0, SUM(sdr.ActualGeneration)) / 1000 * 0.97) AS DECIMAL(10, 2)) 
 			    ELSE NULL
 			END AS energy_this_month
 			
@@ -662,11 +640,11 @@
 				SELECT
 					sdr.time,
 					DATE_FORMAT( sdr.time, '%b-%Y' ) AS categories_time,
-					IF(
+					GREATEST(0, IF(
 						#{have_meter},
 						SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0)),
 						SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0))
-					) AS actual,
+					)) AS actual,
 					CASE
 						WHEN DATE_FORMAT(sdr.time, '%b') = "Jan" THEN ee.jan
 						WHEN DATE_FORMAT(sdr.time, '%b') = "Feb" THEN ee.feb
@@ -712,11 +690,11 @@
 			SELECT
 				s.dc_capacity,
 				DATE_FORMAT( sdr.time, '%m/%d/%Y' ) AS categories_time,
-				IF(
+				GREATEST(0, IF(
 					#{have_meter},
 					SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0)),
 					SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0))
-				) AS actual,
+				)) AS actual,
 				AVG(IF(d.id_device_type = 4, sdr.POAAVG * 24 / 1000, NULL)) AS POAInsolation,
 				AVG(IF(d.id_device_type = 4, sdr.TCellAVG, NULL)) AS TCellAVG,
 				AVG(IF(d.id_device_type = 1, sdr.InverterAvailability * 100, NULL)) AS inverterAvailability
@@ -754,7 +732,7 @@
 				SELECT
 					time,
 					categories_time,
-					CAST(SUM(actual) AS DECIMAL) AS actual,
+					CAST(GREATEST(0, SUM(actual)) AS DECIMAL) AS actual,
 					CAST(estimated AS DECIMAL) AS estimated,
 					SUM(inverterAvailability) / DAY(LAST_DAY(time)) AS inverterAvailability
 				FROM (
@@ -910,11 +888,11 @@
 					</otherwise>
 				</choose>
 				AS categories_time,
-				IF(
+				GREATEST(0, IF(
 					#{have_meter},
 					ROUND(CAST(SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0)) AS DECIMAL), 0),
 					ROUND(CAST(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)) AS DECIMAL), 0)
-				) AS actual
+				)) AS actual
 				
 			FROM
 				${table_data_report} sdr 
@@ -1000,40 +978,21 @@
 						DATE_FORMAT(sdr.time, "%b-%y") AS time_full,
 						DATE_FORMAT(sdr.time, "%b") AS `month`,
 						DATE_FORMAT(sdr.time, "%Y") AS `year`,
-						IF(
+						GREATEST(0, IF(
 							#{have_meter},
 							ROUND(CAST(SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0)) AS DECIMAL), 1),
 							ROUND(CAST(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)) AS DECIMAL), 1)
-						) AS actualEnergy,
-						CASE
-							WHEN s.pv_model = 1 THEN
-								AVG(IF(d.id_device_type = 4,
-									IF(
-										IFNULL(s.dc_capacity * (sdr.POAAVG / s.global_solar_irradiance_at_stc) * (1 - (IFNULL(s.pv_module_temperature_coeff, -0.43)/100) * (s.stc_temperature - sdr.TCellAVG)) * (1 - IFNULL(s.system_loss, 9)/100), 0) * IFNULL(s.inverter_efficiency, 96)/100 <![CDATA[ < ]]> s.ac_capacity,
-										s.dc_capacity * (sdr.POAAVG / s.global_solar_irradiance_at_stc) * (1 - (IFNULL(s.pv_module_temperature_coeff, -0.43)/100) * (s.stc_temperature - sdr.TCellAVG)) * (1 - IFNULL(s.system_loss, 9)/100) * IFNULL(s.inverter_efficiency, 96)/100,
-										s.ac_capacity
-									),
-									NULL
-								))
-							WHEN s.pv_model = 2 THEN
-								AVG(IF(d.id_device_type = 4,
-									IF(
-										IFNULL( s.dc_capacity * (ROUND(sdr.POAAVG,0) / s.global_solar_irradiance_at_stc) * (1 - ROUND((1 + (IFNULL(s.pv_module_temperature_coeff, -0.43)/100)) * ((sdr.TCellAVG - s.stc_temperature)/100), 4)) * (ROUND(POW(1 - (IFNULL(s.annual_pv_module_degradation, 0.5)/100), YEAR(CURRENT_TIMESTAMP) - IFNULL(YEAR(s.commissioning), YEAR(s.built_since))) * 100, 2) / 100) * (1 - (IFNULL(s.soiling, 5)/100)) * (1 - (IFNULL(s.cable_losses, 1)/100)) * (1 - (IFNULL(s.transformer_losses, 1.5)/100)) * (1 - (IFNULL(s.other_losses, 1.5)/100)) * (IFNULL(s.inverter_efficiency, 98.5)/100), 0) <![CDATA[ < ]]> s.ac_capacity,
-										IFNULL( s.dc_capacity * (ROUND(sdr.POAAVG,0) / s.global_solar_irradiance_at_stc) * (1 - ROUND((1 + (IFNULL(s.pv_module_temperature_coeff, -0.43)/100)) * ((sdr.TCellAVG - s.stc_temperature)/100), 4)) * (ROUND(POW(1 - (IFNULL(s.annual_pv_module_degradation, 0.5)/100), YEAR(CURRENT_TIMESTAMP) - IFNULL(YEAR(s.commissioning), YEAR(s.built_since))) * 100, 2) / 100) * (1 - (IFNULL(s.soiling, 5)/100)) * (1 - (IFNULL(s.cable_losses, 1)/100)) * (1 - (IFNULL(s.transformer_losses, 1.5)/100)) * (1 - (IFNULL(s.other_losses, 1.5)/100)) * (IFNULL(s.inverter_efficiency, 98.5)/100), 0),
-										s.ac_capacity
-									),
-									NULL
-								))
-							ELSE
-								AVG(IF(d.id_device_type = 4,
-									IF(
-										s.t_avg IS NULL OR NOT (sdr.POAAVG >= s.min_irradiance_limit AND (IF(sdr.PowerTodayAVG > (s.ac_capacity * IFNULL(s.clip, 99)/100), 1, 0) = 0)),
-										NULL,
-										s.dc_capacity * (sdr.POAAVG / s.global_solar_irradiance_at_stc) * (1 - IFNULL(s.pv_module_temperature_coeff, -0.37)/100 * (s.t_avg - (sdr.TCellAVG + sdr.POAAVG/s.global_solar_irradiance_at_stc * 3))) * IFNULL(s.inverter_efficiency, 100)/100
-									),
-									NULL
-								))
-						END * 24 * COUNT(*) AS expectedEnergy,
+						)) AS actualEnergy,
+						AVG(IF(
+							d.id_device_type = 4,
+							<include refid="com.nwm.common.expectedPowerByPvModel">
+								<property name="irradiance" value="sdr.POAAVG" />
+								<property name="temperature" value="sdr.TCellAVG" />
+								<property name="panelTemperature" value="sdr.TCellAVG" />
+								<property name="power" value="sdr.PowerTodayAVG" />
+							</include>,
+							NULL
+						)) * 24 * COUNT(*) AS expectedEnergy,
 						AVG(IF(d.id_device_type = 4 AND d.reverse_poa = 0, sdr.POAAVG, NULL)) AS actualPOA,
 						SUM(ia.InverterAvailability) / DATE_FORMAT(LAST_DAY(sdr.time),'%d') AS InverterAvailability,
 						s.dc_capacity
@@ -1089,7 +1048,7 @@
 					LEFT JOIN (
 						SELECT
 							DATE_FORMAT(group_by_day, "%b-%y") AS time_full,
-							SUM(actualEnergy) AS actualEnergy,
+							GREATEST(0, SUM(actualEnergy)) AS actualEnergy,
 							AVG(expectedPower) * 24 * COUNT(*) AS expectedEnergy,
 							AVG(actualPOA) AS actualPOA
 						FROM (
@@ -1155,7 +1114,7 @@
 								DATE_FORMAT(CONVERT_TZ(vir.time, 'UTC', tz.`value`), "%m/%d/%Y") AS time_full,
 								DATE_FORMAT(CONVERT_TZ(vir.time, 'UTC', tz.`value`), "%b") AS `month`,
 								DATE_FORMAT(CONVERT_TZ(vir.time, 'UTC', tz.`value`), "%Y") AS `year`,
-								SUM(vir.nvmActiveEnergy) AS actualEnergy,
+								GREATEST(0, SUM(vir.nvmActiveEnergy)) AS actualEnergy,
 								AVG(vir.expected_power_ac) AS expectedPower
 							FROM
 								${table_data_virtual} vir
@@ -1177,40 +1136,21 @@
 								DATE_FORMAT(sdr.time, "%m/%d/%Y") AS time_full,
 								DATE_FORMAT(sdr.time, "%b") AS `month`,
 								DATE_FORMAT(sdr.time, "%Y") AS `year`,
-								IF(
+								GREATEST(0, IF(
 									#{have_meter},
 									ROUND(CAST(SUM(IF(d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0, sdr.ActualGeneration, 0)) AS DECIMAL), 1),
 									ROUND(CAST(SUM(IF(d.id_device_type = 1, sdr.ActualGeneration, 0)) AS DECIMAL), 1)
-								) AS actualEnergy,
-								CASE
-									WHEN s.pv_model = 1 THEN
-										AVG(IF(d.id_device_type = 4,
-											IF(
-												IFNULL(s.dc_capacity * (sdr.POAAVG / s.global_solar_irradiance_at_stc) * (1 - (IFNULL(s.pv_module_temperature_coeff, -0.43)/100) * (s.stc_temperature - sdr.TCellAVG)) * (1 - IFNULL(s.system_loss, 9)/100), 0) * IFNULL(s.inverter_efficiency, 96)/100 <![CDATA[ < ]]> s.ac_capacity,
-												s.dc_capacity * (sdr.POAAVG / s.global_solar_irradiance_at_stc) * (1 - (IFNULL(s.pv_module_temperature_coeff, -0.43)/100) * (s.stc_temperature - sdr.TCellAVG)) * (1 - IFNULL(s.system_loss, 9)/100) * IFNULL(s.inverter_efficiency, 96)/100,
-												s.ac_capacity
-											),
-											NULL
-										))
-									WHEN s.pv_model = 2 THEN
-										AVG(IF(d.id_device_type = 4,
-											IF(
-												IFNULL( s.dc_capacity * (ROUND(sdr.POAAVG,0) / s.global_solar_irradiance_at_stc) * (1 - ROUND((1 + (IFNULL(s.pv_module_temperature_coeff, -0.43)/100)) * ((sdr.TCellAVG - s.stc_temperature)/100), 4)) * (ROUND(POW(1 - (IFNULL(s.annual_pv_module_degradation, 0.5)/100), YEAR(CURRENT_TIMESTAMP) - IFNULL(YEAR(s.commissioning), YEAR(s.built_since))) * 100, 2) / 100) * (1 - (IFNULL(s.soiling, 5)/100)) * (1 - (IFNULL(s.cable_losses, 1)/100)) * (1 - (IFNULL(s.transformer_losses, 1.5)/100)) * (1 - (IFNULL(s.other_losses, 1.5)/100)) * (IFNULL(s.inverter_efficiency, 98.5)/100), 0) <![CDATA[ < ]]> s.ac_capacity,
-												IFNULL( s.dc_capacity * (ROUND(sdr.POAAVG,0) / s.global_solar_irradiance_at_stc) * (1 - ROUND((1 + (IFNULL(s.pv_module_temperature_coeff, -0.43)/100)) * ((sdr.TCellAVG - s.stc_temperature)/100), 4)) * (ROUND(POW(1 - (IFNULL(s.annual_pv_module_degradation, 0.5)/100), YEAR(CURRENT_TIMESTAMP) - IFNULL(YEAR(s.commissioning), YEAR(s.built_since))) * 100, 2) / 100) * (1 - (IFNULL(s.soiling, 5)/100)) * (1 - (IFNULL(s.cable_losses, 1)/100)) * (1 - (IFNULL(s.transformer_losses, 1.5)/100)) * (1 - (IFNULL(s.other_losses, 1.5)/100)) * (IFNULL(s.inverter_efficiency, 98.5)/100), 0),
-												s.ac_capacity
-											),
-											NULL
-										))
-									ELSE
-										AVG(IF(d.id_device_type = 4,
-											IF(
-												s.t_avg IS NULL OR NOT (sdr.POAAVG >= s.min_irradiance_limit AND (IF(sdr.PowerTodayAVG > (s.ac_capacity * IFNULL(s.clip, 99)/100), 1, 0) = 0)),
-												NULL,
-												s.dc_capacity * (sdr.POAAVG / s.global_solar_irradiance_at_stc) * (1 - IFNULL(s.pv_module_temperature_coeff, -0.37)/100 * (s.t_avg - (sdr.TCellAVG + sdr.POAAVG/s.global_solar_irradiance_at_stc * 3))) * IFNULL(s.inverter_efficiency, 100)/100
-											),
-											NULL
-										))
-								END AS expectedPower
+								)) AS actualEnergy,
+								AVG(IF(
+									d.id_device_type = 4,
+									<include refid="com.nwm.common.expectedPowerByPvModel">
+										<property name="irradiance" value="sdr.POAAVG" />
+										<property name="temperature" value="sdr.TCellAVG" />
+										<property name="panelTemperature" value="sdr.TCellAVG" />
+										<property name="power" value="sdr.PowerTodayAVG" />
+									</include>,
+									NULL
+								)) AS expectedPower
 							FROM
 								${table_data_report} sdr
 								LEFT JOIN device d ON d.id = sdr.id_device

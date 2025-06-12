@@ -7,7 +7,7 @@ package com.nwm.api.entities;
 import java.util.Date;
 import java.util.List;
 
-public class SiteEntity {
+public class SiteEntity extends SortEntity {
 	private int id;
 	private int id_company;
 	private int id_country;
@@ -35,7 +35,6 @@ public class SiteEntity {
 	private int limit;
 	private int offset;
 	private int totalRecord;
-	private String order_by;
 	private String sort_by;
 	private String address_short;
 	private String address;
@@ -102,10 +101,8 @@ public class SiteEntity {
 	private String offset_from;
 	private String typeView;
 	private String keyword;
-	private String sort_column;
 	private int screen_mode;
 	private int is_manage;
-	private int id_employee;
 	private List id_sites;
 	private String hash_id;
 	private String view_minute;
@@ -311,9 +308,81 @@ public class SiteEntity {
 	private int electricity_status;
 	private List electricityRateSchedulesList;
 	private String siteElectricityRateSchedulesJSON;
+	private String mail_to;
+	private String mail_cc;
+	private boolean isUserNW;
+	private int meter_type;
+	private String date_format;
+	private int time_format;
+	private String locale;
+	private String domain_role;
+	private double temperature;
+	private String temperature_unit;
+	private double humidity;
+	private int device_mode;
+	private int inv_level;
 	
 	
 	
+	
+	
+	public int getInv_level() {
+		return inv_level;
+	}
+	public void setInv_level(int inv_level) {
+		this.inv_level = inv_level;
+	}
+	public int getDevice_mode() {
+		return device_mode;
+	}
+	public void setDevice_mode(int device_mode) {
+		this.device_mode = device_mode;
+	}
+	public double getHumidity() {
+		return humidity;
+	}
+	public void setHumidity(double humidity) {
+		this.humidity = humidity;
+	}
+	public double getTemperature() {
+		return temperature;
+	}
+	public void setTemperature(double temperature) {
+		this.temperature = temperature;
+	}
+	public String getTemperature_unit() {
+		return temperature_unit;
+	}
+	public void setTemperature_unit(String temperature_unit) {
+		this.temperature_unit = temperature_unit;
+	}
+	public String getDomain_role() {
+		return domain_role;
+	}
+	public void setDomain_role(String domain_role) {
+		this.domain_role = domain_role;
+	}
+	
+	
+	
+	public int getMeter_type() {
+		return meter_type;
+	}
+	public void setMeter_type(int meter_type) {
+		this.meter_type = meter_type;
+	}
+	public String getMail_to() {
+		return mail_to;
+	}
+	public void setMail_to(String mail_to) {
+		this.mail_to = mail_to;
+	}
+	public String getMail_cc() {
+		return mail_cc;
+	}
+	public void setMail_cc(String mail_cc) {
+		this.mail_cc = mail_cc;
+	}
 	public String getElectricity_company_name() {
 		return electricity_company_name;
 	}
@@ -1274,12 +1343,6 @@ public class SiteEntity {
 	public void setTotalRecord(int totalRecord) {
 		this.totalRecord = totalRecord;
 	}
-	public String getOrder_by() {
-		return order_by;
-	}
-	public void setOrder_by(String order_by) {
-		this.order_by = order_by;
-	}
 	public String getSort_by() {
 		return sort_by;
 	}
@@ -1640,12 +1703,6 @@ public class SiteEntity {
 	public void setKeyword(String keyword) {
 		this.keyword = keyword;
 	}
-	public String getSort_column() {
-		return sort_column;
-	}
-	public void setSort_column(String sort_column) {
-		this.sort_column = sort_column;
-	}
 	public int getScreen_mode() {
 		return screen_mode;
 	}
@@ -1657,12 +1714,6 @@ public class SiteEntity {
 	}
 	public void setIs_manage(int is_manage) {
 		this.is_manage = is_manage;
-	}
-	public int getId_employee() {
-		return id_employee;
-	}
-	public void setId_employee(int id_employee) {
-		this.id_employee = id_employee;
 	}
 	public List getId_sites() {
 		return id_sites;
@@ -2017,6 +2068,30 @@ public class SiteEntity {
 	}
 	public void setHave_poa(boolean have_poa) {
 		this.have_poa = have_poa;
+	}
+	public boolean isUserNW() {
+		return isUserNW;
+	}
+	public void setIsUserNW(boolean isUserNW) {
+		this.isUserNW = isUserNW;
+	}
+	public String getDate_format() {
+		return date_format;
+	}
+	public void setDate_format(String date_format) {
+		this.date_format = date_format;
+	}
+	public int getTime_format() {
+		return time_format;
+	}
+	public void setTime_format(int time_format) {
+		this.time_format = time_format;
+	}
+	public String getLocale() {
+		return locale;
+	}
+	public void setLocale(String locale) {
+		this.locale = locale;
 	}
 	
 	

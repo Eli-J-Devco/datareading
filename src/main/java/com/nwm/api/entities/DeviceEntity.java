@@ -129,6 +129,11 @@ public class DeviceEntity {
 	private String ftp_pass;
 	private String ftp_port;
 	private String ftp_folder;
+	private String device_ftp_server;
+	private String device_ftp_user;
+	private String device_ftp_pass;
+	private String device_ftp_port;
+	private String device_ftp_folder;
 	private int datalogger_type;
 	private double power_now;
 	private String table_share_data;
@@ -147,10 +152,69 @@ public class DeviceEntity {
 	private int time_format;
 	private String locale;
 	private int mfa_control = 0;
+	private int show_on_domain = 1;
+	private String domain;
+	private boolean is_user_defined;
+	private boolean is_active_power;
+	private boolean is_energy;
+	private boolean is_irradiance;
+	private boolean is_temperature;
+	private boolean is_panel_temperature;
+	private String domain_role;
+	private String commissioning;
+	private boolean isUserNW;
 	
 	
-
+	public String getDomain_role() {
+		return domain_role;
+	}
+	public void setDomain_role(String domain_role) {
+		this.domain_role = domain_role;
+	}
 	
+	
+	public String getDevice_ftp_server() {
+		return device_ftp_server;
+	}
+	public void setDevice_ftp_server(String device_ftp_server) {
+		this.device_ftp_server = device_ftp_server;
+	}
+	public String getDevice_ftp_user() {
+		return device_ftp_user;
+	}
+	public void setDevice_ftp_user(String device_ftp_user) {
+		this.device_ftp_user = device_ftp_user;
+	}
+	public String getDevice_ftp_pass() {
+		return device_ftp_pass;
+	}
+	public void setDevice_ftp_pass(String device_ftp_pass) {
+		this.device_ftp_pass = device_ftp_pass;
+	}
+	public String getDevice_ftp_port() {
+		return device_ftp_port;
+	}
+	public void setDevice_ftp_port(String device_ftp_port) {
+		this.device_ftp_port = device_ftp_port;
+	}
+	public String getDevice_ftp_folder() {
+		return device_ftp_folder;
+	}
+	public void setDevice_ftp_folder(String device_ftp_folder) {
+		this.device_ftp_folder = device_ftp_folder;
+	}
+	public int getShow_on_domain() {
+		return show_on_domain;
+	}
+	public void setShow_on_domain(int show_on_domain) {
+		this.show_on_domain = show_on_domain;
+	}
+	public String getDomain() {
+		return domain;
+	}
+	public void setDomain(String domain) {
+		this.domain = domain;
+	}
 	public int getMfa_control() {
 		return mfa_control;
 	}
@@ -962,6 +1026,54 @@ public class DeviceEntity {
 	}
 	public void setLocale(String locale) {
 		this.locale = locale;
+	}
+	public boolean is_user_defined() {
+		return is_user_defined;
+	}
+	public void setIs_user_defined(boolean is_user_defined) {
+		this.is_user_defined = is_user_defined;
+	}
+	public boolean is_active_power() {
+		return is_active_power;
+	}
+	public void setIs_active_power(boolean is_active_power) {
+		this.is_active_power = is_active_power;
+	}
+	public boolean is_energy() {
+		return is_energy;
+	}
+	public void setIs_energy(boolean is_energy) {
+		this.is_energy = is_energy;
+	}
+	public boolean is_irradiance() {
+		return is_irradiance;
+	}
+	public void setIs_irradiance(boolean is_irradiance) {
+		this.is_irradiance = is_irradiance;
+	}
+	public boolean is_temperature() {
+		return is_temperature;
+	}
+	public void setIs_temperature(boolean is_temperature) {
+		this.is_temperature = is_temperature;
+	}
+	public boolean is_panel_temperature() {
+		return is_panel_temperature;
+	}
+	public void setIs_panel_temperature(boolean is_panel_temperature) {
+		this.is_panel_temperature = is_panel_temperature;
+	}
+	public String getCommissioning() {
+		return commissioning;
+	}
+	public void setCommissioning(String commissioning) {
+		this.commissioning = commissioning;
+	}
+	public boolean isUserNW() {
+		return isUserNW;
+	}
+	public void setIsUserNW(boolean isUserNW) {
+		this.isUserNW = isUserNW;
 	}
 	
 }

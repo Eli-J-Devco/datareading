@@ -73,20 +73,11 @@
           <if test="PowerFactor != 0.001" >
                 `PowerFactor`,
           </if>
-          <if test="ActiveEnergyGross != 0.001" >
-                `ActiveEnergyGross`,
-          </if>
           <if test="ActiveEnergyRawNet != 0.001" >
                 `ActiveEnergyRawNet`,
           </if>
-          <if test="DCCurrentTotal != 0.001" >
-                `DCCurrentTotal`,
-          </if>
-          <if test="DCPowerTotal != 0.001" >
-                `DCPowerTotal`,
-          </if>
-          <if test="DCVoltageAvg != 0.001" >
-                `DCVoltageAvg`,
+          <if test="DCVoltage != 0.001" >
+                `DCVoltage`,
           </if>
           <if test="OperatingState != 0.001" >
                 `OperatingState`,
@@ -106,68 +97,18 @@
           <if test="Fault3 != 0.001" >
                 `Fault3`,
           </if>
+
           <if test="SerialNumberHex4Reg != 0.001" >
                 `SerialNumberHex4Reg`,
           </if>
           <if test="CabinetTemperature != 0.001" >
                 `CabinetTemperature`,
           </if>
-          <if test="HeatSinkTemperature != 0.001" >
-                `HeatSinkTemperature`,
+          <if test="InternalTemperature != 0.001" >
+                `InternalTemperature`,
           </if>
-          <if test="OtherTemperature != 0.001" >
-                `OtherTemperature`,
-          </if>
-          <if test="Currentscalefactor != 0.001" >
-                `Currentscalefactor`,
-          </if>
-          <if test="VoltageScaleFactor != 0.001" >
-                `VoltageScaleFactor`,
-          </if>
-          <if test="ActivePowerScaleFactor != 0.001" >
-                `ActivePowerScaleFactor`,
-          </if>
-          <if test="FrequencyScaleFactor != 0.001" >
-                `FrequencyScaleFactor`,
-          </if>
-          <if test="ApparentPowerScaleFactor != 0.001" >
-                `ApparentPowerScaleFactor`,
-          </if>
-          <if test="ReactivePowerScaleFactor != 0.001" >
-                `ReactivePowerScaleFactor`,
-          </if>
-          <if test="PowerFactorScaleFactor != 0.001" >
-               `PowerFactorScaleFactor`, 
-          </if>
-          <if test="EnergyScaleFactor != 0.001" >
-                `EnergyScaleFactor`,
-          </if>
-          <if test="DCCurrentscalefactor != 0.001" >
-                `DCCurrentscalefactor`,
-          </if>
-          <if test="DCVoltagescalefactor != 0.001" >
-                `DCVoltagescalefactor`,
-          </if>
-          
-          
-          
-          <if test="DCPowerScaleFactor != 0.001" >
-                `DCPowerScaleFactor`,
-          </if>
-          <if test="Temperaturescalefactor != 0.001" >
-                `Temperaturescalefactor`,
-          </if>
-          <if test="ID != 0.001" >
-                `ID`,
-          </if>
-          <if test="Length != 0.001" >
-                `Length`,
-          </if>
-          <if test="Manufacturer != 0.001" >
-                `Manufacturer`,
-          </if>
-          <if test="Model != 0.001" >
-                `Model`,
+          <if test="IMITemperature != 0.001" >
+                `IMITemperature`,
           </if>
           <if test="ControlDeviceOnOff != 0.001" >
                 `ControlDeviceOnOff`,
@@ -188,7 +129,7 @@
                 `ReactivePowerSetpointPercent`,
           </if>
           <if test="ReactivePowerControlEnable != 0.001" >
-                `ReactivePowerControlEnable`,
+               `ReactivePowerControlEnable`, 
           </if>
           
          
@@ -224,180 +165,120 @@
 	                #{high_alarm},
 	          </if>
 			  
-			   <if test="ACCurrentAverage != 0.001" >
+			    <if test="ACCurrentAverage != 0.001" >
                 #{ACCurrentAverage},
-	          </if>
-	          <if test="ACCurrentA != 0.001" >
-	                #{ACCurrentA},
-	          </if>
-	          <if test="ACCurrentB != 0.001" >
-	                #{ACCurrentB},
-	          </if>
-	          <if test="ACCurrentC != 0.001" >
-	                #{ACCurrentC},
-	          </if>
-	          <if test="ACVoltageAB != 0.001" >
-	                #{ACVoltageAB},
-	          </if>
-	          <if test="ACVoltageBC != 0.001" >
-	                #{ACVoltageBC},
-	          </if>
-	          <if test="ACVoltageCA != 0.001" >
-	                #{ACVoltageCA},
-	          </if>
-	          <if test="ACVoltageAN != 0.001" >
-	               #{ACVoltageAN}, 
-	          </if>
-	          <if test="ACVoltageBN != 0.001" >
-	                #{ACVoltageBN},
-	          </if>
-	          <if test="ACVoltageCN != 0.001" >
-	                #{ACVoltageCN},
-	          </if>
-	          <if test="ActivePower != 0.001" >
-	                #{ActivePower},
-	          </if>
-	          <if test="Frequency != 0.001" >
-	                #{Frequency},
-	          </if>
-	          <if test="ApparentPower != 0.001" >
-	                #{ApparentPower},
-	          </if>
-	          <if test="ReactivePower != 0.001" >
-	                #{ReactivePower},
-	          </if>
-	          <if test="PowerFactor != 0.001" >
-	                #{PowerFactor},
-	          </if>
-	          <if test="ActiveEnergyGross != 0.001" >
-	                #{ActiveEnergyGross},
-	          </if>
-	          <if test="ActiveEnergyRawNet != 0.001" >
-	                #{ActiveEnergyRawNet},
-	          </if>
-	          <if test="DCCurrentTotal != 0.001" >
-	                #{DCCurrentTotal},
-	          </if>
-	          <if test="DCPowerTotal != 0.001" >
-	                #{DCPowerTotal},
-	          </if>
-	          <if test="DCVoltageAvg != 0.001" >
-	                #{DCVoltageAvg},
-	          </if>
-	          <if test="OperatingState != 0.001" >
-	                #{OperatingState},
-	          </if>
-	          <if test="OperatingStatus != 0.001" >
-	                #{OperatingStatus},
-	          </if>
-	          <if test="FaultStatus != 0.001" >
-	                #{FaultStatus},
-	          </if>
-	          <if test="Fault1 != 0.001" >
-	                #{Fault1},
-	          </if>
-	          <if test="Fault2 != 0.001" >
-	                #{Fault2},
-	          </if>
-	          <if test="Fault3 != 0.001" >
-	                #{Fault3},
-	          </if>
-	          <if test="SerialNumberHex4Reg != 0.001" >
-	                #{SerialNumberHex4Reg},
-	          </if>
-	          <if test="CabinetTemperature != 0.001" >
-	                #{CabinetTemperature},
-	          </if>
-	          <if test="HeatSinkTemperature != 0.001" >
-	                #{HeatSinkTemperature},
-	          </if>
-	          <if test="OtherTemperature != 0.001" >
-	                #{OtherTemperature},
-	          </if>
-	          <if test="Currentscalefactor != 0.001" >
-	                #{Currentscalefactor},
-	          </if>
-	          <if test="VoltageScaleFactor != 0.001" >
-	                #{VoltageScaleFactor},
-	          </if>
-	          <if test="ActivePowerScaleFactor != 0.001" >
-	                #{ActivePowerScaleFactor},
-	          </if>
-	          <if test="FrequencyScaleFactor != 0.001" >
-	                #{FrequencyScaleFactor},
-	          </if>
-	          <if test="ApparentPowerScaleFactor != 0.001" >
-	                #{ApparentPowerScaleFactor},
-	          </if>
-	          <if test="ReactivePowerScaleFactor != 0.001" >
-	                #{ReactivePowerScaleFactor},
-	          </if>
-	          <if test="PowerFactorScaleFactor != 0.001" >
-	               #{PowerFactorScaleFactor}, 
-	          </if>
-	          <if test="EnergyScaleFactor != 0.001" >
-	                #{EnergyScaleFactor},
-	          </if>
-	          <if test="DCCurrentscalefactor != 0.001" >
-	                #{DCCurrentscalefactor},
-	          </if>
-	          <if test="DCVoltagescalefactor != 0.001" >
-	                #{DCVoltagescalefactor},
-	          </if>
-	          
-	          
-	          
-	          <if test="DCPowerScaleFactor != 0.001" >
-	                #{DCPowerScaleFactor},
-	          </if>
-	          <if test="Temperaturescalefactor != 0.001" >
-	                #{Temperaturescalefactor},
-	          </if>
-	          <if test="ID != 0.001" >
-	                #{ID},
-	          </if>
-	          <if test="Length != 0.001" >
-	                #{Length},
-	          </if>
-	          <if test="Manufacturer != 0.001" >
-	                #{Manufacturer},
-	          </if>
-	          <if test="Model != 0.001" >
-	                #{Model},
-	          </if>
-	          <if test="ControlDeviceOnOff != 0.001" >
-	                #{ControlDeviceOnOff},
-	          </if>
-	          <if test="ActivePowerSetpointPercent != 0.001" >
-	                #{ActivePowerSetpointPercent},
-	          </if>
-	          <if test="ActivePowerControlEnable != 0.001" >
-	                #{ActivePowerControlEnable},
-	          </if>
-	          <if test="PowerFactorSetpoint != 0.001" >
-	                #{PowerFactorSetpoint},
-	          </if>
-	          <if test="PowerFactorControlEnable != 0.001" >
-	                #{PowerFactorControlEnable},
-	          </if>
-	          <if test="ReactivePowerSetpointPercent != 0.001" >
-	                #{ReactivePowerSetpointPercent},
-	          </if>
-	          <if test="ReactivePowerControlEnable != 0.001" >
-	                #{ReactivePowerControlEnable},
-	          </if>
-	          
-	         
-			  <if test="nvmActivePower != 0.001" >
-			  	#{nvmActivePower},
-			  </if>
-			  <if test="nvmActiveEnergy != 0.001" >
-			  	#{nvmActiveEnergy},
-			  </if>
-			  <if test="MeasuredProduction != 0.001">
-					#{MeasuredProduction},
-				</if>
-			
+          </if>
+          <if test="ACCurrentA != 0.001" >
+                #{ACCurrentA},
+          </if>
+          <if test="ACCurrentB != 0.001" >
+                #{ACCurrentB},
+          </if>
+          <if test="ACCurrentC != 0.001" >
+                #{ACCurrentC},
+          </if>
+          <if test="ACVoltageAB != 0.001" >
+                #{ACVoltageAB},
+          </if>
+          <if test="ACVoltageBC != 0.001" >
+                #{ACVoltageBC},
+          </if>
+          <if test="ACVoltageCA != 0.001" >
+                #{ACVoltageCA},
+          </if>
+          <if test="ACVoltageAN != 0.001" >
+               #{ACVoltageAN}, 
+          </if>
+          <if test="ACVoltageBN != 0.001" >
+                #{ACVoltageBN},
+          </if>
+          <if test="ACVoltageCN != 0.001" >
+                #{ACVoltageCN},
+          </if>
+          <if test="ActivePower != 0.001" >
+                #{ActivePower},
+          </if>
+          <if test="Frequency != 0.001" >
+                #{Frequency},
+          </if>
+          <if test="ApparentPower != 0.001" >
+                #{ApparentPower},
+          </if>
+          <if test="ReactivePower != 0.001" >
+                #{ReactivePower},
+          </if>
+          <if test="PowerFactor != 0.001" >
+                #{PowerFactor},
+          </if>
+          <if test="ActiveEnergyRawNet != 0.001" >
+                #{ActiveEnergyRawNet},
+          </if>
+          <if test="DCVoltage != 0.001" >
+                #{DCVoltage},
+          </if>
+          <if test="OperatingState != 0.001" >
+                #{OperatingState},
+          </if>
+          <if test="OperatingStatus != 0.001" >
+                #{OperatingStatus},
+          </if>
+          <if test="FaultStatus != 0.001" >
+                #{FaultStatus},
+          </if>
+          <if test="Fault1 != 0.001" >
+                #{Fault1},
+          </if>
+          <if test="Fault2 != 0.001" >
+                #{Fault2},
+          </if>
+          <if test="Fault3 != 0.001" >
+                #{Fault3},
+          </if>
+
+          <if test="SerialNumberHex4Reg != 0.001" >
+                #{SerialNumberHex4Reg},
+          </if>
+          <if test="CabinetTemperature != 0.001" >
+                #{CabinetTemperature},
+          </if>
+          <if test="InternalTemperature != 0.001" >
+                #{InternalTemperature},
+          </if>
+          <if test="IMITemperature != 0.001" >
+                #{IMITemperature},
+          </if>
+          <if test="ControlDeviceOnOff != 0.001" >
+                #{ControlDeviceOnOff},
+          </if>
+          <if test="ActivePowerSetpointPercent != 0.001" >
+                #{ActivePowerSetpointPercent},
+          </if>
+          <if test="ActivePowerControlEnable != 0.001" >
+                #{ActivePowerControlEnable},
+          </if>
+          <if test="PowerFactorSetpoint != 0.001" >
+                #{PowerFactorSetpoint},
+          </if>
+          <if test="PowerFactorControlEnable != 0.001" >
+                #{PowerFactorControlEnable},
+          </if>
+          <if test="ReactivePowerSetpointPercent != 0.001" >
+                #{ReactivePowerSetpointPercent},
+          </if>
+          <if test="ReactivePowerControlEnable != 0.001" >
+               #{ReactivePowerControlEnable}, 
+          </if>
+          
+         
+		  <if test="nvmActivePower != 0.001" >
+		  	#{nvmActivePower},
+		  </if>
+		  <if test="nvmActiveEnergy != 0.001" >
+		  	#{nvmActiveEnergy},
+		  </if>
+		  <if test="MeasuredProduction != 0.001">
+				#{MeasuredProduction},
+			</if>
 		</trim>
 		
 		<trim prefix="ON DUPLICATE KEY UPDATE " suffix=""
@@ -418,7 +299,7 @@
 	                high_alarm = #{high_alarm},
 	          </if>
 			  
-			   <if test="ACCurrentAverage != 0.001" >
+			    <if test="ACCurrentAverage != 0.001" >
                 `ACCurrentAverage` = #{ACCurrentAverage},
           </if>
           <if test="ACCurrentA != 0.001" >
@@ -463,20 +344,11 @@
           <if test="PowerFactor != 0.001" >
                 `PowerFactor` = #{PowerFactor},
           </if>
-          <if test="ActiveEnergyGross != 0.001" >
-               `ActiveEnergyGross` = #{ActiveEnergyGross},
-          </if>
           <if test="ActiveEnergyRawNet != 0.001" >
                 `ActiveEnergyRawNet` = #{ActiveEnergyRawNet},
           </if>
-          <if test="DCCurrentTotal != 0.001" >
-                `DCCurrentTotal` = #{DCCurrentTotal},
-          </if>
-          <if test="DCPowerTotal != 0.001" >
-                `DCPowerTotal` = #{DCPowerTotal},
-          </if>
-          <if test="DCVoltageAvg != 0.001" >
-                `DCVoltageAvg` = #{DCVoltageAvg},
+          <if test="DCVoltage != 0.001" >
+                `DCVoltage` = #{DCVoltage},
           </if>
           <if test="OperatingState != 0.001" >
                 `OperatingState` = #{OperatingState},
@@ -496,68 +368,18 @@
           <if test="Fault3 != 0.001" >
                 `Fault3` = #{Fault3},
           </if>
+
           <if test="SerialNumberHex4Reg != 0.001" >
                 `SerialNumberHex4Reg` = #{SerialNumberHex4Reg},
           </if>
           <if test="CabinetTemperature != 0.001" >
                 `CabinetTemperature` = #{CabinetTemperature},
           </if>
-          <if test="HeatSinkTemperature != 0.001" >
-                `HeatSinkTemperature` = #{HeatSinkTemperature},
+          <if test="InternalTemperature != 0.001" >
+                `InternalTemperature` = #{InternalTemperature},
           </if>
-          <if test="OtherTemperature != 0.001" >
-                `OtherTemperature` = #{OtherTemperature},
-          </if>
-          <if test="Currentscalefactor != 0.001" >
-                `Currentscalefactor` = #{Currentscalefactor},
-          </if>
-          <if test="VoltageScaleFactor != 0.001" >
-                `VoltageScaleFactor` = #{VoltageScaleFactor},
-          </if>
-          <if test="ActivePowerScaleFactor != 0.001" >
-               `ActivePowerScaleFactor` =  #{ActivePowerScaleFactor},
-          </if>
-          <if test="FrequencyScaleFactor != 0.001" >
-               `FrequencyScaleFactor` = #{FrequencyScaleFactor},
-          </if>
-          <if test="ApparentPowerScaleFactor != 0.001" >
-                `ApparentPowerScaleFactor` = #{ApparentPowerScaleFactor},
-          </if>
-          <if test="ReactivePowerScaleFactor != 0.001" >
-                `ReactivePowerScaleFactor` = #{ReactivePowerScaleFactor},
-          </if>
-          <if test="PowerFactorScaleFactor != 0.001" >
-               `PowerFactorScaleFactor` = #{PowerFactorScaleFactor}, 
-          </if>
-          <if test="EnergyScaleFactor != 0.001" >
-                `EnergyScaleFactor` = #{EnergyScaleFactor},
-          </if>
-          <if test="DCCurrentscalefactor != 0.001" >
-                `DCCurrentscalefactor` = #{DCCurrentscalefactor},
-          </if>
-          <if test="DCVoltagescalefactor != 0.001" >
-                `DCVoltagescalefactor` = #{DCVoltagescalefactor},
-          </if>
-          
-          
-          
-          <if test="DCPowerScaleFactor != 0.001" >
-                `DCPowerScaleFactor` = #{DCPowerScaleFactor},
-          </if>
-          <if test="Temperaturescalefactor != 0.001" >
-                `Temperaturescalefactor` = #{Temperaturescalefactor},
-          </if>
-          <if test="ID != 0.001" >
-                `ID` = #{ID},
-          </if>
-          <if test="Length != 0.001" >
-                `Length` = #{Length},
-          </if>
-          <if test="Manufacturer != 0.001" >
-                `Manufacturer` = #{Manufacturer},
-          </if>
-          <if test="Model != 0.001" >
-                `Model` = #{Model},
+          <if test="IMITemperature != 0.001" >
+                `IMITemperature` = #{IMITemperature},
           </if>
           <if test="ControlDeviceOnOff != 0.001" >
                 `ControlDeviceOnOff` = #{ControlDeviceOnOff},
@@ -578,8 +400,10 @@
                 `ReactivePowerSetpointPercent` = #{ReactivePowerSetpointPercent},
           </if>
           <if test="ReactivePowerControlEnable != 0.001" >
-                `ReactivePowerControlEnable` = #{ReactivePowerControlEnable},
+               `ReactivePowerControlEnable` = #{ReactivePowerControlEnable}, 
           </if>
+          
+         
           
          
 		  <if test="nvmActivePower != 0.001" >
@@ -596,6 +420,52 @@
 		
 	</insert>
 	
+	<select id="checkAlertWriteCode" resultType="Map">
+    	SELECT
+				m.Fault1 AS Fault1,
+				m.Fault2 AS Fault2,
+				m.Fault3 AS Fault3,
+				m.FaultStatus AS FaultStatus
+				
+			FROM
+				${datatablename} m
+			WHERE
+				id_device = #{id_device}
+			ORDER BY
+				time DESC 
+			LIMIT 20;
+  	</select>
+  	
+  	<select id="getListTriggerFaultCode" resultType="Map" parameterType="String">
+		SELECT
+			l.id,
+			l.id_error,
+			l.id_device,
+			l.`status`,
+			DATE_FORMAT(l.start_date,'%Y-%m-%d %H:%i:%s') AS start_date,
+			DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i:%s') AS end_date			
+		FROM
+			`alert` l
+			LEFT JOIN error e ON e.id = l.id_error
+			WHERE l.`status` = 1
+			AND e.is_delete = 0 AND e.`status` = 1
+			AND l.is_delete = 0 AND l.id_device = #{id_device}
+			<if test="faultCodeLevel == 1">
+				AND l.id_error IN(1572,1573,1574,1575,1576,1577,1578,1579,1580,1581,1582,1583)
+			</if>
+			
+			<if test="faultCodeLevel == 2">
+				AND l.id_error IN(1584,1585,1586,1587,1588,1589,1590,1591,1592,1593,1594,1595)
+			</if>
+			
+			<if test="faultCodeLevel == 3">
+				AND l.id_error IN(1596,1597,1598,1599,1600,1601,1602,1603,1604,1605,1606,1607,1608,1609,1610,1611,1612,1613,1614,1615,1621)
+			</if>
+			
+			<if test="faultCodeLevel == 4">
+				AND l.id_error IN(1616,1617,1618,1619,1620)
+			</if>
+	</select>
 	
 	
 	<select id="getLastRow" resultType="com.nwm.api.entities.ModelXGI1500Entity">

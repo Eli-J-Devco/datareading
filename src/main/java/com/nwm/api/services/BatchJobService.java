@@ -17,22 +17,74 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.ibatis.session.SqlSession;
+
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.BatchJobTableEntity;
+import com.nwm.api.entities.CameraImageEntity;
 import com.nwm.api.entities.ClientMonthlyDateEntity;
 import com.nwm.api.entities.DeviceEntity;
 import com.nwm.api.entities.ErrorEntity;
 import com.nwm.api.entities.ModelDataloggerEntity;
+import com.nwm.api.entities.ModelOpenMeteoWeatherEntity;
 import com.nwm.api.entities.MonthlyDateEntity;
 import com.nwm.api.entities.ReportsEntity;
 import com.nwm.api.entities.SiteDataReportEntity;
 import com.nwm.api.entities.SiteEntity;
+import com.nwm.api.entities.TagEntity;
 import com.nwm.api.entities.UserEntity;
 import com.nwm.api.entities.ViewReportEntity;
 import com.nwm.api.entities.WeatherEntity;
 
 public class BatchJobService extends DB {
+	
+	
+	
+	/**
+	 * @description get device datalogger
+	 * @author long.pham
+	 * @since 2022-08-11
+	 * @param id_site
+	 * @return Object
+	 */
+
+	public List getListDeviceEnergyToday(DeviceEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("BatchJob.getListDeviceEnergyToday", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+	
+	
+	
+	/**
+	 * @description update device
+	 * @author long.pham
+	 * @since 2021-01-12
+	 */
+	public boolean updateEnergyToday(DeviceEntity obj){
+		SqlSession session = this.beginTransaction();
+		try {
+			session.update("BatchJob.updateEnergyToday", obj);
+			session.commit();
+			return true;
+		} catch (Exception ex) {
+			session.rollback();
+			log.error("Device.updateEnergyToday", ex);
+			return false;
+		} finally {
+			session.close();
+		}
+	}
+	
+	
+	
 	
 	
 	/**
@@ -258,6 +310,25 @@ public class BatchJobService extends DB {
 		}
 		return dataList;
 	}
+	
+	
+	 /* @description get devices open meteo weather
+	 * @author long.pham
+	 * @since 2021-02-17
+	 */
+	
+	public List getListDeviceOpenMeteoWeather(DeviceEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("BatchJob.getListDeviceOpenMeteoWeather", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+	 
 	
 
 	/**
@@ -725,6 +796,25 @@ public class BatchJobService extends DB {
 	}
 	
 	
+	
+	/**
+	 * @description insert open meteo weather 
+	 * @author long.pham
+	 * @since 2025-05-26
+	 */
+	public boolean insertOpenMeteoWeather(ModelOpenMeteoWeatherEntity obj){
+		try{
+			Object insert = insert("ModelOpenMeteoWeather.insertModelOpenMeteoWeather", obj);
+			if (insert == null) {
+				return false;
+			}
+			return true;
+		}catch (Exception ex) {
+			log.error("ModelOpenMeteoWeather.insertModelOpenMeteoWeather", ex);
+			return false;
+		}
+	}
+	
 	/**
 	 * @description update sunset sunrise from java
 	 * @author long.pham
@@ -838,7 +928,7 @@ public class BatchJobService extends DB {
 			Date endDate = new Date();
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(endDate);
-			cal.add(Calendar.DATE, -730);
+			cal.add(Calendar.DATE, -2);
 			Date startDate = new Date(cal.getTimeInMillis());
 			
 			if(obj.getStart_date() != null && obj.getEnd_date() != null) {
@@ -1114,6 +1204,23 @@ public class BatchJobService extends DB {
 		return dataList;
 	}
 	
+	/**
+	 * @description get list site by datalogger_type = 1
+	 * @author long.pham
+	 * @since 2023-06-08
+	 */
+	
+	public List getListCameraDevice(DeviceEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("BatchJob.getListCameraDevice", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
 	
 	/**
 	 * @description get device detail by id_site and modbusdevicenumber
@@ -1265,6 +1372,24 @@ public class BatchJobService extends DB {
 			return new ArrayList();
 		}
 		return dataList;
+	}
+	
+	/**
+	 * @description insert camera image
+	 * @author long.pham
+	 * @since 2021-01-08
+	 */
+	public CameraImageEntity insertCameraImage(CameraImageEntity obj) 
+	{
+		try {
+			insert("BatchJob.insertCameraImage", obj);
+			
+			return obj;
+		} catch (Exception ex) {
+			log.error("BatchJob.insertCameraImage", ex);
+			return null;
+		}
+			
 	}
 	
 	

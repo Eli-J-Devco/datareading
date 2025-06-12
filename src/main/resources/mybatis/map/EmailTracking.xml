@@ -92,6 +92,8 @@
 			AND d.is_delete = 0
 			AND CONVERT_TZ( a.start_date, '+00:00', t.`offset` ) BETWEEN #{start_date}  AND #{end_date}
 			AND s.`id` = #{id_site}
+			<include refid="com.nwm.common.deviceByDomainCondition"/>
+		
 			GROUP BY date_group_by
 			ORDER BY date_group_by ASC
 	</select>
@@ -152,6 +154,8 @@
 			<if test="id_site != null and id_site != ''">
 			 	AND s.`id` = #{id_site}
 			</if>
+			<include refid="com.nwm.common.deviceByDomainCondition"/>
+			
 			GROUP BY date_group_by
 			ORDER BY date_group_by ASC
 	</select>
@@ -270,6 +274,7 @@
 			AND s.id = #{id_site}
 			AND l.is_delete = 0
 			AND CONVERT_TZ( l.start_date, '+00:00', t.`offset` )  BETWEEN #{start_date}  AND #{end_date}
+			<include refid="com.nwm.common.deviceByDomainCondition"/>
 			
 			<if test="id_status != null and !id_status.isEmpty()">
 				AND l.status IN  (
@@ -383,7 +388,7 @@
 			AND l.is_delete = 0
 			
 			AND CONVERT_TZ( l.start_date, '+00:00', t.`offset` )  BETWEEN #{start_date}  AND #{end_date}
-			
+			<include refid="com.nwm.common.deviceByDomainCondition"/>
 
 			<if test="id_status != null and !id_status.isEmpty()">
 				AND l.status IN  (
@@ -485,6 +490,7 @@
 					AND l.is_delete = 0
 					AND l.`status` = 1
 					AND CONVERT_TZ( l.start_date, '+00:00', t.`offset` )  BETWEEN #{start_date}  AND #{end_date}
+					<include refid="com.nwm.common.deviceByDomainCondition"/>
 					) AS total_sent,
 					
 			(
@@ -502,6 +508,8 @@
 					AND s.id = #{id_site}
 					AND l.is_delete = 0
 					AND l.`status` = 1
+					<include refid="com.nwm.common.deviceByDomainCondition"/>
+			
 					<choose>  
 			            <when test="id_filter == 'today'">
 			                AND CONVERT_TZ( l.start_date, '+00:00', t.`offset` )  BETWEEN DATE_ADD(#{start_date},INTERVAL -1 DAY)   AND DATE_ADD( #{end_date},INTERVAL -1 DAY)
@@ -548,6 +556,7 @@
 					AND l.is_delete = 0
 					AND l.is_queue = 0
 					AND CONVERT_TZ( l.start_date, '+00:00', t.`offset` )  BETWEEN #{start_date}  AND #{end_date}
+					<include refid="com.nwm.common.deviceByDomainCondition"/>
 					) AS total_queue,
 					
 				(
@@ -566,6 +575,8 @@
 					AND s.id = #{id_site}
 					AND l.is_delete = 0
 					AND l.is_queue = 0
+					<include refid="com.nwm.common.deviceByDomainCondition"/>
+					
 					<choose>  
 			            <when test="id_filter == 'today'">
 			                AND CONVERT_TZ( l.start_date, '+00:00', t.`offset` )  BETWEEN DATE_ADD(#{start_date},INTERVAL -1 DAY)   AND DATE_ADD( #{end_date},INTERVAL -1 DAY)

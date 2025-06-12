@@ -5,7 +5,6 @@
 *********************************************************/
 package com.nwm.api.controllers;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -16,14 +15,13 @@ import javax.validation.Valid;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.AlertHistoryEntity;
-import com.nwm.api.entities.SiteEntity;
-import com.nwm.api.entities.TablePreferenceEntity;
-import com.nwm.api.services.AlertService;
+import com.nwm.api.services.EmployeeService;
 import com.nwm.api.services.SitesAlertService;
 import com.nwm.api.utils.Constants;
 import com.nwm.api.utils.Lib;
@@ -46,17 +44,17 @@ public class SitesAlertController extends BaseController {
 	 */
 
 	@PostMapping("/list")
-    public Object getList(@RequestBody AlertEntity obj){
+    public Object getList(@RequestBody AlertEntity obj, @RequestHeader(name = "Authorization") String authz){
 		try {
 			if(obj.getLimit() == 0) {
 				obj.setLimit(Constants.MAXRECORD);
 			}
-			
+			obj.setIsUserNW(Lib.isUserNW(authz));
+			(new EmployeeService()).getTableSort(obj);
 			SitesAlertService service = new SitesAlertService();
 			List data = service.getListBySiteId(obj);
 			int totalRecord = service.getListBySiteIdTotalCount(obj);
-			TablePreferenceEntity preference = service.getPreference(obj);
-			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, totalRecord, preference);
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, totalRecord);
 		} catch (Exception e) {
 			log.error(e);
 			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
@@ -244,8 +242,9 @@ public class SitesAlertController extends BaseController {
 	 */
 
 	@PostMapping("/alert-summary")
-	public Object getAlertSummary(@RequestBody AlertEntity obj) {
+	public Object getAlertSummary(@RequestBody AlertEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
+			obj.setIsUserNW(Lib.isUserNW(authz));
 			SitesAlertService service = new SitesAlertService();
 			Object detailObj = service.getAlertSummary(obj);
 			if (detailObj != null) {

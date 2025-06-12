@@ -4,20 +4,9 @@
 * 
 *********************************************************/
 package com.nwm.api.controllers;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.TimeZone;
 
 import javax.validation.Valid;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
@@ -25,7 +14,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,19 +22,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nwm.api.entities.AdvanceTechControlEntity;
-import com.nwm.api.entities.AlertEntity;
-import com.nwm.api.entities.AlertHistoryEntity;
-import com.nwm.api.entities.ModelSolarOpenWeatherEntity;
-import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.entities.SitesDevicesEntity;
-import com.nwm.api.entities.TablePreferenceEntity;
-import com.nwm.api.services.AlertService;
-import com.nwm.api.services.SitesAlertService;
 import com.nwm.api.services.SitesDevicesService;
 import com.nwm.api.utils.Constants;
-import com.nwm.api.utils.Lib;
-import com.nwm.api.utils.SendMail;
-import com.nwm.api.utils.Translator;
 
 import springfox.documentation.annotations.ApiIgnore;
 
@@ -74,7 +52,7 @@ public class AdvancetechAPIController extends BaseController {
 
 //			if(getDetail.getId() > 0 && getDetail.getAdvance_tech_host() != null && getDetail.getAdvance_tech_pass() != null) {
 			// Login
-			String url = getDetail.getAdvance_tech_host() + "/sys/log_in?Timeout=0";
+			String url = getDetail.getAdvance_tech_host() + "/" + obj.getSerial_number() + "/sys/log_in?Timeout=0";
 			String json = "{\"password\":\"" + obj.getAdvance_tech_pass() + "\"}";
 			// Create HttpClient
 			try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
@@ -105,7 +83,7 @@ public class AdvancetechAPIController extends BaseController {
 							if (obj.getDevice_type().equals("inv") && obj.getStatus_type().equals("restart")) {
 								tagKey = obj.getAdvance_tech_field_restart();
 								tagValue = obj.getAdvance_tech_value_restart();
-								message = "RestetAart successful";
+								message = "Restart successful";
 							}
 							if (obj.getDevice_type().equals("inv") && obj.getStatus_type().equals("stop")) {
 								tagKey = obj.getAdvance_tech_field_stop();
@@ -118,7 +96,7 @@ public class AdvancetechAPIController extends BaseController {
 								message = "Start successful";
 							}
 							
-							String urlControl = getDetail.getAdvance_tech_host() +"/data/tags/" + tagKey + "/value";
+							String urlControl = getDetail.getAdvance_tech_host() + "/" + obj.getSerial_number()  +"/data/tags/" + tagKey + "/value";
 							String jsonControl = "{\"value\":\"" + tagValue + "\"}";
 							
 							try (CloseableHttpClient httpClientControl = HttpClients.createDefault()) {

@@ -19,8 +19,24 @@ public class EmailTrackingEntity {
 	private int total_queue;
 	private int total_sent_compare;
 	private int total_queue_compare;
+	private String domain;
+private String domain_role;
 	
 	
+	public String getDomain_role() {
+		return domain_role;
+	}
+	public void setDomain_role(String domain_role) {
+		this.domain_role = domain_role;
+	}
+	
+	
+	public String getDomain() {
+		return domain;
+	}
+	public void setDomain(String domain) {
+		this.domain = domain;
+	}
 	public int getTotal_sent() {
 		return total_sent;
 	}

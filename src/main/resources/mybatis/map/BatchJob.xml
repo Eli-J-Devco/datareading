@@ -59,6 +59,29 @@
 	</select>
 	
 	
+	<select id="getListDeviceOpenMeteoWeather" resultType="com.nwm.api.entities.DeviceEntity" >
+		SELECT
+			d.id,
+			d.id_site,
+			s.lat,
+			s.lng,
+			d.devicename,
+			d.datatablename
+		FROM
+			device d
+			LEFT JOIN site s ON d.id_site = s.id 
+		WHERE
+			d.id_device_group = 110
+			AND s.`status` = 1 
+			AND d.`status` = 1 
+			AND s.is_delete = 0 
+			AND d.is_delete = 0
+			AND s.lat != 0
+			AND s.lng != 0
+	</select>
+	
+	
+	
 	<select id="getListAlertOpenBySite" resultType="Map" >
 		SELECT
 			a.id,
@@ -622,7 +645,22 @@
 		UPDATE `site`
 		SET
 			weather_icon = #{weather_icon},
-			weather_description = #{weather_description}
+			weather_description = #{weather_description},
+			weather_indoor_temp = #{weather_indoor_temp},
+			weather_indoor_temp_unit = #{weather_indoor_temp_unit},
+			weather_outdoor_temp = #{weather_outdoor_temp},
+			weather_outdoor_temp_unit = #{weather_outdoor_temp_unit},
+			weather_time = #{weather_time},
+			weather_humidity = #{weather_humidity},
+			weather_humidity_unit = #{weather_humidity_unit},
+			weather_wind = #{weather_wind},
+			weather_wind_unit = #{weather_wind_unit},
+			weather_rain = #{weather_rain},
+			weather_rain_unit = #{weather_rain_unit},
+			weather_snow = #{weather_snow},
+			weather_snow_unit = #{weather_snow_unit},
+			sunrise = #{sunrise},
+			sunset = #{sunset}
 		WHERE
 			`id` = #{id_site}
 	</update>
@@ -847,10 +885,10 @@
 			s.table_data_report
 		FROM
 			device d
-			LEFT JOIN device_type dt ON d.id_device_type = dt.id 
 			LEFT JOIN site s ON s.id = d.id_site
 		WHERE
-			dt.id IN(1,3) 
+			d.id_device_type IN(1,3,7,9)
+			AND d.is_excluded_meter = 0
 			AND d.id_site = #{id}
 			AND d.`status` = 1 
 			AND d.is_delete = 0
@@ -867,10 +905,10 @@
 			s.table_data_report
 		FROM
 			device d
-			LEFT JOIN device_type dt ON d.id_device_type = dt.id 
 			LEFT JOIN site s ON s.id = d.id_site
 		WHERE
-			dt.id IN(3) 
+			d.id_device_type IN(3,7,9)
+			AND d.is_excluded_meter = 0
 			AND d.id_site = #{id}
 			AND d.`status` = 1 
 			AND d.is_delete = 0
@@ -906,10 +944,9 @@
 			s.table_data_report
 		FROM
 			device d
-			LEFT JOIN device_type dt ON d.id_device_type = dt.id 
 			LEFT JOIN site s ON s.id = d.id_site
 		WHERE
-			dt.id IN(1) 
+			d.id_device_type IN(1)
 			AND d.id_site = #{id}
 			AND d.`status` = 1 
 			AND d.is_delete = 0
@@ -1119,7 +1156,7 @@
 	
 	<select id="getDataIrradianceYesterday" resultType="com.nwm.api.entities.SiteEntity" >
 		SELECT
-			t.time_format,
+			t.date_format,
 			ROUND(( AVG( t.nvm_irradiance ) ), 1 ) AS nvm_irradiance,
 			ROUND(( AVG( t.nvm_temperature ) ), 1 ) AS nvm_temperature
 			
@@ -1128,13 +1165,13 @@
 				<foreach collection="weatherStation" item="item" index="index" separator="union all">
 				<![CDATA[
 					SELECT
-						m.time_format,
+						m.date_format,
 						AVG(m.nvm_irradiance) AS nvm_irradiance,
 						AVG(m.nvm_temperature) AS nvm_temperature
 					FROM
 						(
 						SELECT
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m-%d-%Y' ) AS time_format,
+							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m-%d-%Y' ) AS date_format,
 							AVG( IFNULL(dv.nvm_irradiance, 0) ) AS nvm_irradiance,
 							 
 							AVG( IFNULL(dv.nvm_temperature, 0) ) AS nvm_temperature
@@ -1151,21 +1188,21 @@
 							AND s.`status` = 1 
 							AND d.`status` = 1 
 						GROUP BY
-							d.id, time_format
+							d.id, date_format
 						) m 
 					GROUP BY
-						m.time_format
+						m.date_format
 					]]>
 		      </foreach>
 			) t 
 		GROUP BY
-			t.time_format
+			t.date_format
 	</select>
 	
 	
 	<select id="getDataPowerMeterYesterday" resultType="com.nwm.api.entities.SiteEntity" >
 		SELECT
-			t.time_format,
+			t.date_format,
 			ROUND(( AVG( t.actualPower ) ), 1 ) AS actualPower
 			
 		FROM
@@ -1173,12 +1210,12 @@
 				<foreach collection="groupMeter" item="item" index="index" separator="union all">
 				<![CDATA[
 					SELECT
-						m.time_format,
+						m.date_format,
 						SUM(m.actualPower) AS actualPower
 					FROM
 						(
 						SELECT
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m-%d-%Y' ) AS time_format,
+							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m-%d-%Y' ) AS date_format,
 							AVG( IFNULL(dv.nvmActivePower, 0) ) AS actualPower
 						FROM
 							${item.datatablename} dv
@@ -1192,15 +1229,15 @@
 							AND s.`status` = 1 
 							AND d.`status` = 1 
 						GROUP BY
-							d.id, time_format
+							d.id, date_format
 						) m 
 					GROUP BY
-						m.time_format
+						m.date_format
 					]]>
 		      </foreach>
 			) t 
 		GROUP BY
-			t.time_format
+			t.date_format
 	</select>
 	
 	
@@ -1208,7 +1245,7 @@
 	
 	<select id="getDataPowerInverterYesterday" resultType="com.nwm.api.entities.SiteEntity" >
 		SELECT
-			t.time_format,
+			t.date_format,
 			ROUND(( SUM( t.actualPower ) ), 1 ) AS actualPower
 			
 		FROM
@@ -1216,12 +1253,12 @@
 				<foreach collection="groupMeter" item="item" index="index" separator="union all">
 				<![CDATA[
 					SELECT
-						m.time_format,
+						m.date_format,
 						SUM(m.actualPower) AS actualPower
 					FROM
 						(
 						SELECT
-							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m-%d-%Y' ) AS time_format,
+							DATE_FORMAT( CONVERT_TZ( dv.time, '+00:00', t.`offset` ), '%m-%d-%Y' ) AS date_format,
 							AVG( IFNULL(dv.nvmActivePower, 0) ) AS actualPower
 						FROM
 							${item.datatablename} dv
@@ -1235,15 +1272,15 @@
 							AND s.`status` = 1 
 							AND d.`status` = 1 
 						GROUP BY
-							d.id, time_format
+							d.id, date_format
 						) m 
 					GROUP BY
-						m.time_format
+						m.date_format
 					]]>
 		      </foreach>
 			) t 
 		GROUP BY
-			t.time_format
+			t.date_format
 	</select>
   	
   	
@@ -1269,7 +1306,7 @@
 			site s
 			LEFT JOIN time_zone t ON t.id = s.id_time_zone 
 		WHERE
-			s.`status` = 1 AND s.id = 250
+			s.`status` = 1
 	</select>
 	
 	
@@ -1498,12 +1535,13 @@
 			d.serial_number,
 			d.modbusdevicenumber,
 			d.devicename,
-			d.datatablename,
-			d.view_tablename,
-			d.job_tablename,
+			IF(d.id_device_type = 12, s.table_data_virtual, d.datatablename) AS datatablename,
+			IF(d.id_device_type = 12, s.table_data_virtual, d.view_tablename) AS view_tablename,
+			IF(d.id_device_type = 12, s.table_data_virtual, d.job_tablename) AS job_tablename,
 			d.id_device_group
 		FROM
 			device AS d
+			LEFT JOIN site s ON s.id = d.id_site
 		WHERE
 			d.`status` = 1 
 			AND d.is_delete = 0
@@ -1541,5 +1579,42 @@
 			AND sem.is_hiding = 1
 	</select>
 	
+	<select id="getListCameraDevice" resultType="com.nwm.api.entities.DeviceEntity" >
+		SELECT
+			d.id,
+			d.id_site,
+			d.`devicename`,
+			d.datatablename,
+			d.device_ftp_server,
+			d.device_ftp_user,
+			d.device_ftp_pass,
+			d.device_ftp_port,
+			d.device_ftp_folder
+		FROM
+			device d
+
+		WHERE
+			d.`status` = 1
+			AND d.id_device_type = 19
+			AND d.is_delete = 0
+			AND d.device_ftp_server IS NOT NULL
+			AND d.device_ftp_user IS NOT NULL
+			AND d.device_ftp_pass IS NOT NULL
+			AND d.device_ftp_folder IS NOT NULL
+	</select>
+	
+	<insert id="insertCameraImage" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		INSERT INTO `${datatablename}`(
+			`time`,
+			`id_device`,
+			`image_url`
+		)VALUES(
+			#{time},
+			#{id_device},
+			#{image_url}
+		)ON DUPLICATE KEY UPDATE
+		`image_url` = VALUES(image_url)
+		
+	</insert>
   	
 </mapper>

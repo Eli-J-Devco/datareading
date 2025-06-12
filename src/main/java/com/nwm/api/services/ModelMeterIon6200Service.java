@@ -22,7 +22,7 @@ public class ModelMeterIon6200Service extends DB {
 	 * @param data
 	 */
 	
-	public ModelMeterIon6200Entity setModelMeterIon6200(String line, double offset_data_old) {
+	public ModelMeterIon6200Entity setModelMeterIon6200(String line) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
@@ -30,12 +30,6 @@ public class ModelMeterIon6200Service extends DB {
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(24)) ? words.get(24) : "0.001");
 				Double energy = Double.parseDouble(!Lib.isBlank(words.get(42)) ? words.get(42) : "0.001");
-				if(energy < 0 && offset_data_old > 0) {
-					energy = energy * -1;
-					energy = (energy + offset_data_old) * -1;
-				} else if(offset_data_old > 0 && energy > 0) {
-					energy = energy + offset_data_old;
-				}
 				
 				data.setTime(words.get(0).replace("'", ""));
 				data.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -131,15 +125,23 @@ public class ModelMeterIon6200Service extends DB {
 	
 	public boolean insertModelMeterIon6200(ModelMeterIon6200Entity obj) {
 		try {
+			if(obj.getOffset_data_old() !=0) {
+				Double energy = obj.getNvmActiveEnergy();
+				energy = energy + obj.getOffset_data_old();
+				obj.setNvmActiveEnergy(energy);
+				obj.setkWhdel(energy);
+			}
+			
 			ModelMeterIon6200Entity dataObj = (ModelMeterIon6200Entity) queryForObject("ModelMeterIon6200.getLastRow", obj);
+			// filter data 
+			if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				obj.setkWhdel(dataObj.getNvmActiveEnergy());
+			}
+						
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
-			 }
-			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setkWhdel(dataObj.getNvmActiveEnergy());
 			 }
 
 			 obj.setMeasuredProduction(measuredProduction);

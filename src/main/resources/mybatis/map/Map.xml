@@ -67,7 +67,7 @@
 			SHA1(s.id) AS hash_id,
 			s.id_country,
 			s.id_time_zone,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
 			s.street,
 			s.lat,
 			s.lng,

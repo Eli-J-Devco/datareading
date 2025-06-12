@@ -36,12 +36,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import com.nwm.api.entities.CameraImageEntity;
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.entities.DeviceYieldEntity;
 import com.nwm.api.entities.ModelCellModemEntity;
 import com.nwm.api.entities.ModelDataloggerEntity;
 import com.nwm.api.entities.SitesDevicesEntity;
-import com.nwm.api.entities.TablePreferenceEntity;
 import com.nwm.api.services.DeviceService;
+import com.nwm.api.services.EmployeeService;
 import com.nwm.api.services.ModelCellModemService;
 import com.nwm.api.services.ModelDataloggerService;
 import com.nwm.api.services.SitesDevicesService;
@@ -54,7 +56,6 @@ import springfox.documentation.annotations.ApiIgnore;
 @RequestMapping("/sites-devices")
 public class SitesDevicesController extends BaseController {
 	
-	private static final int BUFFER_SIZE = 4096;
 	/**
 	 * @description Get detail site 
 	 * @author long.pham
@@ -64,8 +65,9 @@ public class SitesDevicesController extends BaseController {
 	 */
 
 	@PostMapping("/detail")
-	public Object getDetailSite(@RequestBody SitesDevicesEntity obj) {
+	public Object getDetailSite(@RequestBody SitesDevicesEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {			
+			obj.setIsUserNW(Lib.isUserNW(authz));
 			SitesDevicesService service = new SitesDevicesService();
 			SitesDevicesEntity getDetail = service.getDetail(obj);
 			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, getDetail, 1);
@@ -84,15 +86,16 @@ public class SitesDevicesController extends BaseController {
 	 * @return data (status, message, array, total_row
 	 */
 	@PostMapping("/get-list-device-by-id-site")
-	public Object getListDeviceByIdSite(@RequestBody SitesDevicesEntity obj) {
+	public Object getListDeviceByIdSite(@RequestBody SitesDevicesEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
+			obj.setIsUserNW(Lib.isUserNW(authz));
+			(new EmployeeService()).getTableSort(obj);
 			SitesDevicesService service = new SitesDevicesService();
 			List data = service.getListDeviceByIdSite(obj);
-			TablePreferenceEntity preference = service.getPreference(obj);
-			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size(), preference);
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0, null);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
 		}
 	}
 	
@@ -103,10 +106,12 @@ public class SitesDevicesController extends BaseController {
 	 * @return data (status, message, array, total_row
 	 */
 	@PostMapping("/get-list-yield-by-device")
-	public Object getListYieldByDevice(@RequestBody SitesDevicesEntity obj) {
+	public Object getListYieldByDevice(@RequestBody SitesDevicesEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
+			obj.setIsUserNW(Lib.isUserNW(authz));
+			(new EmployeeService()).getTableSort(obj);
 			SitesDevicesService service = new SitesDevicesService();
-			List data = service.getListYieldByDevice(obj);
+			List<DeviceYieldEntity> data = service.getListYieldByDevice(obj);
 			
 			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
 		} catch (Exception e) {
@@ -114,7 +119,6 @@ public class SitesDevicesController extends BaseController {
 			return this.jsonResult(false, Constants.GET_ERROR_MSG, null, 0);
 		}
 	}
-	
 	
 	/**
 	 * @description Get device detail by id 
@@ -125,9 +129,9 @@ public class SitesDevicesController extends BaseController {
 	 */
 
 	@PostMapping("/device-detail")
-	public Object getDeviceDetail(@RequestBody DeviceEntity obj) {
+	public Object getDeviceDetail(@RequestBody DeviceEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
-			
+			obj.setIsUserNW(Lib.isUserNW(authz));
 			SitesDevicesService service = new SitesDevicesService();
 			DeviceEntity getDetail = service.getDeviceDetail(obj);
 			
@@ -977,7 +981,7 @@ public class SitesDevicesController extends BaseController {
 			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0, null);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
 		}
 	}
 	
@@ -1194,5 +1198,60 @@ public class SitesDevicesController extends BaseController {
 			return new HashMap<String, Object>();
 		}
     }
+	
+	/**
+	 * @description Get list camera image
+	 * @author duy.phan
+	 * @since 2025-01-24
+	 * @return data (status, message, array, total_row
+	 */
+	@PostMapping("/get-list-image-camera")
+	public Object getListCameraImage(@RequestBody CameraImageEntity obj) {
+		try {
+			SitesDevicesService service = new SitesDevicesService();
+			List data = service.getListCameraImage(obj);
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
+		} catch (Exception e) {
+			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
+	
+	/**
+	 * @description Get list camera image
+	 * @author duy.phan
+	 * @since 2025-01-24
+	 * @return data (status, message, array, total_row
+	 */
+	@PostMapping("/get-list-camera-devices")
+	public Object getListCameraDevices(@RequestBody SitesDevicesEntity obj) {
+		try {
+			SitesDevicesService service = new SitesDevicesService();
+			List data = service.getListCameraDevices(obj);
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
+		} catch (Exception e) {
+			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
+	
+	
+	/**
+	 * @description Get list camera image
+	 * @author duy.phan
+	 * @since 2025-01-24
+	 * @return data (status, message, array, total_row
+	 */
+	@PostMapping("/get-first-time-image-camera")
+	public Object getFirstTimeImageCamera(@RequestBody CameraImageEntity obj) {
+		try {
+			SitesDevicesService service = new SitesDevicesService();
+			CameraImageEntity data = service.getFirstTimeImageCamera(obj);
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data);
+		} catch (Exception e) {
+			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
 	
 }

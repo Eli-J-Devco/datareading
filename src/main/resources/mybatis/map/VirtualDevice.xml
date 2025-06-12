@@ -66,6 +66,7 @@
 			AND d.is_delete = 0
 			AND d.virtual_device_type IS NOT NULL
 			AND d.virtual_device_type != ''
+			AND d.show_on_domain != 6
 			<if test="id_site != null and id_site != 0">
 				AND s.id = #{id_site}
 			</if>
@@ -86,6 +87,7 @@
 			d.id_site = #{id_site}
 			AND d.`status` = 1 
 			AND d.is_delete = 0
+			AND (d.meter_type = 3 OR d.meter_type IS NULL)
 			
 			<if test="virtual_device_type == 'inverter'">
 				AND d.id_device_type = 1
@@ -861,7 +863,6 @@
 	<update id="updateDeviceVirtualDevice">
 		UPDATE `device`
 		SET
-		    `last_updated` = #{last_updated},
 			`last_value` = #{last_value},
 			`field_value1` = #{field_value1},
 			`field_value2` = #{field_value2},

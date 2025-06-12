@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -46,6 +48,7 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -58,7 +61,9 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.nwm.api.entities.BatchJobTableEntity;
+import com.nwm.api.entities.CameraImageEntity;
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.entities.ImportOldDataEntity;
 import com.nwm.api.entities.ModelSmaClusterControllerEntity;
 import com.nwm.api.entities.ModelSmaInverterStp1200tlus10Entity;
 import com.nwm.api.entities.ModelSmaInverterStp24000ktlus10Entity;
@@ -78,12 +83,16 @@ import com.nwm.api.utils.Constants;
 import com.nwm.api.utils.Lib;
 
 import springfox.documentation.annotations.ApiIgnore;
+import com.nwm.api.services.AWSService;
 
 @RestController
 @ApiIgnore
 @RequestMapping("/upload-ftp")
 public class FTPUploadServerController extends BaseController {
-
+	
+	@Autowired
+	private AWSService awsService;
+	
 	/**
 	 * @description Get list file from FTP server
 	 * @author long.pham
@@ -1470,4 +1479,186 @@ public class FTPUploadServerController extends BaseController {
 		}
 	}
 	
+	/**
+	 * Download a whole directory from a FTP server.
+	 * 
+	 * @param ftpClient  an instance of org.apache.commons.net.ftp.FTPClient class.
+	 * @param parentDir  Path of the parent directory of the current directory being
+	 *                   downloaded.
+	 * @param currentDir Path of the current directory being downloaded.
+	 * @param saveDir    path of directory where the whole remote directory will be
+	 *                   downloaded and saved.
+	 * @throws Exception 
+	 */
+	public void downloadImageDirectory(FTPClient ftpClient, String parentDir, String currentDir, String saveDir, int id_site, int id_device, String datatablename)
+			throws Exception {
+		String dirToList = parentDir;
+		if (!currentDir.equals("")) {
+			dirToList += "/" + currentDir;
+		}
+
+		ftpClient.enterLocalPassiveMode();
+
+		FTPClientConfig config = new FTPClientConfig();
+		config.setUnparseableEntries(true);
+		ftpClient.configure(config);
+
+		FTPFile[] subFiles = ftpClient.listFiles(dirToList);
+
+		if (subFiles != null && subFiles.length > 0) {
+			for (FTPFile aFile : subFiles) {
+				String currentFileName = aFile.getName();
+				if (currentFileName.equals(".") || currentFileName.equals("..")) {
+					// skip parent directory and the directory itself
+					continue;
+				}
+				String filePath = parentDir + "/" + currentDir + "/" + currentFileName;
+				if (currentDir.equals("")) {
+					filePath = parentDir + "/" + currentFileName;
+				}
+
+				String newDirPath = saveDir + parentDir + File.separator + currentDir + File.separator
+						+ currentFileName;
+				if (currentDir.equals("")) {
+					newDirPath = saveDir + parentDir + File.separator + currentFileName;
+				}
+
+				if (aFile.isDirectory()) {
+					// create the directory in saveDir
+					File newDir = new File(newDirPath);
+					boolean created = newDir.mkdirs();
+
+					// download the sub directory
+					downloadImageDirectory(ftpClient, dirToList, currentFileName, saveDir, id_site, id_device, datatablename);
+				} else {
+					// download the file
+					
+					File f = new File(newDirPath);
+					// create the directory in saveDir
+					File fDir = new File(saveDir + parentDir);
+
+					if (!f.exists()) {
+						// do something
+						boolean success = downloadSingleFile(ftpClient, filePath, newDirPath);
+
+						if (success) {
+							String created_date = "";
+							String month = "";
+							String year = "";
+							
+							String regex = ".*(\\d{2}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}).*";
+							Pattern pattern = Pattern.compile(regex);
+						    Matcher m = pattern.matcher(currentFileName);
+						    
+						    // date by file name
+						    if (m.find()){
+						    	String unformatDate = m.group(1);
+						    	
+						    	String yyyyMMdd = "20" + unformatDate.split("_")[0].replace("-", ":");
+						        month = yyyyMMdd.split(":", 3)[1];
+						        year = yyyyMMdd.split(":", 3)[0];
+						        String HHmmss = unformatDate.split("_")[1].replace("-", ":");
+						        created_date = yyyyMMdd + " " + HHmmss;
+						    }
+						    
+						    // if date by filename is empty ->  date by file on ftp server
+						    Calendar currrentDateCalendar = aFile.getTimestamp();	
+						    
+					    	created_date =  created_date != "" ? created_date : new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(currrentDateCalendar.getTime());
+					    	
+					    	month = month != "" ? month : ((currrentDateCalendar.get(Calendar.MONTH) + 1) < 10 ? ("0"+(currrentDateCalendar.get(Calendar.MONTH) + 1)): String.valueOf(currrentDateCalendar.get(Calendar.MONTH) + 1));
+					   
+					    	year = year != "" ? year : String.valueOf(currrentDateCalendar.get(Calendar.YEAR));
+																				
+							String filePathImage = awsService.uploadFile(newDirPath, "camera" + "/" + id_site  + parentDir + "/"+ year + "/" + month + "/" + currentFileName);
+							
+							if (filePathImage != null || filePathImage != "") {
+								CameraImageEntity cameraImage = new CameraImageEntity();
+								cameraImage.setId_device(id_device);
+								cameraImage.setTime(created_date);
+								cameraImage.setImage_url(filePathImage);
+								cameraImage.setDatatablename(datatablename);
+								
+								BatchJobService service = new BatchJobService();
+								CameraImageEntity image = service.insertCameraImage(cameraImage);
+								
+								if (image != null) {
+									new File(newDirPath).delete();
+								}
+							}
+							
+							ftpClient.deleteFile(filePath);
+
+						}
+					}
+
+				}
+			}
+		}
+	}
+	
+	/**
+	 * @description Get list file from FTP server
+	 * @author long.pham
+	 * @since 2023-06-16
+	 * @return {}
+	 */
+	@GetMapping("/download-image-camera-from-ftp")
+	public Object downloadImageCameraFromFTP() {
+		try {
+			BatchJobService service = new BatchJobService();
+			List<?> listDevices = service.getListCameraDevice(new DeviceEntity());
+			if (listDevices == null || listDevices.size() == 0) {
+				return this.jsonResult(false, Constants.GET_ERROR_MSG, null, 0);
+			}
+			for (int i = 0; i < listDevices.size(); i++) {
+				DeviceEntity deviceItem = (DeviceEntity) listDevices.get(i);
+				if (deviceItem.getDevice_ftp_server() != null && deviceItem.getDevice_ftp_user() != null && deviceItem.getDevice_ftp_pass() != null && deviceItem.getDevice_ftp_folder() != null) {
+					String server = deviceItem.getDevice_ftp_server();
+					String user = deviceItem.getDevice_ftp_user();
+					String pass = deviceItem.getDevice_ftp_pass();
+					int port = Integer.parseInt(deviceItem.getDevice_ftp_port());
+					String remoteDirPath = deviceItem.getDevice_ftp_folder();
+
+					String saveDirPath = Lib.getReourcePropValue(Constants.appConfigFileName,
+							Constants.uploadRootPathConfigKey) + "/" + deviceItem.getId_site();
+					
+					FTPClient ftpClient = new FTPClient();
+
+					try {
+						ftpClient.connect(server, port);
+						int replyCode = ftpClient.getReplyCode();
+						if (!FTPReply.isPositiveCompletion(replyCode)) {
+							return this.jsonResult(false, Constants.GET_ERROR_MSG, null, 0);
+						}
+						boolean success = ftpClient.login(user, pass);
+						if (!success) {
+							return this.jsonResult(false, Constants.GET_ERROR_MSG, null, 0);
+						}
+					
+						downloadImageDirectory(ftpClient, remoteDirPath, "", saveDirPath, deviceItem.getId_site(), deviceItem.getId(), deviceItem.getDatatablename());
+//						String filePath = awsService.uploadFile(saveDirPath + "/" + currentFileName, Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathConfigKeyGallery) + "/" + currentFileName);
+						
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					} finally {
+						// logs out and disconnects from server
+						try {
+							if (ftpClient.isConnected()) {
+								ftpClient.logout();
+								ftpClient.disconnect();
+							}
+						} catch (IOException ex) {
+							ex.printStackTrace();
+						}
+					}
+				}
+			}
+			
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, null, 0);
+		} catch (Exception e) {
+			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
 }

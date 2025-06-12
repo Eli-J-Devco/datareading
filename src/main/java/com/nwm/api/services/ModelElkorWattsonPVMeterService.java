@@ -23,7 +23,7 @@ public class ModelElkorWattsonPVMeterService extends DB {
 	 * @param data
 	 */
 	
-	public ModelElkorWattsonPVMeterEntity setModelElkorWattsonPVMeter(String line, double offset_data_old) {
+	public ModelElkorWattsonPVMeterEntity setModelElkorWattsonPVMeter(String line) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
@@ -31,16 +31,6 @@ public class ModelElkorWattsonPVMeterService extends DB {
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(5)) ? words.get(5) : "0.001");
 				Double energy = Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0.001");
-				
-				if(energy < 0 && offset_data_old > 0) {
-					energy = energy * -1;
-					energy = (energy + offset_data_old) * -1;
-				} else if(offset_data_old > 0 && energy > 0) {
-					energy = energy + offset_data_old;
-				}
-				
-				
-				System.out.println(energy);
 				
 				dataModelElkor.setTime(words.get(0).replace("'", ""));
 				dataModelElkor.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -106,15 +96,24 @@ public class ModelElkorWattsonPVMeterService extends DB {
 	
 	public boolean insertModelElkorWattsonPVMeter(ModelElkorWattsonPVMeterEntity obj) {
 		try {
+			if(obj.getOffset_data_old() !=0) {
+				Double energy = obj.getNvmActiveEnergy();
+				energy = energy + obj.getOffset_data_old();
+				obj.setNvmActiveEnergy(energy);
+				obj.setTotalEnergyConsumption(energy);
+			}
+			
+			
 			ModelElkorWattsonPVMeterEntity dataObj = (ModelElkorWattsonPVMeterEntity) queryForObject("ModelElkorWattsonPVMeter.getLastRow", obj);
+			// filter data 
+			if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				obj.setTotalEnergyConsumption(dataObj.getNvmActiveEnergy());
+			}
+						
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();		 
-			 }
-			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setTotalEnergyConsumption(dataObj.getNvmActiveEnergy());
 			 }
 
 			 obj.setMeasuredProduction(measuredProduction);

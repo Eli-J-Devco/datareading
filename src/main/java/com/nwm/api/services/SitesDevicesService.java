@@ -5,22 +5,23 @@
 *********************************************************/
 package com.nwm.api.services;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nwm.api.DBManagers.DB;
+import com.nwm.api.entities.CameraImageEntity;
 import com.nwm.api.entities.DeviceEntity;
 import com.nwm.api.entities.DeviceParameterEntity;
+import com.nwm.api.entities.DeviceYieldEntity;
 import com.nwm.api.entities.SitesDevicesEntity;
-import com.nwm.api.entities.TablePreferenceEntity;
 import com.nwm.api.utils.Constants;
 import com.nwm.api.utils.Lib;
-import com.nwm.api.utils.SecretCards;
 import com.nwm.api.utils.SendMail;
 import com.nwm.api.utils.TOTP;
 
@@ -67,43 +68,18 @@ public class SitesDevicesService extends DB {
 	
 
 	public List getListDeviceByIdSite(SitesDevicesEntity obj) {
-		List dataList, dataListNew = new ArrayList();
-		SecretCards secretCard = new SecretCards();
 		try {
-			// get user preference for table sorting column
-			TablePreferenceEntity tablePreference = new TablePreferenceEntity();
-			tablePreference.setId_employee(obj.getId_employee());
-			tablePreference.setTable("SiteDevices");
-			tablePreference = (TablePreferenceEntity) queryForObject("TablePreference.getPreference", tablePreference);
+			List dataList = queryForList("SitesDevices.getListDeviceByIdSite", obj);
+			if (dataList == null) return new ArrayList();
 			
-			if ((obj.getOrder_by() != null) && (obj.getSort_column() != null)) {
-				if (tablePreference != null) {
-					tablePreference.setOrder_by(obj.getOrder_by());
-					tablePreference.setSort_column(obj.getSort_column());
-					update("TablePreference.updatePreference", tablePreference);
-				} else {
-					tablePreference = new TablePreferenceEntity();
-					tablePreference.setId_employee(obj.getId_employee());
-					tablePreference.setTable("SiteDevices");
-					tablePreference.setOrder_by(obj.getOrder_by());
-					tablePreference.setSort_column(obj.getSort_column());
-					insert("TablePreference.insertPreference", tablePreference);
-				}
-			} else {
-				if (tablePreference != null) {
-					obj.setOrder_by(tablePreference.getOrder_by());
-					obj.setSort_column(tablePreference.getSort_column());
-				}
-			}
-			
-			dataList = queryForList("SitesDevices.getListDeviceByIdSite", obj);
 			return dataList;
-				
 		} catch (Exception ex) {
 			return new ArrayList();
 		}
-		
 	}
+	
+	
+	
 	
 	/**
 	 * @description Get device yield list
@@ -112,15 +88,88 @@ public class SitesDevicesService extends DB {
 	 * @param list_device
 	 */
 	
-	public List getListYieldByDevice(SitesDevicesEntity obj) {
+	public List<DeviceYieldEntity> getListYieldByDevice(SitesDevicesEntity obj) {
 		try {
 			if (obj.getList_device() == null || obj.getList_device().size() == 0) return new ArrayList();
-			List dataList = queryForList("SitesDevices.getListYieldByDevice", obj);
-			if (dataList == null) return new ArrayList();
+			List<CompletableFuture<DeviceYieldEntity>> futureList = new ArrayList<CompletableFuture<DeviceYieldEntity>>();
+			
+			for (int i = 0; i < obj.getList_device().size(); i++) {
+				Map<String, Object> item = (Map<String, Object>) obj.getList_device().get(i);
+				item.put("isUserNW", obj.isUserNW());
+				
+				CompletableFuture<DeviceYieldEntity> future = CompletableFuture.supplyAsync(() -> {
+					try {
+						DeviceYieldEntity device = (DeviceYieldEntity) queryForObject("SitesDevices.getDeviceStatus", item);
+						if (device == null) return new DeviceYieldEntity();
+						if (!Arrays.asList(1,3,7,9,16).contains(device.getId_device_type())) return device;
+						
+						DeviceYieldEntity yield = (DeviceYieldEntity) queryForObject("SitesDevices.getYieldByDevice", item);
+						if (yield != null) {
+							device.setYieldToday(yield.getYieldToday());
+							device.setYieldYesterday(yield.getYieldYesterday());
+							device.setYieldLast7Days(yield.getYieldLast7Days());
+							device.setYieldYTD(yield.getYieldYTD());
+							device.setAdvance_tech_control_tag(item.get("advance_tech_control_tag").toString());
+						}
+						
+						// Get all parameter by device
+						List dataList = queryForList("SitesDevices.getListParameterByDevice", item);
+						if(dataList.size() > 0) {
+							// Get last data 
+							item.put("parameters", dataList);
+							Object listRowData = (Object) queryForObject("SitesDevices.getLastRowData", item);
+							String json = new ObjectMapper().writeValueAsString(listRowData);
+							device.setJson_last_data(json);
+							
+						}
+						
+						device.setParameters(dataList);
+						
+						return device;
+					} catch (Exception ex) {
+						log.error("SitesDevices.getListYieldByDevice", ex);
+						return new DeviceYieldEntity();
+					}
+				});
+				
+				futureList.add(future);
+			}
+
+			List<DeviceYieldEntity> dataList = futureList.stream().map(future -> future.join()).collect(Collectors.toList());
+			
+			if (obj.getSort_column() != null && !obj.getSort_column().equals("") && obj.getOrder_by() != null && !obj.getOrder_by().equals("")) {
+				Comparator<DeviceYieldEntity> comparator = null;
+				
+				switch (obj.getSort_column()) {
+				case "devicename":
+					comparator = Comparator.comparing(DeviceYieldEntity::getDevicename, Comparator.nullsFirst(Comparator.naturalOrder()));
+					break;
+				case "upTime":
+					comparator = Comparator.comparing(DeviceYieldEntity::getUpTime, Comparator.nullsFirst(Comparator.naturalOrder()));
+					break;
+				case "currentPower":
+					comparator = Comparator.comparing(DeviceYieldEntity::getCurrentPower, Comparator.nullsFirst(Comparator.naturalOrder()));
+					break;
+				case "yieldToday":
+					comparator = Comparator.comparing(DeviceYieldEntity::getYieldToday, Comparator.nullsFirst(Comparator.naturalOrder()));
+					break;
+				case "yieldYesterday":
+					comparator = Comparator.comparing(DeviceYieldEntity::getYieldYesterday, Comparator.nullsFirst(Comparator.naturalOrder()));
+					break;
+				case "yieldLast7Days":
+					comparator = Comparator.comparing(DeviceYieldEntity::getYieldLast7Days, Comparator.nullsFirst(Comparator.naturalOrder()));
+					break;
+				case "yieldYTD":
+					comparator = Comparator.comparing(DeviceYieldEntity::getYieldYTD, Comparator.nullsFirst(Comparator.naturalOrder()));
+					break;
+				}
+				
+				dataList.sort(obj.getOrder_by().equals("desc") ? comparator.reversed() : comparator);
+			}
 			
 			return dataList;
 		} catch (Exception ex) {
-			return new ArrayList();
+			return new ArrayList<DeviceYieldEntity>();
 		}
 	}
 	
@@ -186,30 +235,6 @@ public class SitesDevicesService extends DB {
 	}
 	
 	/**
-	 * @description get user preference for table sorting column
-	 * @author Hung.Bui
-	 * @since 2023-02-27
-	 * @param id_customer, id_site
-	 */
-	public TablePreferenceEntity getPreference(SitesDevicesEntity obj) {
-		try {
-			// get user preference for table sorting column
-			TablePreferenceEntity tablePreference = new TablePreferenceEntity();
-			tablePreference.setId_employee(obj.getId_employee());
-			tablePreference.setTable("SiteDevices");
-			tablePreference = (TablePreferenceEntity) queryForObject("TablePreference.getPreference", tablePreference);
-			
-			if (tablePreference == null) {
-				return new TablePreferenceEntity();
-			}
-			return tablePreference;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-	
-	
-	/**
 	 * @description get list summary device by id_site
 	 * @author long.pham
 	 * @since 2023-06-20
@@ -266,6 +291,68 @@ public class SitesDevicesService extends DB {
 			return TOTP.validateTOTP(user_name, verifyCode);
 		} catch (Exception ex) {
 			return false;
+		}
+	}
+	
+	/**
+	 * @description get list image camera
+	 * @author duy.phan
+	 * @since 2025-01-24
+	 * @param id_site
+	 */
+	
+
+	public List getListCameraImage(CameraImageEntity obj) {
+
+		try {
+			List dataList = queryForList("SitesDevices.getListCameraImage", obj);
+			if (dataList == null) return new ArrayList();
+			
+			return dataList;
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+	}
+	
+	/**
+	 * @description get list image camera
+	 * @author duy.phan
+	 * @since 2025-01-24
+	 * @param id_site
+	 */
+	
+
+	public List getListCameraDevices(SitesDevicesEntity obj) {
+
+		try {
+			List dataList = queryForList("SitesDevices.getListCameraDevices", obj);
+			if (dataList == null) return new ArrayList();
+			
+			return dataList;
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+	}
+	
+	
+	/**
+	 * @description get first  image camera by id_device
+	 * @author duy.phan 
+	 * @since 2025-01-24
+	 * @param id_site
+	 */
+	
+	public CameraImageEntity getFirstTimeImageCamera(CameraImageEntity obj) {
+		CameraImageEntity rowItem = new CameraImageEntity();
+		try {
+			rowItem = (CameraImageEntity) queryForObject("SitesDevices.getFirstTimeImageCamera", obj);
+			if (rowItem == null) {
+				return new CameraImageEntity();
+			}
+			
+			return rowItem;
+		} catch (Exception ex) {
+			return new CameraImageEntity();
 		}
 	}
 	

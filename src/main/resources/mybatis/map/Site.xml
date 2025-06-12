@@ -86,6 +86,8 @@
 		<result property="mqtt_username" column="mqtt_username" />
 		<result property="mqtt_password" column="mqtt_password" />
 		<result property="site_domain_type" column="site_domain_type" />
+		<result property="inv_level" column="inv_level" />
+		
 		
 		
 	
@@ -102,6 +104,9 @@
 			LEFT JOIN device d ON d.id_site = s.id
 			LEFT JOIN alert a ON a.id_device = d.id 
 			LEFT JOIN error e ON e.id = a.id_error
+			<if test="is_supper_admin != 1">
+				LEFT JOIN site_employee_map sem ON sem.id_site = s.id
+			</if>
 		WHERE
 			s.`status` = 1 
 			AND s.is_delete = 0 
@@ -111,14 +116,17 @@
 			AND e.`is_delete` = 0
 			AND d.`status` = 1
 			AND d.is_delete = 0
-			<if test="id_sites != null">
-				AND s.id IN  (
-					<foreach item="item" index="index" collection="id_sites" separator=" , ">
-						#{item.id}
-					</foreach>
-				)
-			</if>
 			AND s.enable_alert = 1
+			<if test="is_supper_admin != 1">
+				AND sem.id_employee = #{id_employee}
+				AND sem.is_hiding = 0
+			</if>
+			
+			<include refid="com.nwm.common.deviceByDomainCondition"/>
+	        
+	        <if test="!isUserNW.booleanValue()">
+				AND e.id_error_level != 14
+			</if>
 			
 	</select>
 	
@@ -127,9 +135,9 @@
 		SELECT
 			s.id,
 			SHA1(s.id) AS hash_id,
-			s.`name`,
-			s.`name` AS text,
-			s.`name` AS label,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
+			<include refid="com.nwm.common.siteName"/> AS `text`,
+			<include refid="com.nwm.common.siteName"/> AS `label`,
 			s.id AS value,
 			s.is_rec_report,
 			s.datalogger_ip,
@@ -218,6 +226,11 @@
 		          GROUP BY id_site
 		      ) td ON td.id_site = s.id
  			</if>
+ 			
+			
+			<if test="(keyword != null and keyword != '' and sort_column == 'site_sub_group' ) ">			
+				LEFT JOIN site_sub_group ssg ON ssg.id = s.id_site_sub_group
+			</if>
 		WHERE
 			s.is_delete = 0	
 			AND s.`status` = 1 
@@ -226,6 +239,13 @@
 				AND sem.is_hiding = 0
 			</if>
 			
+			<if test="keyword != null and keyword != '' and sort_column == 'site_group'">
+				AND sg.name LIKE CONCAT("%",#{keyword}, "%")
+			</if>
+			
+			<if test="keyword != null and keyword != '' and sort_column == 'site_sub_group'">
+				AND ssg.name LIKE CONCAT("%",#{keyword}, "%")
+			</if>
 			
 			<if test="keyword != null and keyword != '' and sort_column == 'name'">
 				AND s.name LIKE CONCAT("%",#{keyword}, "%")
@@ -351,28 +371,7 @@
 			</if>
 			
 			
-			<choose>
-			
-				<when test="(domain == 'localhost' or domain == 'nextwavemonitoring.com' or domain == 'staging.nextwavemonitoring.com') and is_supper_admin == 1">
-					AND s.site_domain_type IN(1,2,3)
-				</when>
-				
-				<when test="(domain == 'demo.nextwavemonitoring.com')">
-					AND s.site_domain_type IN(1,2,3)
-				</when>
-				
-				<when test="domain == 'buildings.nextwavemonitoring.com'">
-					AND s.site_domain_type IN(2,3)
-				</when>
-				
-				<when test="(domain != 'nextwavemonitoring.com') and (domain != 'buildings.nextwavemonitoring.com') and is_supper_admin != 1">
-					AND s.site_domain_type IN(2,3)
-				</when>
-				
-				<otherwise>
-					AND s.site_domain_type IN(1,3)
-				</otherwise>
-			</choose>
+			<include refid="com.nwm.common.siteByDomainCondition"/>
 				
 	      	
 	      	
@@ -385,24 +384,25 @@
 	<select id="getSiteByEmployeeREC" resultType="Map">
 		SELECT
 			s.id,
-			s.`name`,
-			s.`name` AS text,
-			s.`name` AS label,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
+			<include refid="com.nwm.common.siteName"/> AS `text`,
+			<include refid="com.nwm.common.siteName"/> AS `label`,
 			s.id AS value,
 			s.is_rec_report,
 			s.datalogger_ip,
 			s.table_data_report,
 			CAST(s.reporting_region AS UNSIGNED) AS reporting_region,
 			JSON_ARRAYAGG(JSON_OBJECT(
-				'id_site', s.id,
+				'id_group', s.id,
 				'value', d.id,
 				'label', d.devicename,
 				'table_data_report', s.table_data_report,
 				'reporting_region', CAST(s.reporting_region AS UNSIGNED)
-			)) AS devicesJSON
+			)) AS options
 		FROM
 			site AS s
 			LEFT JOIN device d ON d.id_site = s.id AND d.id_device_type IN (3,7,9) AND d.is_excluded_meter = 0
+			<include refid="com.nwm.common.deviceByDomainCondition"/>
 			<if test="is_supper_admin != 1">
 				LEFT JOIN site_employee_map sem ON sem.id_site = s.id
 			</if>
@@ -416,6 +416,8 @@
 				AND sem.id_employee = #{id_employee}
 				AND sem.is_hiding = 0
 			</if>
+			
+			<include refid="com.nwm.common.siteByDomainCondition"/>
 		GROUP BY
 			s.id
 			 
@@ -425,6 +427,7 @@
 		SELECT
 			sg.id,
 			sg.name,
+			sg.icon AS icon,
 			sg.order_id,
 			sg.hash_id,
 			0 AS is_expand,
@@ -436,8 +439,9 @@
 					'hash_id', SHA2(ssg.id, 512),
 					'id_site_group', ssg.id_site_group,
 					'name', ssg.name,
+					'icon', ssg.icon,
 					'order_id', ssg.order_id,
-					'is_expand', 1
+					'is_expand', 0
 				))
 			) AS sub_group_list
 		FROM
@@ -446,6 +450,7 @@
 					sg.id,
 					sg.`name`,
 					sg.order_id,
+					sg.icon,
 					SHA2(sg.id, 256) AS hash_id
 				FROM
 					site s
@@ -469,10 +474,16 @@
 					COUNT(*) AS totalSites,
 					id_site_group,
 					id_site_sub_group
-				FROM site
-				GROUP BY id_site_sub_group
+				FROM
+					site
+				WHERE
+					is_delete = 0
+					AND status = 1
+					AND id_site_sub_group IS NOT NULL
+				GROUP BY
+					id_site_sub_group
 			) t ON t.id_site_group = sg.id AND t.totalSites > 0
-		   LEFT JOIN site_sub_group ssg ON ssg.id_site_group = t.id_site_group AND ssg.status = 1 AND ssg.is_delete = 0
+		   LEFT JOIN site_sub_group ssg ON ssg.id = t.id_site_sub_group AND ssg.status = 1 AND ssg.is_delete = 0
 		GROUP BY sg.id
 	    ORDER BY sg.order_id ASC
 		 	 
@@ -511,7 +522,7 @@
 			s.id,
 			SHA1(s.id) AS hash_id,
 			scm.id_employee,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
 			DATE_FORMAT(s.built_since,'%m/%d/%Y') AS built_since,
 			DATE_FORMAT(s.commissioning,'%m/%d/%Y') AS commissioning,
 			s.street,
@@ -555,7 +566,8 @@
 			s.mqtt_port,
 			s.mqtt_protocol,
 			s.mqtt_username,
-			s.mqtt_password
+			s.mqtt_password,
+			s.inv_level
 		FROM
 			site s
 			LEFT JOIN site_employee_map scm ON scm.id_site = s.id
@@ -572,6 +584,8 @@
 		<if test="id_company != null and id_company != 0 and id_company > 1">
 			AND s.id_company = #{id_company}
 		</if>
+		
+		<include refid="com.nwm.common.siteByDomainCondition"/>
 		
 		
 		<if test="keyword != null">
@@ -601,11 +615,19 @@
 	<select id="getManageSiteTotalRecord"  resultType="int" parameterType="com.nwm.api.entities.SiteEntity">
     	SELECT count(*) as totalRecord
 		FROM site s  
-		LEFT JOIN site_employee_map scm ON scm.id_site = s.id
-		WHERE s.is_delete = 0 AND s.status = 1 AND scm.id_employee = #{id_employee}
-		<if test="keyword != null">
-			AND s.name LIKE CONCAT("%",#{keyword}, "%")
+		<if test="is_supper_admin != 1">
+			LEFT JOIN site_employee_map scm ON scm.id_site = s.id
 		</if>
+		WHERE
+			s.is_delete = 0
+			AND s.status = 1
+			<if test="is_supper_admin != 1">
+				AND scm.id_employee = #{id_employee}
+			</if>
+			<if test="keyword != null">
+				AND s.name LIKE CONCAT("%",#{keyword}, "%")
+			</if>
+			<include refid="com.nwm.common.siteByDomainCondition"/>
   	</select>
   	
   	
@@ -614,6 +636,18 @@
     	SELECT count(*) as totalRecord
 		FROM site_employee_map s  WHERE s.id_employee = #{id_employee} AND s.id_site = #{id_site}
   	</select>
+  	
+  	
+  	
+  	<select id="getEmailCC"  resultType="string" parameterType="com.nwm.api.entities.SiteEntity">
+		SELECT
+			GROUP_CONCAT(IF(e.email != #{mail_to}, e.email, NULL) SEPARATOR ', ') AS mail_cc
+		FROM
+			employee e 
+			LEFT JOIN site_employee_map sm ON e.id = sm.id_employee
+		WHERE e.is_delete = 0 AND e.`status` = 1  AND sm.id_site = #{id_site}
+  	</select>
+  	
   	
   	
   	<insert id="insertSiteEmployeeMap" useGeneratedKeys="true" keyProperty="id_site">
@@ -797,7 +831,8 @@
 			`g_status`,
 			`g_lat`,
 			`g_lng`,		
-			`is_solar_site`
+			`is_solar_site`,
+			`inv_level`
 		)VALUES(
 			#{id_company},
 			#{id_country},
@@ -869,7 +904,8 @@
 			#{g_status},
 			#{g_lat},
 			#{g_lng},
-			#{is_solar_site}
+			#{is_solar_site},
+			#{inv_level}
 		);
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
@@ -950,7 +986,8 @@
 			`g_status` = #{g_status},
 			`g_lat` = #{g_lat},
 			`g_lng` = #{g_lng},
-			`is_solar_site` = #{is_solar_site}
+			`is_solar_site` = #{is_solar_site},
+			`inv_level` = #{inv_level}
 		WHERE
 			`id` = #{id}
 	</update>
@@ -961,7 +998,7 @@
 			SHA1(s.id) AS hash_id,
 			s.id AS id_site,
 			s.id_company,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
 			DATE_FORMAT(s.built_since,'%m/%d/%Y') AS built_since,
 			DATE_FORMAT(s.commissioning,'%m/%d/%Y') AS commissioning,
 			DATE_FORMAT(s.expiration,'%m/%d/%Y') AS expiration,
@@ -988,7 +1025,18 @@
 			s.end_date_time,
 			s.config_sunset_sunrise,
 			s.note,
-			t.customer_name,
+			
+			<choose> 
+	            <when test="domain =='demo.nextwavemonitoring.com' || domain_role == '1ff1de774005f8da13f42943881c655f'">
+	                CONCAT_WS("#", "#customer", s.id) AS `customer_name`,
+	                CONCAT_WS("#", "#company",s.id) AS `company`,
+	            </when>
+	            <otherwise>
+			      t.customer_name,
+			      c.name AS company,
+			    </otherwise>                                                  
+	        </choose>
+	        
 			t.ids_employee,
 			s.is_rec_report,
 			s.reporting_region,
@@ -1001,10 +1049,9 @@
 			s.timezone_datalogger,
 			s.unit_type_temp,
 			s.unit_wind_speed,
-			c.name AS company,
 			sg.name AS site_group,
 			tz.name AS time_zone,
-			IFNULL(DATE_FORMAT(al.modified_date,'%m/%d/%Y %H:%i:%s'), 'N/A') AS last_modified,
+			IFNULL(DATE_FORMAT(al.modified_date,'%m/%d/%Y %H:%i:%s'), "-") AS last_modified,
 			s.ftp_server,
 			s.ftp_user,
 			s.ftp_pass,
@@ -1088,7 +1135,8 @@
 			e.electricity_over_limit_power_cost,
 			e.electricity_over_limit_power_per,
 			e.electricity_over_limit_power_unit,		
-			s.is_solar_site
+			s.is_solar_site,
+			s.inv_level
 		FROM
 			site s
 			LEFT JOIN site_employee_map sem ON sem.id_site = s.id
@@ -1139,6 +1187,8 @@
 			AND s.id_company = #{id_company}
 		</if>
 		
+		<include refid="com.nwm.common.siteByDomainCondition"/>
+		
 		
 		GROUP BY s.id 
 		
@@ -1147,56 +1197,42 @@
 		 	
 		    order by
 	        <choose>  
-	            <when test="sort_column == 'id'">
-	                s.id ${order_by}
-	            </when>         
 	            <when test="sort_column == 'site_name'">
 	                s.name ${order_by}
 	            </when>
-	            <when test="sort_column == 'customer_name'">
-	                t.customer_name ${order_by}
-	            </when>
-	            <when test="sort_column == 'dc_capacity'">
-	                dc_capacity ${order_by}
-	            </when>
-	             <when test="sort_column == 'ac_capacity'">
-	                ac_capacity ${order_by}
-	            </when>
-	            <when test="sort_column == 'built_since'">
-	                DATE_FORMAT(built_since,'%Y-%m-%d') ${order_by}
-	            </when>
-	            <when test="sort_column == 'company'">
-	                company ${order_by}
-	            </when>
-	            <when test="sort_column == 'site_group'">
-	                site_group ${order_by}
-	            </when>
-	            <when test="sort_column == 'commissioning'">
-	                DATE_FORMAT(commissioning,'%Y-%m-%d') ${order_by}
-	            </when>
-	            <when test="sort_column == 'time_zone'">
-	                time_zone ${order_by}
-	            </when>
-	            <when test="sort_column == 'data_send_time'">
-	                s.data_send_time ${order_by}
+
+				<when test="sort_column == 'built_since'">
+					s.built_since ${order_by}
+				</when>
+				
+				<when test="sort_column == 'commissioning'">
+	                s.commissioning ${order_by}
 	            </when>
 	            
 	            <when test="sort_column == 'last_modified'">
-	                DATE_FORMAT(al.modified_date,'%Y-%m-%d') ${order_by}
+	                al.modified_date ${order_by}
 	            </when>
 	            
-	            
-	            
-	            <when test="sort_column == 'status'">
-	                status ${order_by}
+	            <when test="sort_column == 'data_send_time'">
+	               CASE data_send_time
+	               		WHEN 1 THEN 5
+	               		WHEN 2 THEN 15
+	               		WHEN 3 THEN 1
+	               END ${order_by}
+	            </when>
+				
+	            <when test="sort_column != null and sort_column != ''">
+	                ${sort_column} ${order_by}
 	            </when>
 	            
 	            <otherwise>
-			      s.`name`, s.id_company ASC
+			      s.`name` ASC
 			    </otherwise>                                                  
-	        </choose>  
-		 	 
-		 LIMIT ${limit} OFFSET ${offset};
+	        </choose> , s.id DESC
+		 
+		 <if test="limit > 0">
+			LIMIT ${limit} OFFSET ${offset};
+		</if>	 
 	</select>
 	
   	
@@ -1219,6 +1255,8 @@
 		<if test="id_company != null and id_company != 0 and id_company > 1">
 			AND s.id_company = #{id_company}
 		</if>
+		
+		<include refid="com.nwm.common.siteByDomainCondition"/>
 		
   	</select>
   	
@@ -1245,7 +1283,7 @@
 			s.id_company,
 			s.id_country,
 			s.id_time_zone,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
 			s.street,
 			IF(s.lat = 0, NULL, s.lat) AS lat,
 			IF(s.lng = 0, NULL, s.lng) AS lng,
@@ -1294,7 +1332,8 @@
 			s.mqtt_port,
 			s.mqtt_protocol,
 			s.mqtt_username,
-			s.mqtt_password
+			s.mqtt_password,
+			s.inv_level
 		FROM
 			site AS s
 		WHERE
@@ -1308,67 +1347,113 @@
 			</if>
 	</select>
 	
-	<select id="getAllSite" resultMap="SiteMap" parameterType="String">
+	<select id="getAllSite" resultType="Map">
 		SELECT
-			s.id,
-			SHA1(s.id) AS hash_id,
-			s.id_company,
-			s.id AS value,
-			s.id_country,
-			s.`name`,
-			s.`name` AS label,
-			s.street,
-			IF(s.lat = 0, NULL, s.lat) AS lat,
-			IF(s.lng = 0, NULL, s.lng) AS lng,
-			IF(s.lat = 0, NULL, s.lat) AS view_lat,
-			IF(s.lng = 0, NULL, s.lng) AS view_lng,
-			built_since,
-			s.old_data,
-			s.number,
-			s.postal_code,
-			s.city,
-			s.state,
-			commissioning,
-			s.emergency_contact,
-			s.ac_capacity,
-			s.dc_capacity,
-			s.status,
-			s.is_delete,
-			s.created_date,
-			s.created_by,
-			s.updated_date,
-			s.updated_by,
-			s.gallery,
-			s.note,
-			s.is_rec_report,
-			s.datalogger_ip,
-			s.about,
-			s.kiosk_view,
-			s.site_logo,
-			s.id_site_group,
-			s.timezone_datalogger,
-			s.unit_type_temp,
-			s.unit_wind_speed,
-			s.ftp_server,
-			s.ftp_user,
-			s.ftp_pass,
-			s.ftp_port,
-			s.ftp_folder,
-			s.datalogger_type,
-			s.enable_alert,
-			s.serial_number,
-			s.mqtt_host,
-			s.mqtt_port,
-			s.mqtt_protocol,
-			s.mqtt_username,
-			s.mqtt_password
+			ssg.id,
+			ssg.id AS value,
+			ssg.name AS text,
+			ssg.name AS label,
+			sg.name AS parent,
+			JSON_ARRAYAGG(JSON_OBJECT(
+				'id', s.id,
+				'value', s.id,
+				'text', <include refid="com.nwm.common.siteName"/>,
+				'label', <include refid="com.nwm.common.siteName"/>,
+				'id_group', ssg.id,
+				'enable_virtual_device', IF(v.enable_virtual_device > 0, 1, 0)
+			)) AS options
 		FROM
-			site AS s
-		WHERE s.is_delete = 0
-		<if test="id_company != null and id_company != 0 and id_company > 1">
-			AND s.id_company = #{id_company}
-		</if>
-		;
+			site_sub_group ssg
+			JOIN site s ON s.id_site_sub_group = ssg.id
+			JOIN site_group sg ON sg.id = ssg.id_site_group
+			LEFT JOIN (
+				SELECT
+					COUNT(*) AS enable_virtual_device,
+					d.id_site
+				FROM
+					device d 
+				WHERE
+					d.`status` = 1
+					AND d.is_delete = 0
+					AND d.hidden = 0
+					AND d.virtual_device_type IS NOT NULL
+					AND d.virtual_device_type != ''
+				GROUP BY
+					d.id_site
+			) v ON v.id_site = s.id
+		WHERE
+			ssg.status = 1
+			AND ssg.is_delete = 0
+			AND sg.status = 1
+			AND sg.is_delete = 0
+			AND s.`status` = 1 
+			AND s.is_delete = 0
+			<if test="is_supper_admin != 1 and id_sites != null">
+				AND s.id IN  (
+					<foreach item="item" index="index" collection="id_sites" separator=" , ">
+						#{item.id}
+					</foreach>
+				)
+			</if>
+			<if test="id_company != null and id_company != 0 and id_company > 1">
+				AND s.id_company = #{id_company}
+			</if>
+		GROUP BY
+			ssg.id
+		
+		UNION ALL
+		
+		<!-- sites aren't assigned to any group -->
+		SELECT
+			-sg.id AS id,
+			-sg.id AS value,
+			'Unassigned' AS text,
+			'Unassigned' AS label,
+			sg.name AS parent,
+			JSON_ARRAYAGG(JSON_OBJECT(
+				'id', s.id,
+				'value', s.id,
+				'text', <include refid="com.nwm.common.siteName"/>,
+				'label', <include refid="com.nwm.common.siteName"/>,
+				'id_group', -sg.id,
+				'enable_virtual_device', IF(v.enable_virtual_device > 0, 1, 0)
+			)) AS options
+		FROM
+			site s
+			JOIN site_group sg ON sg.id = s.id_site_group
+			LEFT JOIN (
+				SELECT
+					COUNT(*) AS enable_virtual_device,
+					d.id_site
+				FROM
+					device d 
+				WHERE
+					d.`status` = 1
+					AND d.is_delete = 0
+					AND d.hidden = 0
+					AND d.virtual_device_type IS NOT NULL
+					AND d.virtual_device_type != ''
+				GROUP BY
+					d.id_site
+			) v ON v.id_site = s.id
+		WHERE
+			s.`status` = 1 
+			AND s.is_delete = 0
+			AND s.id_site_sub_group IS NULL
+			AND sg.status = 1
+			AND sg.is_delete = 0
+			<if test="is_supper_admin != 1 and id_sites != null">
+				AND s.id IN  (
+					<foreach item="item" index="index" collection="id_sites" separator=" , ">
+						#{item.id}
+					</foreach>
+				)
+			</if>
+			<if test="id_company != null and id_company != 0 and id_company > 1">
+				AND s.id_company = #{id_company}
+			</if>
+		GROUP BY
+			sg.id
 	</select>
 	
 	<select id="getAllSiteGroup" resultType="Map">
@@ -1388,7 +1473,7 @@
 			s.id_customer,
 			s.id_country,
 			s.id_time_zone,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
 			s.street,
 			s.lat,
 			s.lng,
@@ -1608,7 +1693,7 @@
 			s.id,
 			s.id_country,
 			s.id_time_zone,
-			s.`name`,
+			<include refid="com.nwm.common.siteName"/> AS `name`,
 			s.lat,
 			s.lng,
 			s.old_data,
@@ -2503,7 +2588,7 @@
 			c.name AS company,
 			sg.name AS site_group,
 			tz.name AS time_zone,
-			IFNULL(DATE_FORMAT(al.modified_date,'%m/%d/%Y %H:%i:%s'), 'N/A') AS last_modified,
+			IFNULL(DATE_FORMAT(al.modified_date,'%m/%d/%Y %H:%i:%s'), "-") AS last_modified,
 			s.ftp_server,
 			s.ftp_user,
 			s.ftp_pass,

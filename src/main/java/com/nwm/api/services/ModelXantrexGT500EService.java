@@ -91,15 +91,17 @@ public class ModelXantrexGT500EService extends DB {
 	public boolean insertModelXantrexGT500EService(ModelXantrexGT500EEntity obj) {
 		try {
 			ModelXantrexGT500EEntity dataObj = (ModelXantrexGT500EEntity) queryForObject("ModelXantrexGT500E.getLastRow", obj);
+			// filter data 
+			if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				obj.setENERGY_DELIVERED(dataObj.getNvmActiveEnergy());
+			}
+						
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
 			 }
 			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setENERGY_DELIVERED(dataObj.getNvmActiveEnergy());
-			 }
 			 
 			 obj.setMeasuredProduction(measuredProduction);
 			if(obj.getENERGY_DELIVERED() < 0 ) {obj.setNvmActiveEnergy(obj.getENERGY_DELIVERED() * -1);}
@@ -142,7 +144,7 @@ public class ModelXantrexGT500EService extends DB {
 				int totalFaultCode = 0;
 				for(int i =0; i < dataList.size(); i ++) {
 					Map<String, Object> item = (Map<String, Object>) dataList.get(i);
-					double statusFault = (double) item.get("active_faults1");
+					double statusFault = (double) item.get("STATUS_FAULT");
 					if(Double.compare(obj.getSTATUS_FAULT(), statusFault) == 0 && obj.getSTATUS_FAULT() > 0 && statusFault > 0) { 
 						totalFaultCode++;
 					}

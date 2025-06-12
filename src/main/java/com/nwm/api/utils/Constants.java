@@ -129,6 +129,15 @@ public class Constants {
 	public static final String mailOTPBody = "mailOTPBody";
 	
 	
+	public static final String mailSupportTicket = "mailSupportTicket";
+	public static final String mailSupportTicketBody = "mailSupportTicketBody";
+	
+	public static final String mailAddSite = "mailAddSite";
+	public static final String mailAddSiteBody = "mailAddSiteBody";
+	
+	
+	public static final String mailDeleteSite = "mailDeleteSite";
+	public static final String mailDeleteSiteBody = "mailDeleteSiteBody";
 	
 	
 	
@@ -201,6 +210,26 @@ public class Constants {
     public static String UPDATE_SUCCESS_MSG = Translator.toLocale("UPDATE.SUCCESS");
     public static String UPDATE_ERROR_MSG = Translator.toLocale("UPDATE.ERROR");
     public static String DELETE_SUCCESS_MSG = Translator.toLocale("DELETE.SUCCESS");
+    
+    public static String UPDATE_BREAKER_ERROR_MSG = Translator.toLocale("UPDATE.BREAKER_ERROR");
+    public static String UPDATE_BREAKER_SUCCESS_MSG = Translator.toLocale("UPDATE.BREAKER_SUCCESS");
+    public static String DELETE_BREAKER_SUCCESS_MSG = Translator.toLocale("DELETE.BREAKER_SUCCESS");
+    public static String INSERT_BREAKER_SUCCESS_MSG = Translator.toLocale("INSERT.BREAKER_SUCCESS");
+    public static String INSERT_BREAKER_ERROR_MSG = Translator.toLocale("INSERT.BREAKER_ERROR");
+    public static String DELETE_BREAKER_ERROR_MSG = Translator.toLocale("DELETE.BREAKER_ERROR");
+    public static String SAVE_BREAKER_ERROR_MSG = Translator.toLocale("SAVE.BREAKER_ERROR");
+    public static String SAVE_BREAKER_SUCCESS_MSG = Translator.toLocale("SAVE.BREAKER_SUCCESS");
+    
+    
+    public static String UPDATE_ZONE_ERROR_MSG = Translator.toLocale("UPDATE.ZONE_ERROR");
+    public static String UPDATE_ZONE_SUCCESS_MSG = Translator.toLocale("UPDATE.ZONE_SUCCESS");
+    public static String DELETE_ZONE_SUCCESS_MSG = Translator.toLocale("DELETE.ZONE_SUCCESS");
+    public static String INSERT_ZONE_SUCCESS_MSG = Translator.toLocale("INSERT.ZONE_SUCCESS");
+    public static String INSERT_ZONE_ERROR_MSG = Translator.toLocale("INSERT.ZONE_ERROR");
+    public static String DELETE_ZONE_ERROR_MSG = Translator.toLocale("DELETE.ZONE_ERROR");
+    public static String SAVE_ZONE_ERROR_MSG = Translator.toLocale("SAVE.ZONE_ERROR");
+    public static String SAVE_ZONE_SUCCESS_MSG = Translator.toLocale("SAVE.ZONE_SUCCESS");
+    
     public static String RESTORE_SUCCESS_MSG = Translator.toLocale("RESTORE.SUCCESS");
     public static String DELETE_ERROR_MSG = Translator.toLocale("DELETE.ERROR");
     public static String GET_SUCCESS_MSG = Translator.toLocale("GET.SUCCESS");
@@ -215,6 +244,9 @@ public class Constants {
     public static String USER_EXIST = Translator.toLocale("USER.EXIST");
     public static String PASSWORD_OLD_ERROR_MSG = Translator.toLocale("USER.PASSWORD_OLD_ERROR_MSG");
     public static String ADMIN_RESET_PASSWORD = Translator.toLocale("EMPLOYEE.ADMIN_RESET_PASSWORD");
+    
+    public static String PASS_DIFF_PASSOLD = Translator.toLocale("USER.PASS_DIFF_PASSOLD");
+    
   
     
 
@@ -549,6 +581,17 @@ public class Constants {
 		case 20:
 			// Send OTP
 			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailOTPBody);
+		case 22:
+			// Send support ticket
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailSupportTicketBody);
+			
+		case 23:
+			// Add a new site
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailAddSiteBody);
+			
+		case 24:
+			// Add a new site
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailDeleteSiteBody);
 		default:
 			return null;
 		}
@@ -611,6 +654,17 @@ public class Constants {
 		case 20:
 			// Send OTP
 			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailOTPTitle);
+			
+		case 22:
+			// Support 
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailSupportTicket);
+		case 23:
+			// add site 
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailAddSite);
+			
+		case 24:
+			// delete site 
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailDeleteSite);
 		default:
 			return null;
 		}

@@ -7,6 +7,10 @@ package com.nwm.api.controllers;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 
+import java.io.FileWriter;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -18,11 +22,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.nwm.api.entities.CustomerSupportEntity;
 import com.nwm.api.services.AWSService;
 import com.nwm.api.services.CustomerSupportService;
 import com.nwm.api.utils.Constants;
 import com.nwm.api.utils.Lib;
+import com.nwm.api.utils.SendMail;
+import com.nwm.api.utils.Translator;
+import com.opencsv.CSVWriter;
 
 import springfox.documentation.annotations.ApiIgnore;
 
@@ -47,6 +55,7 @@ public class CustomerSupportController extends BaseController {
 			CustomerSupportService service = new CustomerSupportService();
 			String fileName = "";
 			String saveDir = "";
+			List files = new ArrayList();
 
 			if (obj.getScreen_mode() == 1) {
 				List fileUploads = obj.getFileUploads();
@@ -58,11 +67,26 @@ public class CustomerSupportController extends BaseController {
 						String saveFileName = Lib.uploadFromBase64(objFile.get("file_upload").toString(), fileName, saveDir);
 						String filePath = awsService.uploadFile(saveDir + "/" + saveFileName, Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathConfigKeySupport) + "/" + saveFileName);
 						objFile.put("file_name", filePath);
+						files.add(saveDir + "/"+ saveFileName);
 					}
 				}
 				obj.setFileUploads(fileUploads);
 				CustomerSupportEntity data = service.insertCustomerSupport(obj);
 				if (data != null) {
+					String mailFromContact = Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailFromContact);
+					String msgTemplate = Constants.getMailTempleteByState(22);
+					String body = String.format(msgTemplate, obj.getWe_support(), obj.getSite_name(), obj.getIssue_name(), obj.getContact_person(), obj.getAccount_name(),obj.getPhone(), obj.getEmail(), obj.getSubject(), obj.getNote());
+					String mailTo = "cases@nwemon.com";
+					String subject = Constants.getMailSubjectByState(22);
+					String tags = "support_ticket";
+					String fromName = "NEXT WAVE ENERGY MONITORING INC";
+					if(mailTo != null) {
+						boolean flagSent = SendMail.SendGmailTLSAttachmentMultiFiles(mailFromContact, fromName, mailTo, subject, body, tags, files);
+						if (!flagSent) {
+							throw new Exception(Translator.toLocale(Constants.SENT_EMAIL_ERROR));
+						}
+					}
+					
 					return this.jsonResult(true, Constants.SAVE_SUCCESS_MSG, data, 1);
 				} else {
 					return this.jsonResult(false, Constants.SAVE_ERROR_MSG, null, 0);
@@ -95,6 +119,25 @@ public class CustomerSupportController extends BaseController {
 			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, totalRecord);
 		} catch (Exception e) {
 			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
+	
+	/**
+	 * @description update icon status
+	 * @author long.pham
+	 * @since 2021-03-31
+	 * @param id
+	 * @return data (status, message, array, total_row
+	 */
+	@PostMapping("/update-status")
+	public Object updateStatus(@RequestBody CustomerSupportEntity obj) {
+		try {
+			CustomerSupportService service = new CustomerSupportService();
+			service.updateStatus(obj);
+			return this.jsonResult(true, Constants.UPDATE_SUCCESS_MSG, obj, 1);
+		} catch (Exception e) {
+			// log error
 			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
 		}
 	}

@@ -7,7 +7,7 @@ package com.nwm.api.entities;
 import java.util.Date;
 import java.util.List;
 
-public class SitesDevicesEntity {
+public class SitesDevicesEntity extends SortEntity {
 	private int id;
 	private int id_customer;
 	private int id_country;
@@ -37,7 +37,6 @@ public class SitesDevicesEntity {
 	private int limit;
 	private int offset;
 	private int totalRecord;
-	private String order_by;
 	private String sort_by;
 	private String address_short;
 	private String offset_timezone;
@@ -75,8 +74,6 @@ public class SitesDevicesEntity {
 	private String cf_email_subscribers;
 	private List deviceDisableAlerts;
 	private String keyword;
-	private int id_employee;
-	private String sort_column;
 	private int kiosk_view;	
 	private String read_data_all;
 	private String view_tablename;
@@ -157,10 +154,191 @@ public class SitesDevicesEntity {
 	private String advance_tech_field_restart;
 	private String advance_tech_field_stop;
 	private String advance_tech_field_start;
+	private int advance_tech_control_enable = 0;
+	private String domain;
+	private boolean isUserNW;
+	private double total_area;
+	private double total_unit;
+	private int meter_type;
+	private double weather_indoor_temp;
+	private String weather_indoor_temp_unit;
+	private double weather_outdoor_temp;
+	private String weather_outdoor_temp_unit;
+	private String weather_time;
+	private double weather_humidity;
+	private String weather_humidity_unit;
+	private String weather_description;
+	private String weather_icon;
+	private String weather_time_string;
+	
+	private double weather_snow;
+	private String weather_snow_unit;
+	private double weather_rain;
+	private String weather_rain_unit;
+	private double weather_wind;
+	private String weather_wind_unit;
+	
+	private String domain_role;
+	
+	private String hvac_gateway;
+	private String hvac_layout;
+	private int id_hvac_layout;
+	private String device_group_title_trans;
+	private String device_type_title_trans;
+	
+	
+	
+	public String getDevice_group_title_trans() {
+		return device_group_title_trans;
+	}
+	public void setDevice_group_title_trans(String device_group_title_trans) {
+		this.device_group_title_trans = device_group_title_trans;
+	}
+	public String getDevice_type_title_trans() {
+		return device_type_title_trans;
+	}
+	public void setDevice_type_title_trans(String device_type_title_trans) {
+		this.device_type_title_trans = device_type_title_trans;
+	}
+	public double getWeather_snow() {
+		return weather_snow;
+	}
+	public void setWeather_snow(double weather_snow) {
+		this.weather_snow = weather_snow;
+	}
+	public String getWeather_snow_unit() {
+		return weather_snow_unit;
+	}
+	public void setWeather_snow_unit(String weather_snow_unit) {
+		this.weather_snow_unit = weather_snow_unit;
+	}
+	public double getWeather_rain() {
+		return weather_rain;
+	}
+	public void setWeather_rain(double weather_rain) {
+		this.weather_rain = weather_rain;
+	}
+	public String getWeather_rain_unit() {
+		return weather_rain_unit;
+	}
+	public void setWeather_rain_unit(String weather_rain_unit) {
+		this.weather_rain_unit = weather_rain_unit;
+	}
+	public double getWeather_wind() {
+		return weather_wind;
+	}
+	public void setWeather_wind(double weather_wind) {
+		this.weather_wind = weather_wind;
+	}
+	public String getWeather_wind_unit() {
+		return weather_wind_unit;
+	}
+	public void setWeather_wind_unit(String weather_wind_unit) {
+		this.weather_wind_unit = weather_wind_unit;
+	}
+	public String getWeather_indoor_temp_unit() {
+		return weather_indoor_temp_unit;
+	}
+	public void setWeather_indoor_temp_unit(String weather_indoor_temp_unit) {
+		this.weather_indoor_temp_unit = weather_indoor_temp_unit;
+	}
+	public String getWeather_outdoor_temp_unit() {
+		return weather_outdoor_temp_unit;
+	}
+	public void setWeather_outdoor_temp_unit(String weather_outdoor_temp_unit) {
+		this.weather_outdoor_temp_unit = weather_outdoor_temp_unit;
+	}
+	public String getWeather_humidity_unit() {
+		return weather_humidity_unit;
+	}
+	public void setWeather_humidity_unit(String weather_humidity_unit) {
+		this.weather_humidity_unit = weather_humidity_unit;
+	}
+	public double getWeather_outdoor_temp() {
+		return weather_outdoor_temp;
+	}
+	public void setWeather_outdoor_temp(double weather_outdoor_temp) {
+		this.weather_outdoor_temp = weather_outdoor_temp;
+	}
+	public String getDomain_role() {
+		return domain_role;
+	}
+	public void setDomain_role(String domain_role) {
+		this.domain_role = domain_role;
+	}
+	
+	
+	
+	public String getWeather_description() {
+		return weather_description;
+	}
+	public void setWeather_description(String weather_description) {
+		this.weather_description = weather_description;
+	}
+	public String getWeather_icon() {
+		return weather_icon;
+	}
+	public void setWeather_icon(String weather_icon) {
+		this.weather_icon = weather_icon;
+	}
+	public String getWeather_time_string() {
+		return weather_time_string;
+	}
+	public void setWeather_time_string(String weather_time_string) {
+		this.weather_time_string = weather_time_string;
+	}
+	public double getWeather_indoor_temp() {
+		return weather_indoor_temp;
+	}
+	public void setWeather_indoor_temp(double weather_indoor_temp) {
+		this.weather_indoor_temp = weather_indoor_temp;
+	}
 
-	
-	
-	
+	public String getWeather_time() {
+		return weather_time;
+	}
+	public void setWeather_time(String weather_time) {
+		this.weather_time = weather_time;
+	}
+	public double getWeather_humidity() {
+		return weather_humidity;
+	}
+	public void setWeather_humidity(double weather_humidity) {
+		this.weather_humidity = weather_humidity;
+	}
+	public int getMeter_type() {
+		return meter_type;
+	}
+	public void setMeter_type(int meter_type) {
+		this.meter_type = meter_type;
+	}
+	public void setUserNW(boolean isUserNW) {
+		this.isUserNW = isUserNW;
+	}
+	public double getTotal_area() {
+		return total_area;
+	}
+	public void setTotal_area(double total_area) {
+		this.total_area = total_area;
+	}
+	public double getTotal_unit() {
+		return total_unit;
+	}
+	public void setTotal_unit(double total_unit) {
+		this.total_unit = total_unit;
+	}
+	public String getDomain() {
+		return domain;
+	}
+	public void setDomain(String domain) {
+		this.domain = domain;
+	}
+	public int getAdvance_tech_control_enable() {
+		return advance_tech_control_enable;
+	}
+	public void setAdvance_tech_control_enable(int advance_tech_control_enable) {
+		this.advance_tech_control_enable = advance_tech_control_enable;
+	}
 	public String getAdvance_tech_field_restart() {
 		return advance_tech_field_restart;
 	}
@@ -528,18 +706,6 @@ public class SitesDevicesEntity {
 	public void setHash_site_id(String hash_site_id) {
 		this.hash_site_id = hash_site_id;
 	}
-	public String getSort_column() {
-		return sort_column;
-	}
-	public void setSort_column(String sort_column) {
-		this.sort_column = sort_column;
-	}
-	public int getId_employee() {
-		return id_employee;
-	}
-	public void setId_employee(int id_employee) {
-		this.id_employee = id_employee;
-	}
 	public String getKeyword() {
 		return keyword;
 	}
@@ -719,12 +885,6 @@ public class SitesDevicesEntity {
 	}
 	public void setTotalRecord(int totalRecord) {
 		this.totalRecord = totalRecord;
-	}
-	public String getOrder_by() {
-		return order_by;
-	}
-	public void setOrder_by(String order_by) {
-		this.order_by = order_by;
 	}
 	public String getSort_by() {
 		return sort_by;
@@ -1025,6 +1185,30 @@ public class SitesDevicesEntity {
 	}
 	public void setJava_date_format(String java_date_format) {
 		this.java_date_format = java_date_format;
+	}
+	public boolean isUserNW() {
+		return isUserNW;
+	}
+	public void setIsUserNW(boolean isUserNW) {
+		this.isUserNW = isUserNW;
+	}
+	public String getHvac_gateway() {
+		return hvac_gateway;
+	}
+	public void setHvac_gateway(String hvac_gateway) {
+		this.hvac_gateway = hvac_gateway;
+	}
+	public String getHvac_layout() {
+		return hvac_layout;
+	}
+	public void setHvac_layout(String hvac_layout) {
+		this.hvac_layout = hvac_layout;
+	}
+	public int getId_hvac_layout() {
+		return id_hvac_layout;
+	}
+	public void setId_hvac_layout(int id_hvac_layout) {
+		this.id_hvac_layout = id_hvac_layout;
 	}
 	
 	

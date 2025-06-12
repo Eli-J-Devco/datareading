@@ -20,6 +20,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -42,8 +43,10 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
@@ -64,6 +67,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.gson.Gson;
+import com.nwm.api.entities.DateTimeReportDataEntity;
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 /**
@@ -2947,6 +2951,139 @@ Lib {
 			}
 		} catch(IOException e) {
 			throw new RuntimeException("Failed to unzip content", e);
+		}
+	}
+	
+	/**
+	 * @description fulfill data in specific range of time
+	 * @author Hung.Bui
+	 * @since 2024-05-03
+	 * @param dateTimeList
+	 * @param dataList
+	 * @param comparisionFieldString field to compare
+	 * @return
+	 */
+	public static <K extends DateTimeReportDataEntity> List<K> fulfillData(List<K> dateTimeList, List<K> dataList, String comparisionFieldString) {
+		try {
+			if (dataList == null || dateTimeList.size() == 0) return dataList;
+			Field comparisionField = DateTimeReportDataEntity.class.getDeclaredField(comparisionFieldString);
+			comparisionField.setAccessible(true);
+			
+			List<K> fulfilledDataList = new ArrayList<K>();
+			int count = 0;
+			
+			for (int i = 0; i < dateTimeList.size(); i++) {
+				K dateTimeItem = dateTimeList.get(i);
+				if (i - count > dataList.size() - 1) {
+					fulfilledDataList.add(dateTimeItem);
+					continue;
+				}
+				
+				K dataItem = dataList.get(i - count);
+				if (comparisionField.get(dateTimeItem).equals(comparisionField.get(dataItem))) {
+					fulfilledDataList.add(dataItem);
+				} else {
+					fulfilledDataList.add(dateTimeItem);
+					count++;
+				}
+			}
+			
+			return fulfilledDataList;
+		} catch (Exception e) {
+			return dataList;
+		}
+	}
+	
+	private static Map<String, Object> getClaimsFromToken(String authz) {
+		try {
+			String[] authzSplit = authz.split("\\s");
+			String token = authzSplit[1];
+			String[] tokenSplit = token.split("\\.");
+			String encodedClaims = tokenSplit[1];
+			byte[] decodedClaims = java.util.Base64.getUrlDecoder().decode(encodedClaims);
+			String claimsString = new String(decodedClaims);
+			Map<String, Object> claims = new ObjectMapper().readValue(claimsString, HashMap.class);
+			return claims;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	public static boolean isUserNW(String authz) {
+		Map<String, Object> claims = getClaimsFromToken(authz);
+		if (claims == null) return false;
+		try {
+			return Arrays
+					.stream(claims
+							.get("authorities")
+							.toString()
+							.replace("[", "")
+							.replace("]", "")
+							.split(",")
+					)
+					.mapToInt(Integer::parseInt)
+					.anyMatch(item -> item == 1 || item == 12 || item == 15);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	public static boolean isSuperAdmin(String authz) {
+		Map<String, Object> claims = getClaimsFromToken(authz);
+		if (claims == null) return false;
+		try {
+			return Arrays
+					.stream(claims
+							.get("authorities")
+							.toString()
+							.replace("[", "")
+							.replace("]", "")
+							.split(",")
+					)
+					.mapToInt(Integer::parseInt)
+					.anyMatch(item -> item == 1);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	public static boolean isSiteManagedByUser(String authz, int id) {
+		if (isSuperAdmin(authz)) return true;
+		Map<String, Object> claims = getClaimsFromToken(authz);
+		if (claims == null) return false;
+		try {
+			return Arrays
+					.stream(claims
+							.get("id_sites")
+							.toString()
+							.replace("[", "")
+							.replace("]", "")
+							.split(",")
+					)
+					.mapToInt(Integer::parseInt)
+					.anyMatch(item -> item == id);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	public static List<Integer> sitesManagedByUser(String authz) {
+		Map<String, Object> claims = getClaimsFromToken(authz);
+		if (claims == null) return new ArrayList<>();
+		try {
+			return Arrays
+					.stream(claims
+							.get("id_sites")
+							.toString()
+							.replace("[", "")
+							.replace("]", "")
+							.split(",")
+							)
+					.mapToInt(Integer::parseInt)
+					.boxed()
+					.collect(Collectors.toList());
+		} catch (Exception e) {
+			return new ArrayList<>();
 		}
 	}
 }

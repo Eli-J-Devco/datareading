@@ -22,21 +22,14 @@ public class ModelMeterIon8600Service extends DB {
 	 * @param data
 	 */
 	
-	public ModelMeterIon8600Entity setModelMeterIon8600(String line, double offset_data_old) {
+	public ModelMeterIon8600Entity setModelMeterIon8600(String line) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
 				ModelMeterIon8600Entity dataModelIon = new ModelMeterIon8600Entity();
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(23)) ? words.get(23) : "0.001");
-				Double energy = Double.parseDouble(!Lib.isBlank(words.get(53)) ? words.get(53) : "0.001");
-				if(energy < 0 && offset_data_old > 0) {
-					energy = energy * -1;
-					energy = (energy + offset_data_old) * -1;
-				} else if(offset_data_old > 0 && energy > 0) {
-					energy = energy + offset_data_old;
-				}
-				
+				Double energy = Double.parseDouble(!Lib.isBlank(words.get(53)) ? words.get(53) : "0.001");				
 				
 				dataModelIon.setTime(words.get(0).replace("'", ""));
 				dataModelIon.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -141,17 +134,24 @@ public class ModelMeterIon8600Service extends DB {
 	
 	public boolean insertModelMeterIon8600(ModelMeterIon8600Entity obj) {
 		try {
+			if(obj.getOffset_data_old() !=0) {
+				Double energy = obj.getNvmActiveEnergy();
+				energy = energy + obj.getOffset_data_old();
+				obj.setNvmActiveEnergy(energy);
+				obj.setKWhRec(energy);
+			}
+			
 			ModelMeterIon8600Entity dataObj = (ModelMeterIon8600Entity) queryForObject("ModelMeterIon8600.getLastRow", obj);
+			// filter data 
+			if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				obj.setKWhRec(dataObj.getNvmActiveEnergy());
+			}
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
 			 }
 			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setKWhRec(dataObj.getNvmActiveEnergy());
-			 }
-
 			 if(measuredProduction > 3000) {
 				 switch(dataObj.getData_send_time()) {
 				 	// 1: 5 minutes, 2: 15 minutes, 3: 1 minute

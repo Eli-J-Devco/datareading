@@ -5,12 +5,11 @@
 *********************************************************/
 package com.nwm.api.services;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.ibatis.session.SqlSession;
 
@@ -19,13 +18,8 @@ import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.AlertFilterEntity;
 import com.nwm.api.entities.AlertHistoryEntity;
 import com.nwm.api.entities.ChartAlertDateEntity;
-import com.nwm.api.entities.ConfigurationEntity;
-import com.nwm.api.entities.DailyDateEntity;
-import com.nwm.api.entities.EmployeeFilterFavoritesEntity;
-import com.nwm.api.entities.ErrorLevelEntity;
 import com.nwm.api.entities.SiteEntity;
-import com.nwm.api.entities.SitesDevicesEntity;
-import com.nwm.api.entities.TablePreferenceEntity;
+import com.nwm.api.utils.Lib;
 
 public class AlertService extends DB {
 	/**
@@ -37,32 +31,6 @@ public class AlertService extends DB {
 
 	public List getList(AlertEntity obj) {
 		try {
-			// get user preference for table sorting column
-			TablePreferenceEntity tablePreference = new TablePreferenceEntity();
-			tablePreference.setId_employee(obj.getId_employee());
-			tablePreference.setTable("Alert");
-			tablePreference = (TablePreferenceEntity) queryForObject("TablePreference.getPreference", tablePreference);
-			
-			if ((obj.getOrder_by() != null) && (obj.getSort_column() != null)) {
-				if (tablePreference != null) {
-					tablePreference.setOrder_by(obj.getOrder_by());
-					tablePreference.setSort_column(obj.getSort_column());
-					update("TablePreference.updatePreference", tablePreference);
-				} else {
-					tablePreference = new TablePreferenceEntity();
-					tablePreference.setId_employee(obj.getId_employee());
-					tablePreference.setTable("Alert");
-					tablePreference.setOrder_by(obj.getOrder_by());
-					tablePreference.setSort_column(obj.getSort_column());
-					insert("TablePreference.insertPreference", tablePreference);
-				}
-			} else {
-				if (tablePreference != null) {
-					obj.setOrder_by(tablePreference.getOrder_by());
-					obj.setSort_column(tablePreference.getSort_column());
-				}
-			}
-			
 			List rs = queryForList("Alert.getList", obj);
 			if (rs == null) {
 				return new ArrayList<>();
@@ -362,30 +330,6 @@ public class AlertService extends DB {
 		}
 		return dataObj;
 	}
-
-	/**
-	 * @description get user preference for table sorting column
-	 * @author Hung.Bui
-	 * @since 2023-02-27
-	 * @param id_customer, id_site
-	 */
-	public TablePreferenceEntity getPreference(AlertEntity obj) {
-		try {
-			// get user preference for table sorting column
-			TablePreferenceEntity tablePreference = new TablePreferenceEntity();
-			tablePreference.setId_employee(obj.getId_employee());
-			tablePreference.setTable("Alert");
-			tablePreference = (TablePreferenceEntity) queryForObject("TablePreference.getPreference", tablePreference);
-			
-			if (tablePreference == null) {
-				return new TablePreferenceEntity();
-			}
-			return tablePreference;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-	
 	
 	/**
 	 * @description get list site by id_sites
@@ -394,106 +338,28 @@ public class AlertService extends DB {
 	 * @param arr id_sites
 	 */
 
-	public List getDataChart(AlertEntity obj) {
+	public List<ChartAlertDateEntity> getDataChart(AlertEntity obj) {
 		try {
+			// ----- Create DateTime List ----- Begin
+			DateTimeFormatter inputFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+			DateTimeFormatter fullTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm");
+			DateTimeFormatter categoriesTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), inputFormat);
+			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), inputFormat);
 			
-			// Create list date 
-			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm"); 
-			SimpleDateFormat timeFormat = new SimpleDateFormat("MM-dd-yyyy HH:mm"); 
-			SimpleDateFormat catFormat = new SimpleDateFormat("MM-dd-yyyy");
-			
-//			SimpleDateFormat dateFormatHour = new SimpleDateFormat("HH:00");
-			Date startDate = dateFormat.parse(obj.getStart_date() + " AM");
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(startDate);
-			List<ChartAlertDateEntity> categories = new ArrayList<ChartAlertDateEntity> ();
-			int minute = 15;
-			int forCount = 96 * 3;
-//			if(obj.getData_intervals() == 1) {
-//				minute = 5;
-//				forCount = 288 * 3;
-//			} else if(obj.getData_intervals() == 2) {
-//				minute = 15;
-//				forCount = 96*3;
-//			} else if(obj.getData_intervals() == 3) {
-//				minute = 60;
-//				forCount = 24*3;
-//			}
-			for(int t = 0; t < forCount; t++) {
-				cal.setTime(startDate);
-				ChartAlertDateEntity headerDate = new ChartAlertDateEntity();
-				cal.add(Calendar.MINUTE, t * minute);
-				
-				headerDate.setTime_format(timeFormat.format(cal.getTime()));
-//				String hours = dateFormatHour.format(cal.getTime());
-				headerDate.setCategories_time(catFormat.format(cal.getTime()));
-				headerDate.setEnergy(0.001);
-				headerDate.setPower(0.001);
-				headerDate.setIrradiance(0.001);
-				categories.add(headerDate);
+			List<ChartAlertDateEntity> categories = new ArrayList<>();
+			while (!start.isAfter(end)) {
+				ChartAlertDateEntity dateTime = new ChartAlertDateEntity();
+				dateTime.setTime_format(start.format(fullTimeFormat));
+				dateTime.setCategories_time(start.format(categoriesTimeFormat));
+				categories.add(dateTime);
+				start = start.plus(15, ChronoUnit.MINUTES);
 			}
-			
-			
-			List dataPower = queryForList("Alert.getDataChart", obj);
-			List<ChartAlertDateEntity> dataNewPower = new ArrayList<ChartAlertDateEntity> ();
-			if(categories.size() > 0) {
-				for (ChartAlertDateEntity item : categories) {
-					boolean flag = false;
-					ChartAlertDateEntity mapItemObj = new ChartAlertDateEntity();
-					if(dataPower != null && dataPower.size() > 0) {
-						for( int v = 0; v < dataPower.size(); v++){
-							Map<String, Object> itemT = (Map<String, Object>) dataPower.get(v);
-							String categoriesTime = item.getTime_format();
-							String powerTime = itemT.get("time_format").toString();
-					        if (categoriesTime.equals(powerTime)) {
-					        	flag = true;
-					        	mapItemObj.setCategories_time(itemT.get("categories_time").toString());
-					        	Double power = Double.parseDouble(itemT.get("power").toString());
-					        	power = (power == -0.0) ? 0 : power;
-					        	
-					        	mapItemObj.setPower( power );
-					        	mapItemObj.setIrradiance(item.getIrradiance());
-					        	mapItemObj.setTime_format(itemT.get("time_format").toString());
-					        	
-					        	
-					        	if(itemT.get("power") == null || Double.parseDouble(itemT.get("power").toString()) == 0.001) {
-						        	mapItemObj.setEnergy( 0.001 );
-					        	} else {
-					        		Double energy = (double)Math.round(Double.parseDouble(itemT.get("power").toString()) * 15/60);
-						        	mapItemObj.setEnergy( energy > 0 ? energy : 0 );
-					        	}
-					        	
-					        	
-					        	break;
-					        }
-					    }
-					}
-					
-					
-					
-					if(flag == false) {
-						ChartAlertDateEntity mapItem = new ChartAlertDateEntity();
-						mapItem.setCategories_time(item.getCategories_time());
-						mapItem.setTime_format(item.getTime_format());
-						mapItem.setIrradiance(item.getIrradiance());
-						mapItem.setEnergy(item.getEnergy());
-						mapItem.setPower(item.getPower());
+			// ----- Create DateTime List ----- End
 						
-						dataNewPower.add(mapItem);
-					} else {
-						dataNewPower.add(mapItemObj);
-					}
-				}
-			}
-//			
-//			dataObj.setDataReports(dataNewPower);
-//			
-						
-//			List rs = queryForList("Alert.getDataChart", obj);
-//			if (rs == null) {
-//				return new ArrayList<>();
-//			}
-			return dataNewPower;
+			List<ChartAlertDateEntity> dataPower = queryForList("Alert.getDataChart", obj);
+			
+			return Lib.fulfillData(categories, dataPower, "time_format");
 		} catch (Exception ex) {
 			return null;
 		}

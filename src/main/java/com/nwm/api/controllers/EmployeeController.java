@@ -46,9 +46,7 @@ public class EmployeeController extends BaseController {
 	@PostMapping("/list")
 	public Object getList(@RequestBody EmployeeManageEntity obj) {
 		try {
-			if (obj.getLimit() == 0) {
-				obj.setLimit(Constants.MAXRECORD);
-			}
+			(new EmployeeService()).getTableSort(obj);
 			EmployeeService service = new EmployeeService();
 			List data = service.getList(obj);
 			int totalRecord = service.getTotalRecord(obj);

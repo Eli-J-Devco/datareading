@@ -31,8 +31,51 @@ public class LevitonOverviewWidgetEntity{
 	private int screen_mode;
 	private String file_upload;
 	private List deviceMap;
+	private String text_color;
+	private String unit;
+	private int energy_flow_enable;
+	private int menu_order;
+	private int energy_usage_enable;
+	private int widget_type;
 	
 	
+	
+	public int getWidget_type() {
+		return widget_type;
+	}
+	public void setWidget_type(int widget_type) {
+		this.widget_type = widget_type;
+	}
+	public int getEnergy_usage_enable() {
+		return energy_usage_enable;
+	}
+	public void setEnergy_usage_enable(int energy_usage_enable) {
+		this.energy_usage_enable = energy_usage_enable;
+	}
+	public int getMenu_order() {
+		return menu_order;
+	}
+	public void setMenu_order(int menu_order) {
+		this.menu_order = menu_order;
+	}
+	public int getEnergy_flow_enable() {
+		return energy_flow_enable;
+	}
+	public void setEnergy_flow_enable(int energy_flow_enable) {
+		this.energy_flow_enable = energy_flow_enable;
+	}
+	public String getUnit() {
+		return unit;
+	}
+	public void setUnit(String unit) {
+		this.unit = unit;
+	}
+	public String getText_color() {
+		return text_color;
+	}
+	public void setText_color(String text_color) {
+		this.text_color = text_color;
+	}
 	public List getDeviceMap() {
 		return deviceMap;
 	}

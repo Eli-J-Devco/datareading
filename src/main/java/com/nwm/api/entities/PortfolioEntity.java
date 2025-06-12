@@ -7,7 +7,7 @@ package com.nwm.api.entities;
 import java.util.Date;
 import java.util.List;
 
-public class PortfolioEntity {
+public class PortfolioEntity extends SortEntity {
 	private int id;
 	private int id_customer;
 	private int id_country;
@@ -32,8 +32,6 @@ public class PortfolioEntity {
 	private int limit;
 	private int offset;
 	private int totalRecord;
-	private String order_by;
-	private String sort_column;
 	private double irradiance_now;
 	private String offset_timezone;
 	private String current_time;
@@ -61,16 +59,34 @@ public class PortfolioEntity {
 	private double totalPower;
 	private int column;
 	private String value_filter;
-	private int id_employee;
 	private List inverters;
 	private List meters;
 	private String note;
 	private String hash_id_site_group;
 	private String hash_id_site_sub_group;
 	private int is_supper_admin;
+	private String domain;
+	private String domain_role;
+	private String start_date;
+	private String end_date;
+	private String id_filter;
+	
+	
+	public String getDomain_role() {
+		return domain_role;
+	}
+	public void setDomain_role(String domain_role) {
+		this.domain_role = domain_role;
+	}
 	
 	
 	
+	public String getDomain() {
+		return domain;
+	}
+	public void setDomain(String domain) {
+		this.domain = domain;
+	}
 	public int getIs_supper_admin() {
 		return is_supper_admin;
 	}
@@ -106,12 +122,6 @@ public class PortfolioEntity {
 	}
 	public void setMeters(List meters) {
 		this.meters = meters;
-	}
-	public int getId_employee() {
-		return id_employee;
-	}
-	public void setId_employee(int id_employee) {
-		this.id_employee = id_employee;
 	}
 	public int getId() {
 		return id;
@@ -256,18 +266,6 @@ public class PortfolioEntity {
 	}
 	public void setTotalRecord(int totalRecord) {
 		this.totalRecord = totalRecord;
-	}
-	public String getOrder_by() {
-		return order_by;
-	}
-	public void setOrder_by(String order_by) {
-		this.order_by = order_by;
-	}
-	public String getSort_column() {
-		return sort_column;
-	}
-	public void setSort_column(String sort_column) {
-		this.sort_column = sort_column;
 	}
 	public double getIrradiance_now() {
 		return irradiance_now;
@@ -431,8 +429,22 @@ public class PortfolioEntity {
 	public void setValue_filter(String value_filter) {
 		this.value_filter = value_filter;
 	}
-	
-	
-	
-	
+	public String getStart_date() {
+		return start_date;
+	}
+	public void setStart_date(String start_date) {
+		this.start_date = start_date;
+	}
+	public String getEnd_date() {
+		return end_date;
+	}
+	public void setEnd_date(String end_date) {
+		this.end_date = end_date;
+	}
+	public String getId_filter() {
+		return id_filter;
+	}
+	public void setId_filter(String id_filter) {
+		this.id_filter = id_filter;
+	}
 }

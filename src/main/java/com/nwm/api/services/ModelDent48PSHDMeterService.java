@@ -23,7 +23,7 @@ public class ModelDent48PSHDMeterService extends DB {
 	 * @param data
 	 */
 	
-	public ModelDent48PSHDMeterEntity setModelDent48PSHDMeter(String line, double offset_data_old) {
+	public ModelDent48PSHDMeterEntity setModelDent48PSHDMeter(String line) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
@@ -31,12 +31,6 @@ public class ModelDent48PSHDMeterService extends DB {
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0.001");
 				Double energy = Double.parseDouble(!Lib.isBlank(words.get(37)) ? words.get(37) : "0.001");
-				if(energy < 0 && offset_data_old > 0) {
-					energy = energy * -1;
-					energy = (energy + offset_data_old) * -1;
-				} else if(offset_data_old > 0 && energy > 0) {
-					energy = energy + offset_data_old;
-				}
 				
 				dataModel.setTime(words.get(0).replace("'", ""));
 				dataModel.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -110,6 +104,34 @@ public class ModelDent48PSHDMeterService extends DB {
 				dataModel.setExportedVARhQ4C(Double.parseDouble(!Lib.isBlank(words.get(64)) ? words.get(64) : "0.001"));
 				dataModel.setWattDemandElement(Double.parseDouble(!Lib.isBlank(words.get(65)) ? words.get(65) : "0.001"));
 				
+//				dataModel.setDisplacementPFSum(Double.parseDouble(!Lib.isBlank(words.get(66)) ? words.get(66) : "0.001"));
+//				dataModel.setDisplacementPFCH1A(Double.parseDouble(!Lib.isBlank(words.get(67)) ? words.get(67) : "0.001"));
+//				dataModel.setDisplacementPFCH2B(Double.parseDouble(!Lib.isBlank(words.get(68)) ? words.get(68) : "0.001"));
+//				dataModel.setDisplacementPFCH3C(Double.parseDouble(!Lib.isBlank(words.get(69)) ? words.get(69) : "0.001"));
+//				dataModel.setTHDSum(Double.parseDouble(!Lib.isBlank(words.get(70)) ? words.get(70) : "0.001"));
+//				dataModel.setTHDCH1A(Double.parseDouble(!Lib.isBlank(words.get(71)) ? words.get(71) : "0.001"));
+//				dataModel.setTHDCH2B(Double.parseDouble(!Lib.isBlank(words.get(72)) ? words.get(72) : "0.001"));
+//				dataModel.setTHDCH3C(Double.parseDouble(!Lib.isBlank(words.get(73)) ? words.get(73) : "0.001"));
+//				dataModel.setVADemandElement(Double.parseDouble(!Lib.isBlank(words.get(74)) ? words.get(74) : "0.001"));
+//				dataModel.setEnergyNetSum(Double.parseDouble(!Lib.isBlank(words.get(75)) ? words.get(75) : "0.001"));
+//				dataModel.setEnergyNetCH1(Double.parseDouble(!Lib.isBlank(words.get(76)) ? words.get(76) : "0.001"));
+//				dataModel.setEnergyNetCH2(Double.parseDouble(!Lib.isBlank(words.get(77)) ? words.get(77) : "0.001"));
+//				dataModel.setEnergyNetCH3(Double.parseDouble(!Lib.isBlank(words.get(78)) ? words.get(78) : "0.001"));
+//				dataModel.setApparentEnergyNetSum(Double.parseDouble(!Lib.isBlank(words.get(79)) ? words.get(79) : "0.001"));
+//				dataModel.setApparentEnergyNetCH1(Double.parseDouble(!Lib.isBlank(words.get(80)) ? words.get(80) : "0.001"));
+//				dataModel.setApparentEnergyNetCH2(Double.parseDouble(!Lib.isBlank(words.get(81)) ? words.get(81) : "0.001"));
+//				dataModel.setApparentEnergyNetCH3(Double.parseDouble(!Lib.isBlank(words.get(82)) ? words.get(82) : "0.001"));
+//				dataModel.setVARhNetSum(Double.parseDouble(!Lib.isBlank(words.get(83)) ? words.get(83) : "0.001"));
+//				dataModel.setVARhNetCH1(Double.parseDouble(!Lib.isBlank(words.get(84)) ? words.get(84) : "0.001"));
+//				dataModel.setVARhNetCH2(Double.parseDouble(!Lib.isBlank(words.get(85)) ? words.get(85) : "0.001"));
+//				dataModel.setVARhNetCH3(Double.parseDouble(!Lib.isBlank(words.get(86)) ? words.get(86) : "0.001"));
+//				dataModel.setThetaCH1Angle(Double.parseDouble(!Lib.isBlank(words.get(87)) ? words.get(87) : "0.001"));
+//				dataModel.setThetaCH2Angle(Double.parseDouble(!Lib.isBlank(words.get(88)) ? words.get(88) : "0.001"));
+//				dataModel.setThetaCH3Angle(Double.parseDouble(!Lib.isBlank(words.get(89)) ? words.get(89) : "0.001"));
+//				dataModel.setRoCoilPGAGainCh1(Double.parseDouble(!Lib.isBlank(words.get(90)) ? words.get(90) : "0.001"));
+//				dataModel.setRoCoilPGAGainCh2(Double.parseDouble(!Lib.isBlank(words.get(91)) ? words.get(91) : "0.001"));
+//				dataModel.setRoCoilPGAGainCh3(Double.parseDouble(!Lib.isBlank(words.get(92)) ? words.get(92) : "0.001"));
+				
 				
 				// set custom field nvmActivePower and nvmActiveEnergy
 				dataModel.setNvmActivePower(power);
@@ -136,15 +158,23 @@ public class ModelDent48PSHDMeterService extends DB {
 	
 	public boolean insertModelDent48PSHDMeter(ModelDent48PSHDMeterEntity obj) {
 		try {
+			if(obj.getOffset_data_old() !=0) {
+				Double energy = obj.getNvmActiveEnergy();
+				energy = energy + obj.getOffset_data_old();
+				obj.setNvmActiveEnergy(energy);
+				obj.setImportedEnergySum(energy);
+			}
+			
 			ModelDent48PSHDMeterEntity dataObj = (ModelDent48PSHDMeterEntity) queryForObject("ModelDent48PSHDMeter.getLastRow", obj);
+			// filter data 
+			if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				obj.setImportedEnergySum(dataObj.getNvmActiveEnergy());
+			}
+						
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();		 
-			 }
-			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setImportedEnergySum(dataObj.getNvmActiveEnergy());
 			 }
 
 			 obj.setMeasuredProduction(measuredProduction);

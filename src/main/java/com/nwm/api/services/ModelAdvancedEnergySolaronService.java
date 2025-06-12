@@ -30,19 +30,13 @@ public class ModelAdvancedEnergySolaronService extends DB {
 	 * @param data
 	 */
 	
-	public ModelAdvancedEnergySolaronEntity setModelAdvancedEnergySolaron(String line, double offset_data_old) {
+	public ModelAdvancedEnergySolaronEntity setModelAdvancedEnergySolaron(String line) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
 				ModelAdvancedEnergySolaronEntity dataModelAdvancedEnergySolaron = new ModelAdvancedEnergySolaronEntity();
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(13)) ? words.get(13) : "0.001");
 				Double energy = Double.parseDouble(!Lib.isBlank(words.get(5)) ? words.get(5) : "0.001");
-				if(energy < 0 && offset_data_old > 0) {
-					energy = energy * -1;
-					energy = (energy + offset_data_old) * -1;
-				} else if(offset_data_old > 0 && energy > 0) {
-					energy = energy + offset_data_old;
-				}
 		
 				dataModelAdvancedEnergySolaron.setTime(words.get(0).replace("'", ""));
 				dataModelAdvancedEnergySolaron.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -114,16 +108,25 @@ public class ModelAdvancedEnergySolaronService extends DB {
 
 	public boolean insertModelAdvancedEnergySolaron(ModelAdvancedEnergySolaronEntity obj) {
 		try {
+			if(obj.getOffset_data_old() !=0) {
+				Double energy = obj.getNvmActiveEnergy();
+				energy = energy + obj.getOffset_data_old();
+				obj.setNvmActiveEnergy(energy);
+				obj.setYtd_kwh_total(energy);
+			}
+			
 			ModelAdvancedEnergySolaronEntity dataObj = (ModelAdvancedEnergySolaronEntity) queryForObject("ModelAdvancedEnergySolaron.getLastRow", obj);
+			// filter data 
+			if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				obj.setYtd_kwh_total(dataObj.getNvmActiveEnergy());
+			}
+						
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();				 
 			 }
 			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setYtd_kwh_total(dataObj.getNvmActiveEnergy());
-			 }
 
 			 obj.setMeasuredProduction(measuredProduction);
 			 

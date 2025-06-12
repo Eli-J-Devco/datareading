@@ -24,7 +24,7 @@ public class ModelMeterIon8600V3Service extends DB {
 	 * @param data
 	 */
 	
-	public ModelMeterIon8600V3Entity setModelMeterIon8600V3(String line, double offset_data_old) {
+	public ModelMeterIon8600V3Entity setModelMeterIon8600V3(String line) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
@@ -32,13 +32,6 @@ public class ModelMeterIon8600V3Service extends DB {
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(23)) ? words.get(23) : "0.001");
 				Double energy = Double.parseDouble(!Lib.isBlank(words.get(52)) ? words.get(52) : "0.001");
-				if(energy < 0 && offset_data_old > 0) {
-					energy = energy * -1;
-					energy = (energy + offset_data_old) * -1;
-				} else if(offset_data_old > 0 && energy > 0) {
-					energy = energy + offset_data_old;
-				}
-				
 				
 				dataModelIon.setTime(words.get(0).replace("'", ""));
 				dataModelIon.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -157,7 +150,20 @@ public class ModelMeterIon8600V3Service extends DB {
 	
 	public boolean insertModelMeterIon8600V3(ModelMeterIon8600V3Entity obj) {
 		try {
+			if(obj.getOffset_data_old() !=0) {
+				Double energy = obj.getNvmActiveEnergy();
+				energy = energy + obj.getOffset_data_old();
+				obj.setNvmActiveEnergy(energy);
+				obj.setKWhDel(energy);
+			}
+			
 			ModelMeterIon8600V3Entity dataObj = (ModelMeterIon8600V3Entity) queryForObject("ModelMeterIon8600V3.getLastRow", obj);
+			// filter data 
+			if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+				obj.setKWhDel(dataObj.getNvmActiveEnergy());
+			}
+						
 			 double measuredProduction = 0, measuredProduction0 = 0,measuredProduction1 = 0, measuredProduction2 = 0;
 			 
 			 List<Double> listMeasuredProduction = new ArrayList<>();
@@ -195,10 +201,6 @@ public class ModelMeterIon8600V3Service extends DB {
 				 }
 			 }
 			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setKWhDel(dataObj.getNvmActiveEnergy());
-			 }
 			 
 			 
 			 obj.setMeasuredProduction(measuredProduction);

@@ -46,6 +46,7 @@
 		<result property="data_send_time" column="data_send_time" />
 		<result property="offset_data_old" column="offset_data_old" />
 		<result property="date_time_offset" column="date_time_offset" />
+		<result property="show_on_domain" column="show_on_domain" />
 		
 		
 		
@@ -75,6 +76,7 @@
 			d.datatablename,
 			d.id_device_group,
 			d.id_device_type,
+			d.is_excluded_meter,
 			s.start_date_time,
 			s.end_date_time,
 			t.`offset` AS timezone_offset,
@@ -95,7 +97,8 @@
 			s.data_send_time,
 			IFNULL(d.offset_data_old, 0) AS offset_data_old,
 			d.date_time_offset,
-			d.mfa_control
+			d.mfa_control,
+			d.show_on_domain
 		FROM
 			device AS d
 			LEFT JOIN site s ON s.id = d.id_site
@@ -213,7 +216,13 @@
 			IFNULL(s.offset_data_old, 0) AS offset_data_old,
 			s.date_time_offset,
 			s.is_excluded_meter,
-			s.mfa_control
+			s.mfa_control,
+			s.show_on_domain,
+			s.device_ftp_server,
+			s.device_ftp_user,
+			s.device_ftp_pass,
+			s.device_ftp_port,
+			s.device_ftp_folder
 		FROM
 			device s
 			LEFT JOIN device_type dt ON dt.id = s.id_device_type
@@ -358,7 +367,13 @@
 			`offset_data_old`,
 			`date_time_offset`,
 			`is_excluded_meter`,
-			`mfa_control`
+			`mfa_control`,
+			`device_ftp_server`,
+			`device_ftp_user`,
+			`device_ftp_pass`,
+			`device_ftp_port`,
+			`device_ftp_folder`,
+			`show_on_domain`
 		)VALUES(
 			#{id_site},
 			#{id_vendor},
@@ -395,7 +410,13 @@
 			#{offset_data_old},
 			#{date_time_offset},
 			#{is_excluded_meter},
-			#{mfa_control}
+			#{mfa_control},
+			#{device_ftp_server},
+			#{device_ftp_user},
+			#{device_ftp_pass},
+			#{device_ftp_port},
+			#{device_ftp_folder},
+			#{show_on_domain}
 		);
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
@@ -448,7 +469,13 @@
 				offset_data_old = #{offset_data_old},
 				date_time_offset = #{date_time_offset},
 				is_excluded_meter = #{is_excluded_meter},
-				mfa_control = #{mfa_control}
+				mfa_control = #{mfa_control},
+				device_ftp_server = #{device_ftp_server},
+				device_ftp_user = #{device_ftp_user},
+				device_ftp_pass = #{device_ftp_pass},
+				device_ftp_port = #{device_ftp_port},
+				device_ftp_folder = #{device_ftp_folder},
+				show_on_domain = #{show_on_domain}
 			WHERE
 				`id` = #{id}
 		</if>
@@ -459,8 +486,8 @@
 	
 	<select id="getListSshDataloggerCellModem" resultType="Map" >
 		SELECT
-			s.`name` AS site_name,
 			dt.`name` AS device_type_name,
+			<include refid="com.nwm.common.siteName"/> AS site_name,
 			d.id,
 			d.devicename,
 			d.ssh_host,
@@ -489,28 +516,26 @@
 		</if> 	
 		    ORDER BY
 	        <choose>  
-	            <when test="sort_column == 'id'">
-	                s.id ${order_by}
-	            </when>  
-	                   
 	            <when test="sort_column == 'site_name'">
 	                s.name ${order_by}
 	            </when>
 	            
-	            <when test="sort_column == 'name'">
-	                d.name ${order_by}
+	            <when test="sort_column == 'device_type_name'">
+	                dt.name ${order_by}
 	            </when>
 	            
-	            <when test="sort_column == 'ssh_status'">
-	                d.ssh_status ${order_by}
+	            <when test="sort_column != null and sort_column != ''">
+	                d.${sort_column} ${order_by}
 	            </when>
 	            
 	            <otherwise>
-			      d.id_device_group DESC
+			      dt.name DESC
 			    </otherwise>                                                  
-	        </choose>  
+	        </choose> , d.id DESC
 		 	 
-		 LIMIT ${limit} OFFSET ${offset};
+		<if test="limit > 0">
+			LIMIT ${limit} OFFSET ${offset};
+		</if>
 	</select>
 	
   	
@@ -575,19 +600,16 @@
 			`id` = #{id}
 	</update>
 	
-	<select id="getLowProductionErrorId" resultType="int">
+	<select id="getErrorId" resultType="int">
     	SELECT
 			e.id
 		FROM
 			error e
-			LEFT JOIN device_group dg ON dg.id = e.id_device_group
 		WHERE
 			e.status = 1
 			AND e.is_delete = 0
-			AND e.error_code = 1002
-			AND dg.status = 1
-			AND dg.is_delete = 0
-			AND dg.table_name = #{device_group_table}
+			AND e.error_code = #{error_code}
+			AND e.id_device_group = #{id_device_group}
 	</select>
   	
 	<select id="getComparisonRatioHavingPOA" resultType="Map">
@@ -725,13 +747,13 @@
 	<select id="getListDeviceParameter" resultType="Map">
 		SELECT
 			dp.id,
-			IFNULL(dp.standard_name, dp.name) AS name,
-			CONCAT(IFNULL(dp.standard_name, dp.name), IF(dps.scale IS NULL, "", CONCAT(" (Scale: ", dps.scale, ")"))) AS text,
+			CONCAT(IF(gp.name IS NULL OR gp.name = '', IF(dp.standard_name IS NULL OR dp.standard_name = '', dp.name, dp.standard_name), gp.name), IF(dps.scale IS NULL, "", CONCAT(" (Scale: ", dps.scale, ")"))) AS text,
 			dps.scale
 		FROM
 			device_parameters dp
 			LEFT JOIN device d ON d.id_device_group = dp.id_device_group
 			LEFT JOIN device_parameter_scale dps ON dps.id_device_parameter = dp.id AND dps.id_device = d.id
+			LEFT JOIN generic_parameters gp ON gp.id = dp.id_generic_parameter
 		WHERE
 			d.id = #{id}
 			AND d.status = 1
@@ -745,8 +767,7 @@
 	<select id="getListDeviceParameterScaleOldData" resultType="Map">
 		SELECT
 			dp.id,
-			IFNULL(dp.standard_name, dp.name) AS name,
-			IFNULL(dp.standard_name, dp.name) AS text,
+			IF(gp.name IS NULL OR gp.name = '', IF(dp.standard_name IS NULL OR dp.standard_name = '', dp.name, dp.standard_name), gp.name) AS text,
 			dp.slug,
 			dp.is_active_power,
 			dp.is_energy,
@@ -754,6 +775,7 @@
 		FROM
 			device_parameters dp
 			LEFT JOIN device d ON d.id_device_group = dp.id_device_group
+			LEFT JOIN generic_parameters gp ON gp.id = dp.id_generic_parameter
 		WHERE
 			d.id = #{id}
 			AND d.status = 1
@@ -766,14 +788,14 @@
 	<select id="getListDeviceFilterParameter" resultType="Map">
 		SELECT
 			dp.id,
-			IFNULL(dp.standard_name, dp.name),
-			CONCAT(IFNULL(dp.standard_name, dp.name), IF(dpf.min_value IS NULL AND dpf.max_value IS NULL, "", " (Filtered)")) AS text,
+			CONCAT(IF(gp.name IS NULL OR gp.name = '', IF(dp.standard_name IS NULL OR dp.standard_name = '', dp.name, dp.standard_name), gp.name), IF(dpf.min_value IS NULL AND dpf.max_value IS NULL, "", " (Filtered)")) AS text,
 			dpf.min_value,
 			dpf.max_value
 		FROM
 			device_parameters dp
 			LEFT JOIN device d ON d.id_device_group = dp.id_device_group
 			LEFT JOIN device_parameter_filter dpf ON dpf.id_device_parameter = dp.id AND dpf.id_device = d.id
+			LEFT JOIN generic_parameters gp ON gp.id = dp.id_generic_parameter
 		WHERE
 			d.id = #{id}
 			AND d.status = 1
@@ -787,7 +809,7 @@
 	<select id="getListScaledParameterByDeviceGroup" resultType="Map">
 		SELECT 
 			dp.id,
-			CONCAT(dp.`name`, IF(dps.scale IS NULL, "", CONCAT(" (Scale: ", dps.scale, ")"))) AS text,
+			CONCAT(IF(gp.name IS NULL OR gp.name = '', IF(dp.standard_name IS NULL OR dp.standard_name = '', dp.name, dp.standard_name), gp.name), IF(dps.scale IS NULL, "", CONCAT(" (Scale: ", dps.scale, ")"))) AS text,
 			dp.`name` AS parameter_name,
 			dps.scale,
 			replace(dps.scale, ' ', '') AS scaleWithoutSpace
@@ -796,6 +818,7 @@
 			device_parameter_scale dps
 			LEFT JOIN device_parameters dp ON dp.id = dps.id_device_parameter
 			LEFT JOIN device d ON d.id = dps.id_device
+			LEFT JOIN generic_parameters gp ON gp.id = dp.id_generic_parameter
 		WHERE
 			d.id_device_group = #{id_device_group}
 			AND d.status = 1
@@ -811,7 +834,13 @@
 		SELECT
 			dps.scale AS parameter_scale,
 			dps.variable_name,
-			dp.slug AS parameter_slug
+			dp.slug AS parameter_slug,
+			dp.is_user_defined,
+			dp.is_active_power,
+			dp.is_energy,
+			dp.is_irradiance,
+			dp.is_temperature,
+			dp.is_panel_temperature
 		FROM
 			device_parameter_scale dps
 			LEFT JOIN device_parameters dp ON dp.id = dps.id_device_parameter
@@ -5000,14 +5029,25 @@
 						  `error` int unsigned DEFAULT '0',
 						  `low_alarm` int unsigned DEFAULT '0',
 						  `high_alarm` int unsigned DEFAULT '0',
-						  `C_SunSpec_ID` double DEFAULT NULL,
-						  `E_BaseMet_Air_Temperature` double DEFAULT NULL,
-						  `E_Irradiance_Plane_Of_Array_1` double DEFAULT NULL,
-						  `E_BOM_Temp_1` double DEFAULT NULL,
-						  `E_BOM_Temp_2` double DEFAULT NULL,
-						  `E_BaseMet_Wind_Speed` double DEFAULT NULL,					  
-						  `E_BaseMet_Wind_Direction` double DEFAULT NULL,
-						  `E_Irradiance_Global_Horizontal_1` double DEFAULT NULL,					  
+						  `Ambient_Air_Temperature` double DEFAULT NULL,
+						  `Relative_Humidity` double DEFAULT NULL,
+						  `Barometric_Pressure` double DEFAULT NULL,
+						  `Wind_Speed` double DEFAULT NULL,
+						  `Wind_Direction` double DEFAULT NULL,
+						  `Rainfall` double DEFAULT NULL,					  
+						  `Snowfall` double DEFAULT NULL,
+						  `Precipitation_Type` double DEFAULT NULL,						  
+						  `Electric_Field` double DEFAULT NULL,
+						  `Surface_Wetness` double DEFAULT NULL,
+						  `Soil_Moisture` double DEFAULT NULL,
+						  `Global_Horizontal_Irradiance` double DEFAULT NULL,
+						  `POA_Irradiance` double DEFAULT NULL,
+						  `Diffuse_Irradiance` double DEFAULT NULL,
+						  `Direct_Irradiance` double DEFAULT NULL,					  
+						  `Other_Irradiance` double DEFAULT NULL,
+						  `BOM_Temp_1` double DEFAULT NULL,						  
+						  `BOM_Temp_2` double DEFAULT NULL,
+						  `BOM_Temp_3` double DEFAULT NULL,						  					  
 						  `nvm_irradiance` double DEFAULT NULL,
 						  `nvm_temperature` double DEFAULT NULL,
 						  `nvm_panel_temperature` double DEFAULT NULL,
@@ -5455,7 +5495,15 @@
 						  `error` int unsigned DEFAULT '0',
 						  `low_alarm` int unsigned DEFAULT '0',
 						  `high_alarm` int unsigned DEFAULT '0',
-						  `ReadingValue` double DEFAULT NULL COMMENT 'ReadingValue',
+						  `ProcessedValue` double DEFAULT NULL COMMENT 'ProcessedValue',
+						  `Digit1` double DEFAULT NULL COMMENT 'Digit1',
+						  `Digit2` double DEFAULT NULL COMMENT 'Digit2',
+						  `Digit3` double DEFAULT NULL COMMENT 'Digit3',
+						  `Digit4` double DEFAULT NULL COMMENT 'Digit4',
+						  `Digit5` double DEFAULT NULL COMMENT 'Digit5',
+						  `Digit6` double DEFAULT NULL COMMENT 'Digit6',
+						  `Digit7` double DEFAULT NULL COMMENT 'Digit7',
+						  
 						  `nvmActivePower` double DEFAULT NULL,
 						  `nvmActiveEnergy` double DEFAULT NULL,
 						  `MeasuredProduction` double DEFAULT NULL,
@@ -5634,6 +5682,36 @@
 						  `ExportedVARhQ4B` double DEFAULT NULL COMMENT '',
 						  `ExportedVARhQ4C` double DEFAULT NULL COMMENT '',
 						  `WattDemandElement` double DEFAULT NULL COMMENT '',
+						  
+						 <!--  `DisplacementPFSum` double DEFAULT NULL COMMENT '',
+						  `DisplacementPFCH1A` double DEFAULT NULL COMMENT '',
+						  `DisplacementPFCH2B` double DEFAULT NULL COMMENT '',
+						  `DisplacementPFCH3C` double DEFAULT NULL COMMENT '',
+						  `THDSum` double DEFAULT NULL COMMENT '',
+						  `THDCH1A` double DEFAULT NULL COMMENT '',
+						  `THDCH2B` double DEFAULT NULL COMMENT '',
+						  `THDCH3C` double DEFAULT NULL COMMENT '',
+						  `VADemandElement` double DEFAULT NULL COMMENT '',
+						  `EnergyNetSum` double DEFAULT NULL COMMENT '',
+						  `EnergyNetCH1` double DEFAULT NULL COMMENT '',
+						  `EnergyNetCH2` double DEFAULT NULL COMMENT '',
+						  `EnergyNetCH3` double DEFAULT NULL COMMENT '',
+						  `ApparentEnergyNetSum` double DEFAULT NULL COMMENT '',
+						  `ApparentEnergyNetCH1` double DEFAULT NULL COMMENT '',
+						  `ApparentEnergyNetCH2` double DEFAULT NULL COMMENT '',
+						  `ApparentEnergyNetCH3` double DEFAULT NULL COMMENT '',
+						  `VARhNetSum` double DEFAULT NULL COMMENT '',
+						  `VARhNetCH1` double DEFAULT NULL COMMENT '',
+						  `VARhNetCH2` double DEFAULT NULL COMMENT '',
+						  `VARhNetCH3` double DEFAULT NULL COMMENT '',
+						  `ThetaCH1Angle` double DEFAULT NULL COMMENT '',
+						  `ThetaCH2Angle` double DEFAULT NULL COMMENT '',
+						  `ThetaCH3Angle` double DEFAULT NULL COMMENT '',
+						  `RoCoilPGAGainCh1` double DEFAULT NULL COMMENT '',
+						  `RoCoilPGAGainCh2` double DEFAULT NULL COMMENT '',
+						  `RoCoilPGAGainCh3` double DEFAULT NULL COMMENT '', -->
+						  
+						  
 						  `nvmActivePower` double DEFAULT NULL,
 						  `nvmActiveEnergy` double DEFAULT NULL,
 						  `MeasuredProduction` double DEFAULT NULL,
@@ -5808,48 +5886,25 @@
 							`ApparentPower` double DEFAULT NULL,
 							`ReactivePower` double DEFAULT NULL,
 							`PowerFactor` double DEFAULT NULL,
-							`ActiveEnergyGross` double DEFAULT NULL,
 							`ActiveEnergyRawNet` double DEFAULT NULL,
-							`DCCurrentTotal` double DEFAULT NULL,
-							`DCPowerTotal` double DEFAULT NULL,
-							`DCVoltageAvg` double DEFAULT NULL,
+							`DCVoltage` double DEFAULT NULL,
 							`OperatingState` double DEFAULT NULL,
 							`OperatingStatus` double DEFAULT NULL,
 							`FaultStatus` double DEFAULT NULL,
 							`Fault1` double DEFAULT NULL,
 							`Fault2` double DEFAULT NULL,
 							`Fault3` double DEFAULT NULL,
-							`SerialNumberHex4Reg` varchar(200) DEFAULT NULL,
+							`SerialNumberHex4Reg` double DEFAULT NULL,
 							`CabinetTemperature` double DEFAULT NULL,
-							`HeatSinkTemperature` double DEFAULT NULL,
-							`OtherTemperature` double DEFAULT NULL,
-							`Currentscalefactor` double DEFAULT NULL,
-							`VoltageScaleFactor` double DEFAULT NULL,
-							`ActivePowerScaleFactor` double DEFAULT NULL,
-							`FrequencyScaleFactor` double DEFAULT NULL,
-							`ApparentPowerScaleFactor` double DEFAULT NULL,
-							`ReactivePowerScaleFactor` double DEFAULT NULL,
-							`PowerFactorScaleFactor` double DEFAULT NULL,
-							`EnergyScaleFactor` double DEFAULT NULL,
-							`DCCurrentscalefactor` double DEFAULT NULL,
-							`DCVoltagescalefactor` double DEFAULT NULL,
-							
-							`DCPowerScaleFactor` double DEFAULT NULL,
-							`Temperaturescalefactor` double DEFAULT NULL,
-							`ID` double DEFAULT NULL,
-							`Length` double DEFAULT NULL,
-							`Manufacturer` double DEFAULT NULL,
-							`Model` double DEFAULT NULL,
+							`InternalTemperature` double DEFAULT NULL,
+							`IMITemperature` double DEFAULT NULL,
 							`ControlDeviceOnOff` double DEFAULT NULL,
 							`ActivePowerSetpointPercent` double DEFAULT NULL,
 							`ActivePowerControlEnable` double DEFAULT NULL,
 							`PowerFactorSetpoint` double DEFAULT NULL,
 							`PowerFactorControlEnable` double DEFAULT NULL,
-							
 							`ReactivePowerSetpointPercent` double DEFAULT NULL,
 							`ReactivePowerControlEnable` double DEFAULT NULL,
-							
-							
 							`nvmActivePower` double DEFAULT NULL,
 							`nvmActiveEnergy` double DEFAULT NULL,
 							`MeasuredProduction` double DEFAULT NULL,
@@ -6042,25 +6097,33 @@
 							`low_alarm` int unsigned DEFAULT '0',
 							`high_alarm` int unsigned DEFAULT '0',
 							
-							`InputsStatus164` double DEFAULT NULL,
-							`InputsManualFlag164` double DEFAULT NULL,
-							`ZonesStatus164` double DEFAULT NULL,
-							`ZonesManualFlag164` double DEFAULT NULL,
-							`ZonesFeedbackState164` double DEFAULT NULL,
-							`ZonesAlarmState164` double DEFAULT NULL,
-							`ZoneswithNonRespondingBreaker164` double DEFAULT NULL,
+							`InputsStatus132` double DEFAULT NULL,
+							`InputsManualFlag132` double DEFAULT NULL,
+							`ZonesStatus132` double DEFAULT NULL,
+							`ZonesManualFlag132` double DEFAULT NULL,
+							`ZonesFeedbackState132` double DEFAULT NULL,
+							`ZonesAlarmState132` double DEFAULT NULL,
 							`BreakersPanel0L` double DEFAULT NULL,
 							`BreakersPanel0R` double DEFAULT NULL,
 							`BreakersPanel1L` double DEFAULT NULL,
 							`BreakersPanel1R` double DEFAULT NULL,
 							`BreakersPanel2L` double DEFAULT NULL,
 							`BreakersPanel2R` double DEFAULT NULL,
-							`BreakerUnresponsivePanel0L` double DEFAULT NULL,
-							`BreakerUnresponsivePanel0R` double DEFAULT NULL,
-							`BreakerUnresponsivePanel1L` double DEFAULT NULL,
-							`BreakerUnresponsivePanel1R` double DEFAULT NULL,
-							`BreakerUnresponsivePanel2L` double DEFAULT NULL,
-							`BreakerUnresponsivePanel2R` double DEFAULT NULL,
+							`BreakerPresentPanel0L` double DEFAULT NULL,
+							`BreakerPresentPanel0R` double DEFAULT NULL,
+							`BreakerPresentPanel1L` double DEFAULT NULL,
+							`BreakerPresentPanel1R` double DEFAULT NULL,
+							`BreakerPresentPanel2L` double DEFAULT NULL,
+							`BreakerPresentPanel2R` double DEFAULT NULL,
+							`NonRespondingBreakersPanel0L` double DEFAULT NULL,
+							
+							`NonRespondingBreakersPanel0R` double DEFAULT NULL,
+							`NonRespondingBreakersPanel1L` double DEFAULT NULL,
+							`NonRespondingBreakersPanel1R` double DEFAULT NULL,
+							`NonRespondingBreakersPanel2L` double DEFAULT NULL,
+							`NonRespondingBreakersPanel2R` double DEFAULT NULL,
+							`ScheduleStatus116` double DEFAULT NULL,
+							`Schedule1PeriodStatus124` double DEFAULT NULL,
 							
 							PRIMARY KEY (`time`,`id_device`) USING BTREE,
 							KEY `id_device` (`id_device`),
@@ -6070,8 +6133,367 @@
 	            </when>
 	            
 	            
+	            <when test="id_device_group == 104">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+						(
+							`time` datetime NOT NULL,
+							`id_device` int NOT NULL,
+							`error` int unsigned DEFAULT '0',
+							`low_alarm` int unsigned DEFAULT '0',
+							`high_alarm` int unsigned DEFAULT '0',
+							
+							`ActivePowerGenerationToday` double DEFAULT NULL,
+							`ReactivePowerGenerationToday` double DEFAULT NULL,
+							`Invertergridsidetotalactivepowergeneration` double DEFAULT NULL,
+							`Invertergridsidetotalreactivepowergeneration` double DEFAULT NULL,
+							`PhaseAPower` double DEFAULT NULL,
+							`PhaseBPower` double DEFAULT NULL,
+							`PhaseCPower` double DEFAULT NULL,
+							`TotalActivePower` double DEFAULT NULL,
+							`TotalApparentPower` double DEFAULT NULL,
+							`PhaseAVoltage` double DEFAULT NULL,
+							`PhaseBVoltage` double DEFAULT NULL,
+							`PhaseCVoltage` double DEFAULT NULL,
+							`PhaseACurrent` double DEFAULT NULL,
+							`PhaseBCurrent` double DEFAULT NULL,
+							`PhaseCCurrent` double DEFAULT NULL,
+							`PhaseAReactivePower` double DEFAULT NULL,
+							`PhaseBReactivePower` double DEFAULT NULL,
+							`PhaseCReactivePower` double DEFAULT NULL,
+							`Frequency` double DEFAULT NULL,
+							`PV1Voltage` double DEFAULT NULL,
+							`PV1Current` double DEFAULT NULL,
+							`PV2Voltage` double DEFAULT NULL,
+							`PV2Current` double DEFAULT NULL,
+							`PV3Voltage` double DEFAULT NULL,
+							`PV3Current` double DEFAULT NULL,
+							`PV4Voltage` double DEFAULT NULL,
+							`PV4Current` double DEFAULT NULL,
+							`Operationstatus` double DEFAULT NULL,
+							`Warningmessageword1` double DEFAULT NULL,
+							`Warningmessageword2` double DEFAULT NULL,
+							`Faultmessageword1` double DEFAULT NULL,
+							`Faultmessageword2` double DEFAULT NULL,
+							`Faultmessageword3` double DEFAULT NULL,
+							`Faultmessageword4` double DEFAULT NULL,
+							`PhaseAPowerlow16bits` double DEFAULT NULL,
+							
+							`PhaseAPowerhigh16bits` double DEFAULT NULL,
+							`PhaseBPowerlow16bits` double DEFAULT NULL,
+							`PhaseBPowerhigh16bits` double DEFAULT NULL,
+							`PhaseCPowerlow16bits` double DEFAULT NULL,
+							`PhaseCPowerhigh16bits` double DEFAULT NULL,
+							`TotalActivePowerlow16bits` double DEFAULT NULL,
+							`TotalActivePowerhigh16bits` double DEFAULT NULL,
+							`TotalApparentPowerlow16bits` double DEFAULT NULL,
+							`TotalApparentPowerhigh16bits` double DEFAULT NULL,
+							`DCinvertertemperature` double DEFAULT NULL,
+							`Heatsinktemperature` double DEFAULT NULL,
+							`Batterychargeoftheday` double DEFAULT NULL,
+							`Batterydischargeoftheday` double DEFAULT NULL,
+							`Totalchargetothebattery` double DEFAULT NULL,
+							`Totaldischargeofthebattery` double DEFAULT NULL,
+							`Battery1temperature` double DEFAULT NULL,
+							`Battery1voltage` double DEFAULT NULL,
+							`Battery1Current` double DEFAULT NULL,
+							`Battery1OutputPower` double DEFAULT NULL,
+							`Battery1CorrectedCapacityAH` double DEFAULT NULL,
+							`Battery1SOC` double DEFAULT NULL,
+							
+							`Battery2Temperature` double DEFAULT NULL,
+							`Battery2Voltage` double DEFAULT NULL,
+							`Battery2Current` double DEFAULT NULL,
+							`Battery2OutputPower` double DEFAULT NULL,
+							`Battery2CorrectedCapacityAH` double DEFAULT NULL,
+							`Battery2SOC` double DEFAULT NULL,
+							`Negativecurrentfrombattery1` double DEFAULT NULL,
+							`Negativecurrentfrombattery2` double DEFAULT NULL,
+							`nvmActivePower` double DEFAULT NULL,
+							`nvmActiveEnergy` double DEFAULT NULL,
+							`MeasuredProduction` double DEFAULT NULL,
+							
+							PRIMARY KEY (`time`,`id_device`) USING BTREE,
+							KEY `id_device` (`id_device`),
+							CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
 	            
-	                                                          
+	            
+	            <when test="id_device_group == 105">
+	           		CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+					  (
+					      `time` datetime NOT NULL,
+						  `id_device` int NOT NULL,
+						  `error` int DEFAULT NULL,
+						  `low_alarm` int DEFAULT NULL,
+						  `high_alarm` int DEFAULT NULL,
+						  `MODBUSID` double DEFAULT NULL,
+						  `BaudRate` double DEFAULT NULL,
+						  `ParityDataStopBits` double DEFAULT NULL,
+						  `DataOrder` double DEFAULT NULL,
+						  `CounterMode` double DEFAULT NULL,
+						  `CounterEdge` double DEFAULT NULL,
+						  `PulsesPerCubicFootOfWater` double DEFAULT NULL,
+						  `DigitalInputBinary` double DEFAULT NULL,
+						  `PulseCounter` double DEFAULT NULL,
+						  `TrueCounter` double DEFAULT NULL,
+						  `TotalWaterUsage` double DEFAULT NULL,
+						  `nvmActivePower` double DEFAULT NULL,
+						  `nvmActiveEnergy` double DEFAULT NULL,
+						  `MeasuredProduction` double DEFAULT NULL,
+						  PRIMARY KEY (`time`,`id_device`) USING BTREE,
+						  KEY `id_device` (`id_device`),
+						  CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	            
+	            
+	            <when test="id_device_group == 106">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+					  (
+					      `time` datetime NOT NULL,
+						  `id_device` int NOT NULL,
+						  `error` int unsigned DEFAULT '0',
+						  `low_alarm` int unsigned DEFAULT '0',
+						  `high_alarm` int unsigned DEFAULT '0',
+						  `reading_value` double DEFAULT NULL COMMENT 'reading_value',
+						  `nvmActivePower` double DEFAULT NULL,
+						  `nvmActiveEnergy` double DEFAULT NULL,
+						  `MeasuredProduction` double DEFAULT NULL,
+						  PRIMARY KEY (`time`,`id_device`) USING BTREE,
+						  KEY `id_device` (`id_device`),
+						  CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	            
+	            
+	            <when test="id_device_group == 107">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+					  (
+					      `time` datetime NOT NULL,
+						  `id_device` int NOT NULL,
+						  `image_url` varchar(200) DEFAULT NULL COMMENT 'Image URL',
+						  PRIMARY KEY (`time`,`id_device`) USING BTREE,
+						  KEY `id_device` (`id_device`),
+						  CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	            
+	            <when test="id_device_group == 108">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+						(
+							`time` datetime NOT NULL,
+							`id_device` int NOT NULL,
+							`error` int unsigned DEFAULT '0',
+							`low_alarm` int unsigned DEFAULT '0',
+							`high_alarm` int unsigned DEFAULT '0',
+							
+							`AuxilaryPulseInput1` double DEFAULT NULL,
+							`AuxilaryPulseInput2` double DEFAULT NULL,
+							`EnergyDelivered` double DEFAULT NULL,
+							`EnergyReceived` double DEFAULT NULL,
+							`ReactiveEnergyDelivered` double DEFAULT NULL,
+							`ReactiveEnergyReceived` double DEFAULT NULL,
+							`RealPower` double DEFAULT NULL,
+							`ReactivePower` double DEFAULT NULL,
+							`ApparentPower` double DEFAULT NULL,
+							`PowerFactor` double DEFAULT NULL,
+							`CurrentTotal` double DEFAULT NULL,
+							`CurrentAverage` double DEFAULT NULL,
+							`VoltageLineNeutral` double DEFAULT NULL,
+							`VoltageLineLine` double DEFAULT NULL,
+							`Frequency` double DEFAULT NULL,
+							`PhaseAngle` double DEFAULT NULL,
+							`RealPowerPhaseA` double DEFAULT NULL,
+							`RealPowerPhaseB` double DEFAULT NULL,
+							`RealPowerPhaseC` double DEFAULT NULL,
+							`ReactivePowerPhaseA` double DEFAULT NULL,
+							`ReactivePowerPhaseB` double DEFAULT NULL,
+							`ReactivePowerPhaseC` double DEFAULT NULL,
+							`ApparentPowerPhaseA` double DEFAULT NULL,
+							`ApparentPowerPhaseB` double DEFAULT NULL,
+							`ApparentPowerPhaseC` double DEFAULT NULL,
+							`PowerFactorPhaseA` double DEFAULT NULL,
+							`PowerFactorPhaseB` double DEFAULT NULL,
+							`PowerFactorPhaseC` double DEFAULT NULL,
+							`CurrentPhaseA` double DEFAULT NULL,
+							`CurrentPhaseB` double DEFAULT NULL,
+							`CurrentPhaseC` double DEFAULT NULL,
+							`VoltagePhaseAN` double DEFAULT NULL,
+							`VoltagePhaseBN` double DEFAULT NULL,
+							`VoltagePhaseCN` double DEFAULT NULL,
+							`VoltagePhaseAB` double DEFAULT NULL,
+							`VoltagePhaseBC` double DEFAULT NULL,
+							`VoltagePhaseCA` double DEFAULT NULL,
+							`PhaseAngleA` double DEFAULT NULL,
+							`PhaseAngleB` double DEFAULT NULL,
+							`PhaseAngleC` double DEFAULT NULL,
+
+							`nvmActivePower` double DEFAULT NULL,
+							`nvmActiveEnergy` double DEFAULT NULL,
+							`MeasuredProduction` double DEFAULT NULL,
+							
+							PRIMARY KEY (`time`,`id_device`) USING BTREE,
+							KEY `id_device` (`id_device`),
+							CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	            
+	            <when test="id_device_group == 109">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+					  (
+					      `time` datetime NOT NULL,
+						  `id_device` int NOT NULL,
+						  `error` int unsigned DEFAULT '0',
+						  `low_alarm` int unsigned DEFAULT '0',
+						  `high_alarm` int unsigned DEFAULT '0',
+						  
+						  `Grid_Frequency` double DEFAULT NULL,
+						  `Apparent_Power` double DEFAULT NULL,
+						  `Reactive_Power` double DEFAULT NULL,
+						  `Active_Power` double DEFAULT NULL,
+						  `Power_Factor` double DEFAULT NULL,
+						  `Grid_Current` double DEFAULT NULL,
+						  `Current_Phase_1` double DEFAULT NULL,
+						  `Current_Phase_2` double DEFAULT NULL,
+						  `Current_Phase_3` double DEFAULT NULL,
+						  `Active_Power_Phase_1` double DEFAULT NULL,
+						  `Active_Power_Phase_2` double DEFAULT NULL,
+						  `Active_Power_Phase_3` double DEFAULT NULL,
+						  `Reactive_Power_Phase_1` double DEFAULT NULL,
+						  `Reactive_Power_Phase_2` double DEFAULT NULL,
+						  `Reactive_Power_Phase_3` double DEFAULT NULL,
+						  `Apparent_Power_Phase_1` double DEFAULT NULL,
+						  `Apparent_Power_Phase_2` double DEFAULT NULL,
+						  `Apparent_Power_Phase_3` double DEFAULT NULL,
+						  `Voltage_Phase_1` double DEFAULT NULL,
+						  `Voltage_Phase_2` double DEFAULT NULL,
+						  `Voltage_Phase_3` double DEFAULT NULL,
+						  `Voltage_Phase_1_2` double DEFAULT NULL,
+						  `Voltage_Phase_2_3` double DEFAULT NULL,
+						  `Voltage_Phase_3_1` double DEFAULT NULL,
+						  `Residual_DC_Current` double DEFAULT NULL,
+						  `Insulation_Resistance` double DEFAULT NULL,
+						  `Feed_In_Time` double DEFAULT NULL,
+						  `Operating_Time` double DEFAULT NULL,
+						  `Total_Yield` double DEFAULT NULL,
+						  `Internal_Temperature` double DEFAULT NULL,
+						  `DC_Current_Input_1` double DEFAULT NULL,
+						  `DC_Current_Input_2` double DEFAULT NULL,
+						  `DC_Current_Input_3` double DEFAULT NULL,
+						  `DC_Current_Input_4` double DEFAULT NULL,						  
+						  `DC_Voltage_Input_1` double DEFAULT NULL,
+						  `DC_Voltage_Input_2` double DEFAULT NULL,
+						  `DC_Voltage_Input_3` double DEFAULT NULL,
+						  `DC_Voltage_Input_4` double DEFAULT NULL,
+						  `DC_Power_Input_1` double DEFAULT NULL,
+						  `DC_Power_Input_2` double DEFAULT NULL,
+						  `DC_Power_Input_3` double DEFAULT NULL,
+						  `DC_Power_Input_4` double DEFAULT NULL,
+						  						  
+						  `nvmActivePower` double DEFAULT NULL,
+						  `nvmActiveEnergy` double DEFAULT NULL,
+						  `MeasuredProduction` double DEFAULT NULL,
+						  
+						  PRIMARY KEY (`time`,`id_device`) USING BTREE,
+						  KEY `id_device` (`id_device`),
+						  CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>    
+	            
+	            <when test="id_device_group == 110">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+					  (
+					      `time` datetime NOT NULL,
+						  `id_device` int NOT NULL,
+						  `error` int unsigned DEFAULT '0',
+						  `low_alarm` int unsigned DEFAULT '0',
+						  `high_alarm` int unsigned DEFAULT '0',
+						  `irradiance` double DEFAULT NULL COMMENT 'irradiance',
+						  `temperature` double DEFAULT NULL COMMENT 'temperature',
+						  `humid` double DEFAULT NULL COMMENT '',
+						  `wind_speed` double DEFAULT NULL COMMENT '',
+						  `wind_direction` double DEFAULT NULL COMMENT '',
+						  `surface_pressure` double DEFAULT NULL COMMENT '',
+						  `total_precipitation` double DEFAULT NULL COMMENT '',
+						  `rain` double DEFAULT NULL COMMENT '',
+						  `snowfall` double DEFAULT NULL COMMENT '',
+						  `cloud_cover` double DEFAULT NULL COMMENT '',
+						  `sunrise` varchar(60) DEFAULT NULL COMMENT '',
+						  `sunset` varchar(60) DEFAULT NULL COMMENT '',
+						  `uv_index` double DEFAULT NULL COMMENT '',
+						  `nvm_irradiance` double DEFAULT NULL,
+						  `nvm_temperature` double DEFAULT NULL,
+						  `nvm_panel_temperature` double DEFAULT NULL,
+						  
+						  PRIMARY KEY (`time`,`id_device`) USING BTREE,
+						  KEY `id_device` (`id_device`),
+						  CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	            
+	            <when test="id_device_group == 111">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+						(
+							`time` datetime NOT NULL,
+							`id_device` int NOT NULL,
+							`error` int unsigned DEFAULT '0',
+							`low_alarm` int unsigned DEFAULT '0',
+							`high_alarm` int unsigned DEFAULT '0',
+							
+							`Tracker_Address` double DEFAULT NULL,
+							`Hour` double DEFAULT NULL,
+							`Minute` double DEFAULT NULL,
+							`Day` double DEFAULT NULL,
+							`Digital_Inputs` double DEFAULT NULL,
+							`Digital_Outputs` double DEFAULT NULL,
+							`Watchdog_Counter` double DEFAULT NULL,
+							`AngleCalc` double DEFAULT NULL,
+							`Latitude` double DEFAULT NULL,
+							`Longitude` double DEFAULT NULL,
+							`Tracker_1_Mode` double DEFAULT NULL,
+							`Tracker_1_First_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_1_Second_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_1_Angle_Setpoint` double DEFAULT NULL,
+							`Tracker_1_Angle` double DEFAULT NULL,
+							`Tracker_1_Night_Stow_Position` double DEFAULT NULL,
+							`Tracker_1_Wind_Stow_Position` double DEFAULT NULL,
+							`Tracker_2_Mode` double DEFAULT NULL,
+							`Tracker_2_First_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_2_Second_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_2_Angle_Setpoint` double DEFAULT NULL,
+							`Tracker_2_Angle` double DEFAULT NULL,
+							`Tracker_2_Night_Stow_Position` double DEFAULT NULL,
+							`Tracker_2_Wind_Stow_Position` double DEFAULT NULL,
+							`Tracker_3_Mode` double DEFAULT NULL,
+							`Tracker_3_First_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_3_Second_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_3_Angle_Setpoint` double DEFAULT NULL,
+							`Tracker_3_Angle` double DEFAULT NULL,
+							`Tracker_3_Night_Stow_Position` double DEFAULT NULL,
+							`Tracker_3_Wind_Stow_Position` double DEFAULT NULL,
+							`Tracker_4_Mode` double DEFAULT NULL,
+							`Tracker_4_First_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_4_Second_Clear_Accumulator` double DEFAULT NULL,
+							`Tracker_4_Angle_Setpoint` double DEFAULT NULL,
+							`Tracker_4_Angle` double DEFAULT NULL,
+							`Tracker_4_Night_Stow_Position` double DEFAULT NULL,
+							`Tracker_4_Wind_Stow_Position` double DEFAULT NULL,
+				
+							PRIMARY KEY (`time`,`id_device`) USING BTREE,
+							KEY `id_device` (`id_device`),
+							CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	                                                      
 	        </choose> 
 	        
 		
@@ -6925,6 +7347,19 @@
 					)
 					SELECT
 		            	`time`, `id_device`, `error`, `low_alarm`, `high_alarm`, `ActiveEnergyDelivered`, `ActiveEnergyReceived`, `ActiveEnergyDeliveredPlusReceived`, `ActiveEnergyDeliveredMinusReceived`, `ReactiveEnergyDelivered`, `ReactiveEnergyReceived`, `ReactiveEnergyDeliveredPlusReceived`, `ReactiveEnergyDeliveredMinusReceived`, `ApparentEnergyDelivered`, `ApparentEnergyReceived`, `ApparentEnergyDeliveredPlusReceived`, `ApparentEnergyDeliveredMinusReceived`, `ActiveEnergyinQuadrantI`, `ActiveEnergyinQuadrantII`, `ActiveEnergyinQuadrantIII`, `ActiveEnergyinQuadrantIV`, `ReactiveEnergyinQuadrantI`, `ReactiveEnergyinQuadrantII`, `ReactiveEnergyinQuadrantIII`, `ReactiveEnergyinQuadrantIV`, `ApparentEnergyinQuadrantI`, `ApparentEnergyinQuadrantII`, `ApparentEnergyinQuadrantIII`, `ApparentEnergyinQuadrantIV`, `CurrentPhaseA`, `CurrentPhaseB`, `CurrentPhaseC`, `CurrentNeutralLine`, `CurrentGroundLine`, `CurrentAverage`, `CurrentUnbalanceWorst`, `VoltagePhaseAB`, `VoltagePhaseBC`, `VoltagePhaseCA`, `VoltageLLAverage`, `VoltageAN`, `VoltageBN`, `VoltageCN`, `VoltageLNAverage`, `VoltageUnbalanceLNWorst`, `ActivePowerPhaseA`, `ActivePowerPhaseB`, `ActivePowerPhaseC`, `ActivePowerTotal`, `ReactivePowerPhaseA`, `ReactivePowerPhaseB`, `ReactivePowerPhaseC`, `ReactivePowerTotal`, `ApparentPowerPhaseA`, `ApparentPowerPhaseB`, `ApparentPowerPhaseC`, `ApparentPowerTotal`, `Frequency`, `PowerFactorPhaseA`, `PowerFactorPhaseB`, `PowerFactorPhaseC`, `PowerFactorTotal`, `nvmActivePower`, `nvmActiveEnergy`, `MeasuredProduction`
+					FROM 
+					    ${device_group_table}
+					WHERE
+					    id_device = #{id_device};
+	            </when>
+	            
+				<when test="id_device_group == 108">
+	            	<!-- model_honeywell_emon_3200 -->
+		            INSERT IGNORE INTO ${newtablename}(
+		            	`time`, `id_device`, `error`, `low_alarm`, `high_alarm`, `AuxilaryPulseInput1`, `AuxilaryPulseInput2`, `EnergyDelivered`, `EnergyReceived`, `ReactiveEnergyDelivered`, `ReactiveEnergyReceived`, `RealPower`, `ReactivePower`, `ApparentPower`, `PowerFactor`, `CurrentTotal`, `CurrentAverage`, `VoltageLineNeutral`, `VoltageLineLine`, `Frequency`, `PhaseAngle`, `RealPowerPhaseA`, `RealPowerPhaseB`, `RealPowerPhaseC`, `ReactivePowerPhaseA`, `ReactivePowerPhaseB`, `ReactivePowerPhaseC`, `ApparentPowerPhaseA`, `ApparentPowerPhaseB`, `ApparentPowerPhaseC`, `PowerFactorPhaseA`, `PowerFactorPhaseB`, `PowerFactorPhaseC`, `CurrentPhaseA`, `CurrentPhaseB`, `CurrentPhaseC`, `VoltagePhaseAN`, `VoltagePhaseBN`, `VoltagePhaseCN`, `VoltagePhaseAB`, `VoltagePhaseBC`, `VoltagePhaseCA`, `PhaseAngleA`, `PhaseAngleB`, `PhaseAngleC`, `nvmActivePower`, `nvmActiveEnergy`, `MeasuredProduction`
+					)
+					SELECT
+		            	`time`, `id_device`, `error`, `low_alarm`, `high_alarm`, `AuxilaryPulseInput1`, `AuxilaryPulseInput2`, `EnergyDelivered`, `EnergyReceived`, `ReactiveEnergyDelivered`, `ReactiveEnergyReceived`, `RealPower`, `ReactivePower`, `ApparentPower`, `PowerFactor`, `CurrentTotal`, `CurrentAverage`, `VoltageLineNeutral`, `VoltageLineLine`, `Frequency`, `PhaseAngle`, `RealPowerPhaseA`, `RealPowerPhaseB`, `RealPowerPhaseC`, `ReactivePowerPhaseA`, `ReactivePowerPhaseB`, `ReactivePowerPhaseC`, `ApparentPowerPhaseA`, `ApparentPowerPhaseB`, `ApparentPowerPhaseC`, `PowerFactorPhaseA`, `PowerFactorPhaseB`, `PowerFactorPhaseC`, `CurrentPhaseA`, `CurrentPhaseB`, `CurrentPhaseC`, `VoltagePhaseAN`, `VoltagePhaseBN`, `VoltagePhaseCN`, `VoltagePhaseAB`, `VoltagePhaseBC`, `VoltagePhaseCA`, `PhaseAngleA`, `PhaseAngleB`, `PhaseAngleC`, `nvmActivePower`, `nvmActiveEnergy`, `MeasuredProduction`
 					FROM 
 					    ${device_group_table}
 					WHERE

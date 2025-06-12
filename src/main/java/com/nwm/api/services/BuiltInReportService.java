@@ -4,11 +4,15 @@
 * 
 *********************************************************/
 package com.nwm.api.services;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -18,44 +22,9 @@ import com.nwm.api.entities.DateTimeReportDataEntity;
 import com.nwm.api.entities.MonthlyProductionTrendReportEntity;
 import com.nwm.api.entities.ViewReportEntity;
 import com.nwm.api.entities.WeeklyDateEntity;
+import com.nwm.api.utils.Lib;
 
 public class BuiltInReportService extends DB {
-	
-	/**
-	 * @description fulfill data in specific range of time
-	 * @author Hung.Bui
-	 * @since 2024-05-03
-	 * @param dateTimeList
-	 * @param dataList
-	 * @return
-	 */
-	private <K extends DateTimeReportDataEntity> List<K> fulfillData(List<K> dateTimeList, List<K> dataList) {
-		List<K> fulfilledDataList = new ArrayList<K>();
-		
-		try {
-			if(dataList != null && dateTimeList.size() > 0) {
-				int count = 0;
-				for (int i = 0; i < dateTimeList.size(); i++) {
-					K dateTimeItem = dateTimeList.get(i);
-					if (i - count > dataList.size() - 1) {
-						fulfilledDataList.add(dateTimeItem);
-						continue;
-					}
-					K dataItem = dataList.get(i - count);
-					if (dateTimeItem.getCategories_time().equals(dataItem.getCategories_time())) {
-						fulfilledDataList.add(dataItem);
-					} else {
-						fulfilledDataList.add(dateTimeItem);
-						count++;
-					}
-				}
-			}
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		
-		return fulfilledDataList;
-	}
 	
 	/**
 	 * @description create date time list
@@ -149,8 +118,7 @@ public class BuiltInReportService extends DB {
 				}
 			}
 			
-			CompletableFuture<Void> combinedFutures = CompletableFuture.allOf(list.toArray(new CompletableFuture[list.size()]));
-			return combinedFutures.thenApply(__ -> list.stream().map(future -> future.join()).filter(item -> item != null).collect(Collectors.toList())).get();
+			return list.stream().map(future -> future.join()).filter(item -> item != null).collect(Collectors.toList());
 		} catch (Exception e) {
 			return new ArrayList<>();
 		}
@@ -177,6 +145,10 @@ public class BuiltInReportService extends DB {
 			if (findReport.getCadence_range() == 4 || findReport.getCadence_range() == 6) {
 				for (int i = 0; i < summaryData.size(); i++) {
 					WeeklyDateEntity sum = (WeeklyDateEntity) summaryData.get(i);
+					List<Double> actualGeneration = new ArrayList<Double>();
+					List<Double> expectedGeneration = new ArrayList<Double>();
+					List<Double> modeledGeneration = new ArrayList<Double>();
+					List<Double> poa = new ArrayList<Double>();
 					
 					for (int j = 0; j < dataList.size(); j++) {
 						List<WeeklyDateEntity> dataReports = dataList.get(j).getDataReports();
@@ -184,18 +156,19 @@ public class BuiltInReportService extends DB {
 						WeeklyDateEntity item = dataReports.get(i);
 						
 						if (item != null && sum.getCategories_time().equals(item.getCategories_time())) {
-							if (item.getActualGeneration() != null) sum.setActualGeneration((sum.getActualGeneration() != null ? sum.getActualGeneration() : 0) + item.getActualGeneration());
-							if (item.getExpectedGeneration() != null) sum.setExpectedGeneration((sum.getExpectedGeneration() != null ? sum.getExpectedGeneration() : 0) + item.getExpectedGeneration());
-							if (item.getModeledGeneration() != null) sum.setModeledGeneration((sum.getModeledGeneration() != null ? sum.getModeledGeneration() : 0) + item.getModeledGeneration());
-							if (item.getPoa() != null) sum.setPoa((sum.getPoa() != null ? sum.getPoa() : 0) + item.getPoa());
-							if (item.getExpectedGenerationIndex() != null) sum.setExpectedGenerationIndex((sum.getExpectedGenerationIndex() != null ? sum.getExpectedGenerationIndex() : 0) + item.getExpectedGenerationIndex());
-							if (item.getModeledGenerationIndex() != null) sum.setModeledGenerationIndex((sum.getModeledGenerationIndex() != null ? sum.getModeledGenerationIndex() : 0) + item.getModeledGenerationIndex());
+							actualGeneration.add(item.getActualGeneration());
+							expectedGeneration.add(item.getExpectedGeneration());
+							modeledGeneration.add(item.getModeledGeneration());
+							poa.add(item.getPoa());
 						}
 					}
 					
-					if (sum.getPoa() != null) sum.setPoa(sum.getPoa() / dataList.size());
-					if (sum.getExpectedGenerationIndex() != null) sum.setExpectedGenerationIndex(sum.getExpectedGenerationIndex() / dataList.size());
-					if (sum.getModeledGenerationIndex() != null) sum.setModeledGenerationIndex(sum.getModeledGenerationIndex() / dataList.size());
+					sum.setActualGeneration(actualGeneration.stream().allMatch(Objects::isNull) ? null : actualGeneration.stream().filter(Objects::nonNull).mapToDouble(Double::doubleValue).sum());
+					sum.setExpectedGeneration(expectedGeneration.stream().allMatch(Objects::isNull) ? null : expectedGeneration.stream().filter(Objects::nonNull).mapToDouble(Double::doubleValue).sum());
+					sum.setModeledGeneration(modeledGeneration.stream().allMatch(Objects::isNull) ? null : modeledGeneration.stream().filter(Objects::nonNull).mapToDouble(Double::doubleValue).sum());
+					sum.setPoa(poa.stream().allMatch(Objects::isNull) ? null : BigDecimal.valueOf(poa.stream().filter(Objects::nonNull).mapToDouble(Double::doubleValue).average().getAsDouble()).doubleValue());
+					sum.setExpectedGenerationIndex(Optional.ofNullable(sum.getActualGeneration()).orElse(0.0) > 0 && Optional.ofNullable(sum.getExpectedGeneration()).orElse(0.0) > 0 ? BigDecimal.valueOf(sum.getActualGeneration() / sum.getExpectedGeneration() * 100).setScale(1, RoundingMode.HALF_UP).doubleValue() : null);
+					sum.setModeledGenerationIndex(Optional.ofNullable(sum.getActualGeneration()).orElse(0.0) > 0 && Optional.ofNullable(sum.getModeledGeneration()).orElse(0.0) > 0 ? BigDecimal.valueOf(sum.getActualGeneration() / sum.getModeledGeneration() * 100).setScale(1, RoundingMode.HALF_UP).doubleValue() : null);
 				}
 			} else if (findReport.getCadence_range() == 2 && findReport.getData_intervals() == 6) {
 				for (int i = 0; i < summaryData.size(); i++) {
@@ -238,7 +211,20 @@ public class BuiltInReportService extends DB {
 	public Object getAnnuallyBuitInReport(ViewReportEntity obj) {
 		try {
 			List<WeeklyDateEntity> data = queryForList("BuiltInReport.getDataAnnualTrendReport", obj);
-			obj.setDataReports(fulfillData(getDateTimeList(obj, WeeklyDateEntity.class), data));
+			List<WeeklyDateEntity> fulfillData = Lib.fulfillData(getDateTimeList(obj, WeeklyDateEntity.class), data, "categories_time");
+			if (fulfillData.size() > 0) {
+				WeeklyDateEntity totalRow = new WeeklyDateEntity();
+				totalRow.setCategories_time("Total");
+				totalRow.setActualGeneration(fulfillData.stream().filter(item -> item.getActualGeneration() != null).mapToDouble(item -> item.getActualGeneration()).sum());
+				totalRow.setExpectedGeneration(fulfillData.stream().filter(item -> item.getExpectedGeneration() != null).mapToDouble(item -> item.getExpectedGeneration()).sum());
+				totalRow.setModeledGeneration(fulfillData.stream().filter(item -> item.getModeledGeneration() != null).mapToDouble(item -> item.getModeledGeneration()).sum());
+				if (totalRow.getActualGeneration() > 0 && totalRow.getExpectedGeneration() > 0) totalRow.setExpectedGenerationIndex(BigDecimal.valueOf(totalRow.getActualGeneration() / totalRow.getExpectedGeneration() * 100).setScale(1, RoundingMode.HALF_UP).doubleValue());
+				if (totalRow.getActualGeneration() > 0 && totalRow.getModeledGeneration() > 0) totalRow.setModeledGenerationIndex(BigDecimal.valueOf(totalRow.getActualGeneration() / totalRow.getModeledGeneration() * 100).setScale(1, RoundingMode.HALF_UP).doubleValue());
+				
+				fulfillData.add(totalRow);
+			}
+			
+			obj.setDataReports(fulfillData);
 			
 			return obj;
 		} catch (Exception ex) {
@@ -260,7 +246,7 @@ public class BuiltInReportService extends DB {
 			if (powerDeviceList.size() > 0) {
 				obj.setGroupDevices(powerDeviceList);
 				List<MonthlyProductionTrendReportEntity> data = queryForList("BuiltInReport.getMonthlyTrendBuitInReport", obj);
-				obj.setDataReports(fulfillData(getDateTimeList(obj, MonthlyProductionTrendReportEntity.class), data));
+				obj.setDataReports(Lib.fulfillData(getDateTimeList(obj, MonthlyProductionTrendReportEntity.class), data, "categories_time"));
 			}
 			
 			return obj;
@@ -279,7 +265,20 @@ public class BuiltInReportService extends DB {
 	public ViewReportEntity getWeeklyBuiltInReport(ViewReportEntity obj) {
 		try {
 			List<WeeklyDateEntity> data = queryForList("BuiltInReport.getDataWeeklyTrendReport", obj);
-			obj.setDataReports(fulfillData(getDateTimeList(obj, WeeklyDateEntity.class), data));
+			List<WeeklyDateEntity> fulfillData = Lib.fulfillData(getDateTimeList(obj, WeeklyDateEntity.class), data, "categories_time");
+			if (fulfillData.size() > 0) {
+				WeeklyDateEntity totalRow = new WeeklyDateEntity();
+				totalRow.setCategories_time("Total");
+				totalRow.setActualGeneration(fulfillData.stream().filter(item -> item.getActualGeneration() != null).mapToDouble(item -> item.getActualGeneration()).sum());
+				totalRow.setExpectedGeneration(fulfillData.stream().filter(item -> item.getExpectedGeneration() != null).mapToDouble(item -> item.getExpectedGeneration()).sum());
+				totalRow.setModeledGeneration(fulfillData.stream().filter(item -> item.getModeledGeneration() != null).mapToDouble(item -> item.getModeledGeneration()).sum());
+				if (totalRow.getActualGeneration() > 0 && totalRow.getExpectedGeneration() > 0) totalRow.setExpectedGenerationIndex(BigDecimal.valueOf(totalRow.getActualGeneration() / totalRow.getExpectedGeneration() * 100).setScale(1, RoundingMode.HALF_UP).doubleValue());
+				if (totalRow.getActualGeneration() > 0 && totalRow.getModeledGeneration() > 0) totalRow.setModeledGenerationIndex(BigDecimal.valueOf(totalRow.getActualGeneration() / totalRow.getModeledGeneration() * 100).setScale(1, RoundingMode.HALF_UP).doubleValue());
+				
+				fulfillData.add(totalRow);
+			}
+			
+			obj.setDataReports(fulfillData);
 			
 			return obj;
 		} catch (Exception ex) {

@@ -32,6 +32,8 @@
 		</environment>
 	</environments>
 	<mappers>
+		<mapper resource="mybatis/map/common/Common.xml" />
+		
 		<mapper resource="mybatis/map/BaseInfo.xml" />
 		<mapper resource="mybatis/map/Demo.xml" />
 		<mapper resource="mybatis/map/A8810.xml" />
@@ -69,6 +71,9 @@
 		<mapper resource="mybatis/map/ModelATiTracker.xml" />
 		<mapper resource="mybatis/map/ModelQuint4UPS.xml" />
 		<mapper resource="mybatis/map/ModelG3LightController.xml" />
+		<mapper resource="mybatis/map/ModelSolArkInverter.xml" />
+		<mapper resource="mybatis/map/ModelWaterMeterKyPulse.xml" />
+		
 		
 		
 		<mapper resource="mybatis/map/ModelIMTSolarClass8000.xml" />
@@ -105,6 +110,7 @@
 		<mapper resource="mybatis/map/ModelSmaClusterController.xml"/>
 		<mapper resource="mybatis/map/ModelSmaInverterStp1200tlus10.xml"/>
 		<mapper resource="mybatis/map/ModelSmaInverterStp24ktlus10.xml"/>
+		<mapper resource="mybatis/map/ModelSmaStp2550us50.xml"/>
 		<mapper resource="mybatis/map/ModelAdam4017WSClass8110Nelis190.xml"/>
 		<mapper resource="mybatis/map/ModelDent48PSHDMeter.xml"/>
 		
@@ -133,6 +139,7 @@
 		<mapper resource="mybatis/map/ModelXantrexGT500E.xml"/>
 		<mapper resource="mybatis/map/ModelWattsunTcu.xml"/>
 		<mapper resource="mybatis/map/ModelWattsunTracker.xml"/>
+		<mapper resource="mybatis/map/ModelWattsunTrackerMaster.xml"/>
 		<mapper resource="mybatis/map/ModelSevSg110cx.xml"/>
 		<mapper resource="mybatis/map/ModelElsterA1700.xml"/>
 		<mapper resource="mybatis/map/ModelAeRefusol.xml"/>
@@ -157,6 +164,13 @@
 		<mapper resource="mybatis/map/UploadWaterAndGas.xml"/>
 		<mapper resource="mybatis/map/ModelKyPulseMeter.xml"/>
 		<mapper resource="mybatis/map/ModelSunSpecInverter.xml"/>
+		<mapper resource="mybatis/map/ModelPowerLogicPM8000LoadMeter.xml"/>
+		<mapper resource="mybatis/map/ModelHoneywellEMON3200.xml"/>
+		<mapper resource="mybatis/map/PiCamera.xml"/>
+		<mapper resource="mybatis/map/EnergyUsage.xml"/>
+		<mapper resource="mybatis/map/BreakerPanel.xml"/>
+		<mapper resource="mybatis/map/Zone.xml"/>
+		<mapper resource="mybatis/map/ModelOpenMeteoWeather.xml"/>
 		
 		
 		
@@ -201,7 +215,6 @@
 		 <mapper resource="mybatis/map/Group.xml" />
 		 <mapper resource="mybatis/map/ImportOldData.xml" />
 		 <mapper resource="mybatis/map/Control.xml" />
-		 <mapper resource="mybatis/map/TablePreference.xml" />
 		 <mapper resource="mybatis/map/AccountStatus.xml" />
 		 <mapper resource="mybatis/map/AuditingLogs.xml" />
 		 <mapper resource="mybatis/map/FieldValueDefault.xml" />
@@ -234,6 +247,8 @@
 		<mapper resource="mybatis/map/ScadaAlert.xml"/>
 		<mapper resource="mybatis/map/ScadaCharting.xml"/>
 		
+		<mapper resource="mybatis/map/building/SitesOverviewGas.xml"/>
+		<mapper resource="mybatis/map/building/SitesOverviewHVAC.xml"/>
 		
 		
 		

@@ -27,6 +27,7 @@ import org.dhatim.fastexcel.reader.Row;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -54,8 +55,10 @@ public class ImportOldDataController extends BaseController {
 	 * @return data 
 	 */
 	@PostMapping("/get-list-all-site-by-employee")
-	public Object getDropdownList(@RequestBody ImportOldDataEntity obj) {
+	public Object getDropdownList(@RequestBody ImportOldDataEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
+			List sites = Lib.sitesManagedByUser(authz);
+			if (sites.size() > 0) obj.setId_sites(sites);
 			ImportOldDataService service = new ImportOldDataService();
 			List data = service.getAllSiteByEmployeeId(obj);
 			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
@@ -253,6 +256,11 @@ public class ImportOldDataController extends BaseController {
 										
 										switch (dataFile.getDevice_group_table()) {
 										
+										
+										case "model_xgi150":
+											service.setModelXGI150(rowItem, r);
+											break;
+										
 										case "model_ae_refusol":
 											service.setModelAeRefusol(rowItem, r);
 											break;
@@ -438,6 +446,10 @@ public class ImportOldDataController extends BaseController {
 											service.setModelSmaInverterStp1215202430Tlus10(rowItem, r);
 											break;
 											
+										case "model_sma_stp_25_50_us_50":
+											service.setModelSmaStp2550us50(rowItem, r);
+											break;
+											
 										case "model_meter_ion_6200":
 											service.setModelMeterIon6200(rowItem, r);
 											break;
@@ -484,6 +496,10 @@ public class ImportOldDataController extends BaseController {
 											
 										case "model_power_logic_pm8000_load_meter":
 											service.setModelPowerLogicPM8000LoadMeter(rowItem, r);
+											break;
+											
+										case "model_honeywell_emon_3200":
+											service.setModelHoneywellEMON3200(rowItem, r);
 											break;
 											
 										}

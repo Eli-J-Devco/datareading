@@ -5,146 +5,139 @@
 *********************************************************/
 package com.nwm.api.entities;
 
-public class ModelPVMet200Entity {
-	private String time;
-	private int id_device;
-	private int error;
-	private int low_alarm;
-	private int high_alarm;
-	private double C_SunSpec_ID;
-	private double E_BaseMet_Air_Temperature;
-	private double E_Irradiance_Plane_Of_Array_1;
-	private double E_BOM_Temp_1;
-	private double E_BOM_Temp_2;
-	private double E_BaseMet_Wind_Speed;
-	private double E_BaseMet_Wind_Direction;
-	private double E_Irradiance_Global_Horizontal_1;
-	private double nvm_irradiance;
-	private double nvm_temperature;
-	private double nvm_panel_temperature;
-	private String datatablename;
-	private String view_tablename;
-	private String job_tablename;
-private int enable_alert;
-
-	public String getTime() {
-		return time;
+public class ModelPVMet200Entity extends ModelBaseEntity {
+	private double Ambient_Air_Temperature;
+	private double Relative_Humidity;
+	private double Barometric_Pressure;
+	private double Wind_Speed;
+	private double Wind_Direction;
+	private double Rainfall;
+	private double Snowfall;
+	private double Precipitation_Type;
+	private double Electric_Field;
+	private double Surface_Wetness;
+	private double Soil_Moisture;
+	private double Global_Horizontal_Irradiance;
+	private double POA_Irradiance;
+	private double Diffuse_Irradiance;
+	private double Direct_Irradiance;
+	private double Other_Irradiance;
+	private double BOM_Temp_1;
+	private double BOM_Temp_2;
+	private double BOM_Temp_3;
+	
+	public double getAmbient_Air_Temperature() {
+		return Ambient_Air_Temperature;
 	}
-	public void setTime(String time) {
-		this.time = time;
+	public void setAmbient_Air_Temperature(double ambient_Air_Temperature) {
+		Ambient_Air_Temperature = ambient_Air_Temperature;
 	}
-	public int getId_device() {
-		return id_device;
+	public double getRelative_Humidity() {
+		return Relative_Humidity;
 	}
-	public void setId_device(int id_device) {
-		this.id_device = id_device;
+	public void setRelative_Humidity(double relative_Humidity) {
+		Relative_Humidity = relative_Humidity;
 	}
-	public int getError() {
-		return error;
+	public double getBarometric_Pressure() {
+		return Barometric_Pressure;
 	}
-	public void setError(int error) {
-		this.error = error;
+	public void setBarometric_Pressure(double barometric_Pressure) {
+		Barometric_Pressure = barometric_Pressure;
 	}
-	public int getLow_alarm() {
-		return low_alarm;
+	public double getWind_Speed() {
+		return Wind_Speed;
 	}
-	public void setLow_alarm(int low_alarm) {
-		this.low_alarm = low_alarm;
+	public void setWind_Speed(double wind_Speed) {
+		Wind_Speed = wind_Speed;
 	}
-	public int getHigh_alarm() {
-		return high_alarm;
+	public double getWind_Direction() {
+		return Wind_Direction;
 	}
-	public void setHigh_alarm(int high_alarm) {
-		this.high_alarm = high_alarm;
+	public void setWind_Direction(double wind_Direction) {
+		Wind_Direction = wind_Direction;
 	}
-	public double getC_SunSpec_ID() {
-		return C_SunSpec_ID;
+	public double getRainfall() {
+		return Rainfall;
 	}
-	public void setC_SunSpec_ID(double c_SunSpec_ID) {
-		C_SunSpec_ID = c_SunSpec_ID;
+	public void setRainfall(double rainfall) {
+		Rainfall = rainfall;
 	}
-	public double getE_BaseMet_Air_Temperature() {
-		return E_BaseMet_Air_Temperature;
+	public double getSnowfall() {
+		return Snowfall;
 	}
-	public void setE_BaseMet_Air_Temperature(double e_BaseMet_Air_Temperature) {
-		E_BaseMet_Air_Temperature = e_BaseMet_Air_Temperature;
+	public void setSnowfall(double snowfall) {
+		Snowfall = snowfall;
 	}
-	public double getE_Irradiance_Plane_Of_Array_1() {
-		return E_Irradiance_Plane_Of_Array_1;
+	public double getPrecipitation_Type() {
+		return Precipitation_Type;
 	}
-	public void setE_Irradiance_Plane_Of_Array_1(double e_Irradiance_Plane_Of_Array_1) {
-		E_Irradiance_Plane_Of_Array_1 = e_Irradiance_Plane_Of_Array_1;
+	public void setPrecipitation_Type(double precipitation_Type) {
+		Precipitation_Type = precipitation_Type;
 	}
-	public double getE_BOM_Temp_1() {
-		return E_BOM_Temp_1;
+	public double getSurface_Wetness() {
+		return Surface_Wetness;
 	}
-	public void setE_BOM_Temp_1(double e_BOM_Temp_1) {
-		E_BOM_Temp_1 = e_BOM_Temp_1;
+	public void setSurface_Wetness(double surface_Wetness) {
+		Surface_Wetness = surface_Wetness;
 	}
-	public double getE_BOM_Temp_2() {
-		return E_BOM_Temp_2;
+	public double getElectric_Field() {
+		return Electric_Field;
 	}
-	public void setE_BOM_Temp_2(double e_BOM_Temp_2) {
-		E_BOM_Temp_2 = e_BOM_Temp_2;
+	public void setElectric_Field(double electric_Field) {
+		Electric_Field = electric_Field;
 	}
-	public double getE_BaseMet_Wind_Speed() {
-		return E_BaseMet_Wind_Speed;
+	public double getSoil_Moisture() {
+		return Soil_Moisture;
 	}
-	public void setE_BaseMet_Wind_Speed(double e_BaseMet_Wind_Speed) {
-		E_BaseMet_Wind_Speed = e_BaseMet_Wind_Speed;
+	public void setSoil_Moisture(double soil_Moisture) {
+		Soil_Moisture = soil_Moisture;
 	}
-	public double getE_BaseMet_Wind_Direction() {
-		return E_BaseMet_Wind_Direction;
+	public double getGlobal_Horizontal_Irradiance() {
+		return Global_Horizontal_Irradiance;
 	}
-	public void setE_BaseMet_Wind_Direction(double e_BaseMet_Wind_Direction) {
-		E_BaseMet_Wind_Direction = e_BaseMet_Wind_Direction;
+	public void setGlobal_Horizontal_Irradiance(double global_Horizontal_Irradiance) {
+		Global_Horizontal_Irradiance = global_Horizontal_Irradiance;
 	}
-	public double getE_Irradiance_Global_Horizontal_1() {
-		return E_Irradiance_Global_Horizontal_1;
+	public double getPOA_Irradiance() {
+		return POA_Irradiance;
 	}
-	public void setE_Irradiance_Global_Horizontal_1(double e_Irradiance_Global_Horizontal_1) {
-		E_Irradiance_Global_Horizontal_1 = e_Irradiance_Global_Horizontal_1;
+	public void setPOA_Irradiance(double pOA_Irradiance) {
+		POA_Irradiance = pOA_Irradiance;
 	}
-	public double getNvm_irradiance() {
-		return nvm_irradiance;
+	public double getDiffuse_Irradiance() {
+		return Diffuse_Irradiance;
 	}
-	public void setNvm_irradiance(double nvm_irradiance) {
-		this.nvm_irradiance = nvm_irradiance;
+	public void setDiffuse_Irradiance(double diffuse_Irradiance) {
+		Diffuse_Irradiance = diffuse_Irradiance;
 	}
-	public double getNvm_temperature() {
-		return nvm_temperature;
+	public double getDirect_Irradiance() {
+		return Direct_Irradiance;
 	}
-	public void setNvm_temperature(double nvm_temperature) {
-		this.nvm_temperature = nvm_temperature;
+	public void setDirect_Irradiance(double direct_Irradiance) {
+		Direct_Irradiance = direct_Irradiance;
 	}
-	public double getNvm_panel_temperature() {
-		return nvm_panel_temperature;
+	public double getOther_Irradiance() {
+		return Other_Irradiance;
 	}
-	public void setNvm_panel_temperature(double nvm_panel_temperature) {
-		this.nvm_panel_temperature = nvm_panel_temperature;
+	public void setOther_Irradiance(double other_Irradiance) {
+		Other_Irradiance = other_Irradiance;
 	}
-	public String getDatatablename() {
-		return datatablename;
+	public double getBOM_Temp_1() {
+		return BOM_Temp_1;
 	}
-	public void setDatatablename(String datatablename) {
-		this.datatablename = datatablename;
+	public void setBOM_Temp_1(double bOM_Temp_1) {
+		BOM_Temp_1 = bOM_Temp_1;
 	}
-	public String getView_tablename() {
-		return view_tablename;
+	public double getBOM_Temp_2() {
+		return BOM_Temp_2;
 	}
-	public void setView_tablename(String view_tablename) {
-		this.view_tablename = view_tablename;
+	public void setBOM_Temp_2(double bOM_Temp_2) {
+		BOM_Temp_2 = bOM_Temp_2;
 	}
-	public String getJob_tablename() {
-		return job_tablename;
+	public double getBOM_Temp_3() {
+		return BOM_Temp_3;
 	}
-	public void setJob_tablename(String job_tablename) {
-		this.job_tablename = job_tablename;
+	public void setBOM_Temp_3(double bOM_Temp_3) {
+		BOM_Temp_3 = bOM_Temp_3;
 	}
-	public int getEnable_alert() {
-		return enable_alert;
-	}
-	public void setEnable_alert(int enable_alert) {
-		this.enable_alert = enable_alert;
-	}	
 }

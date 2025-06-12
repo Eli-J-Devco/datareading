@@ -4,24 +4,26 @@
 * 
 *********************************************************/
 package com.nwm.api.controllers;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nwm.api.entities.SiteAreaBuildingFloorRoomEntity;
 import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.entities.SiteGasWaterElectricityRateScheduleEntity;
-import com.nwm.api.entities.TablePreferenceEntity;
-import com.nwm.api.entities.TagEntity;
 import com.nwm.api.services.AWSService;
+import com.nwm.api.services.EmployeeService;
 import com.nwm.api.services.SiteService;
-import com.nwm.api.services.TagService;
 import com.nwm.api.utils.Constants;
 import com.nwm.api.utils.Lib;
+import com.nwm.api.utils.SendMail;
 
 import springfox.documentation.annotations.ApiIgnore;
 import javax.servlet.http.HttpServletRequest;
@@ -46,8 +48,9 @@ public class SiteController extends BaseController {
 	 */
 
 	@PostMapping("/get-summary-total-alert")
-	public Object getSummaryTotalAlert(@RequestBody SiteEntity obj) {
+	public Object getSummaryTotalAlert(@RequestBody SiteEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
+			obj.setIsUserNW(Lib.isUserNW(authz));
 			SiteService service = new SiteService();
 			SiteEntity getDetailSite = service.getSummaryTotalAlert(obj);
 			if (getDetailSite != null) {
@@ -180,6 +183,25 @@ public class SiteController extends BaseController {
 	}
 	
 	
+	public static String getSHAHash(String input) {
+	    try {
+	      MessageDigest md = MessageDigest.getInstance("SHA-1");
+	      byte[] messageDigest = md.digest(input.getBytes());
+	      return convertByteToHex(messageDigest);
+	    } catch (NoSuchAlgorithmException e) {
+	      throw new RuntimeException(e);
+	    }
+  }
+	
+public static String convertByteToHex(byte[] data) {
+	    StringBuffer sb = new StringBuffer();
+	    for (int i = 0; i < data.length; i++) {
+	      sb.append(Integer.toString((data[i] & 0xff) + 0x100, 16).substring(1));
+	    }
+	    return sb.toString();
+  }
+
+
 	/**
 	 * @description save customer
 	 * @author long.pham
@@ -218,6 +240,27 @@ public class SiteController extends BaseController {
 			
 			if (obj.getScreen_mode() == 1) {
 				SiteEntity data = service.insertSite(obj);
+				
+				// Send mail to customer 
+				if(data != null) {
+					String mailFromContact = Lib.getReourcePropValue(Constants.mailConfigFileName,
+							Constants.mailFromContact);
+					
+					String hashedText = getSHAHash(String.valueOf(data.getId()));
+
+					String msgTemplate = Constants.getMailTempleteByState(23);
+					String domain = "https://" + obj.getDomain() + "/management/sites/"+ hashedText +"/dashboard";
+					String body = String.format(msgTemplate, domain, obj.getName());
+					String mailTo = obj.getMail_to();
+					String subject = obj.getName() + " has been added to your account.";
+
+					String tags = "notify_add_site";
+					String fromName = "NEXT WAVE ENERGY MONITORING INC";
+					String mailToBCC = "";
+					String mailToCC = obj.getMail_cc();
+					SendMail.SendGmailTLS(mailFromContact, fromName, mailTo, mailToCC, mailToBCC, subject, body, tags);
+				}
+				
 				return data != null ? this.jsonResult(true, Constants.SAVE_SUCCESS_MSG, data, 1) : this.jsonResult(false, Constants.SAVE_ERROR_MSG, null, 0);
 			} else {
 				boolean insert = service.updateSite(obj);
@@ -240,18 +283,14 @@ public class SiteController extends BaseController {
 	@PostMapping("/list")
 	public Object getList(@RequestBody SiteEntity obj) {
 		try {
-			if (obj.getLimit() == 0) {
-				obj.setLimit(Constants.MAXRECORD);
-			}
+			(new EmployeeService()).getTableSort(obj);
 			SiteService service = new SiteService();
-			TablePreferenceEntity preference = service.getPreference(obj);
-
 			List data = service.getList(obj);
 			int totalRecord = service.getTotalRecord(obj);
-			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, totalRecord, preference);
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, totalRecord);
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0, null);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
 		}
 	}
 	
@@ -278,7 +317,7 @@ public class SiteController extends BaseController {
 			}
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0, null);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
 		}
 	}
 	
@@ -312,8 +351,27 @@ public class SiteController extends BaseController {
 	public Object delete(@Valid @RequestBody SiteEntity obj) {
 		SiteService service = new SiteService();
 		try {
+			String mailCC = service.getEmailCC(obj);
+			
 			boolean result = service.deleteEmployee(obj);
 			if (result) {
+				if(obj.getMail_to() != null) {
+					// send mail
+					String mailFromContact = Lib.getReourcePropValue(Constants.mailConfigFileName,
+							Constants.mailFromContact);
+					String msgTemplate = Constants.getMailTempleteByState(24);
+					String body = String.format(msgTemplate, obj.getName());
+					String mailTo = obj.getMail_to();
+					String subject = obj.getName() + " has been deleted from your account.";
+
+					String tags = "notify_add_site";
+					String fromName = "NEXT WAVE ENERGY MONITORING INC";
+					String mailToBCC = "";
+					String mailToCC = mailCC;
+					SendMail.SendGmailTLS(mailFromContact, fromName, mailTo, mailToCC, mailToBCC, subject, body, tags);
+					
+				}
+				
 				if (obj.getIs_delete() == 0) {
 					return this.jsonResult(true, Constants.RESTORE_SUCCESS_MSG, obj, 1);
 				}

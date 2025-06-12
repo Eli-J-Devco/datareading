@@ -5,12 +5,7 @@
 *********************************************************/
 package com.nwm.api.entities;
 
-public class ModelDent48PSHDMeterEntity {
-	private String time;
-	private int id_device;
-	private int error;
-	private int low_alarm;
-	private int high_alarm;
+public class ModelDent48PSHDMeterEntity extends ModelBaseEntity {
 	private double CurrentSum;
 	private double CurrentCH1A;
 	private double CurrentCH2B;
@@ -73,42 +68,199 @@ public class ModelDent48PSHDMeterEntity {
 	private double 	ExportedVARhQ4B;
 	private double 	ExportedVARhQ4C;
 	private double WattDemandElement;
-	private double nvmActivePower;
-	private double nvmActiveEnergy;
-	private double MeasuredProduction;
-	private String datatablename;
-	private String view_tablename;
-	private String job_tablename;
-	public String getTime() {
-		return time;
-	}
-	public void setTime(String time) {
-		this.time = time;
-	}
-	public int getId_device() {
-		return id_device;
-	}
-	public void setId_device(int id_device) {
-		this.id_device = id_device;
-	}
-	public int getError() {
-		return error;
-	}
-	public void setError(int error) {
-		this.error = error;
-	}
-	public int getLow_alarm() {
-		return low_alarm;
-	}
-	public void setLow_alarm(int low_alarm) {
-		this.low_alarm = low_alarm;
-	}
-	public int getHigh_alarm() {
-		return high_alarm;
-	}
-	public void setHigh_alarm(int high_alarm) {
-		this.high_alarm = high_alarm;
-	}
+	
+//	private double DisplacementPFSum;
+//	private double DisplacementPFCH1A;
+//	private double DisplacementPFCH2B;
+//	private double DisplacementPFCH3C;
+//	private double THDSum;
+//	private double THDCH1A;
+//	private double THDCH2B;
+//	private double THDCH3C;
+//	private double VADemandElement;
+//	private double EnergyNetSum;
+//	private double EnergyNetCH1;
+//	private double EnergyNetCH2;
+//	private double EnergyNetCH3;
+//	private double ApparentEnergyNetSum;
+//	private double ApparentEnergyNetCH1;
+//	private double ApparentEnergyNetCH2;
+//	private double ApparentEnergyNetCH3;
+//	private double VARhNetSum;
+//	private double VARhNetCH1;
+//	private double VARhNetCH2;
+//	private double VARhNetCH3;
+//	private double ThetaCH1Angle;
+//	private double ThetaCH2Angle;
+//	private double ThetaCH3Angle;
+//	private double RoCoilPGAGainCh1;
+//	private double RoCoilPGAGainCh2;
+//	private double RoCoilPGAGainCh3;
+
+	
+
+//	public double getDisplacementPFSum() {
+//		return DisplacementPFSum;
+//	}
+//	public void setDisplacementPFSum(double displacementPFSum) {
+//		DisplacementPFSum = displacementPFSum;
+//	}
+//	public double getDisplacementPFCH1A() {
+//		return DisplacementPFCH1A;
+//	}
+//	public void setDisplacementPFCH1A(double displacementPFCH1A) {
+//		DisplacementPFCH1A = displacementPFCH1A;
+//	}
+//	public double getDisplacementPFCH2B() {
+//		return DisplacementPFCH2B;
+//	}
+//	public void setDisplacementPFCH2B(double displacementPFCH2B) {
+//		DisplacementPFCH2B = displacementPFCH2B;
+//	}
+//	public double getDisplacementPFCH3C() {
+//		return DisplacementPFCH3C;
+//	}
+//	public void setDisplacementPFCH3C(double displacementPFCH3C) {
+//		DisplacementPFCH3C = displacementPFCH3C;
+//	}
+//	public double getTHDSum() {
+//		return THDSum;
+//	}
+//	public void setTHDSum(double tHDSum) {
+//		THDSum = tHDSum;
+//	}
+//	public double getTHDCH1A() {
+//		return THDCH1A;
+//	}
+//	public void setTHDCH1A(double tHDCH1A) {
+//		THDCH1A = tHDCH1A;
+//	}
+//	public double getTHDCH2B() {
+//		return THDCH2B;
+//	}
+//	public void setTHDCH2B(double tHDCH2B) {
+//		THDCH2B = tHDCH2B;
+//	}
+//	public double getTHDCH3C() {
+//		return THDCH3C;
+//	}
+//	public void setTHDCH3C(double tHDCH3C) {
+//		THDCH3C = tHDCH3C;
+//	}
+//	public double getVADemandElement() {
+//		return VADemandElement;
+//	}
+//	public void setVADemandElement(double vADemandElement) {
+//		VADemandElement = vADemandElement;
+//	}
+//	public double getEnergyNetSum() {
+//		return EnergyNetSum;
+//	}
+//	public void setEnergyNetSum(double energyNetSum) {
+//		EnergyNetSum = energyNetSum;
+//	}
+//	public double getEnergyNetCH1() {
+//		return EnergyNetCH1;
+//	}
+//	public void setEnergyNetCH1(double energyNetCH1) {
+//		EnergyNetCH1 = energyNetCH1;
+//	}
+//	public double getEnergyNetCH2() {
+//		return EnergyNetCH2;
+//	}
+//	public void setEnergyNetCH2(double energyNetCH2) {
+//		EnergyNetCH2 = energyNetCH2;
+//	}
+//	public double getEnergyNetCH3() {
+//		return EnergyNetCH3;
+//	}
+//	public void setEnergyNetCH3(double energyNetCH3) {
+//		EnergyNetCH3 = energyNetCH3;
+//	}
+//	public double getApparentEnergyNetSum() {
+//		return ApparentEnergyNetSum;
+//	}
+//	public void setApparentEnergyNetSum(double apparentEnergyNetSum) {
+//		ApparentEnergyNetSum = apparentEnergyNetSum;
+//	}
+//	public double getApparentEnergyNetCH1() {
+//		return ApparentEnergyNetCH1;
+//	}
+//	public void setApparentEnergyNetCH1(double apparentEnergyNetCH1) {
+//		ApparentEnergyNetCH1 = apparentEnergyNetCH1;
+//	}
+//	public double getApparentEnergyNetCH2() {
+//		return ApparentEnergyNetCH2;
+//	}
+//	public void setApparentEnergyNetCH2(double apparentEnergyNetCH2) {
+//		ApparentEnergyNetCH2 = apparentEnergyNetCH2;
+//	}
+//	public double getApparentEnergyNetCH3() {
+//		return ApparentEnergyNetCH3;
+//	}
+//	public void setApparentEnergyNetCH3(double apparentEnergyNetCH3) {
+//		ApparentEnergyNetCH3 = apparentEnergyNetCH3;
+//	}
+//	public double getVARhNetSum() {
+//		return VARhNetSum;
+//	}
+//	public void setVARhNetSum(double vARhNetSum) {
+//		VARhNetSum = vARhNetSum;
+//	}
+//	public double getVARhNetCH1() {
+//		return VARhNetCH1;
+//	}
+//	public void setVARhNetCH1(double vARhNetCH1) {
+//		VARhNetCH1 = vARhNetCH1;
+//	}
+//	public double getVARhNetCH2() {
+//		return VARhNetCH2;
+//	}
+//	public void setVARhNetCH2(double vARhNetCH2) {
+//		VARhNetCH2 = vARhNetCH2;
+//	}
+//	public double getVARhNetCH3() {
+//		return VARhNetCH3;
+//	}
+//	public void setVARhNetCH3(double vARhNetCH3) {
+//		VARhNetCH3 = vARhNetCH3;
+//	}
+//	public double getThetaCH1Angle() {
+//		return ThetaCH1Angle;
+//	}
+//	public void setThetaCH1Angle(double thetaCH1Angle) {
+//		ThetaCH1Angle = thetaCH1Angle;
+//	}
+//	public double getThetaCH2Angle() {
+//		return ThetaCH2Angle;
+//	}
+//	public void setThetaCH2Angle(double thetaCH2Angle) {
+//		ThetaCH2Angle = thetaCH2Angle;
+//	}
+//	public double getThetaCH3Angle() {
+//		return ThetaCH3Angle;
+//	}
+//	public void setThetaCH3Angle(double thetaCH3Angle) {
+//		ThetaCH3Angle = thetaCH3Angle;
+//	}
+//	public double getRoCoilPGAGainCh1() {
+//		return RoCoilPGAGainCh1;
+//	}
+//	public void setRoCoilPGAGainCh1(double roCoilPGAGainCh1) {
+//		RoCoilPGAGainCh1 = roCoilPGAGainCh1;
+//	}
+//	public double getRoCoilPGAGainCh2() {
+//		return RoCoilPGAGainCh2;
+//	}
+//	public void setRoCoilPGAGainCh2(double roCoilPGAGainCh2) {
+//		RoCoilPGAGainCh2 = roCoilPGAGainCh2;
+//	}
+//	public double getRoCoilPGAGainCh3() {
+//		return RoCoilPGAGainCh3;
+//	}
+//	public void setRoCoilPGAGainCh3(double roCoilPGAGainCh3) {
+//		RoCoilPGAGainCh3 = roCoilPGAGainCh3;
+//	}
 	public double getCurrentSum() {
 		return CurrentSum;
 	}
@@ -480,42 +632,6 @@ public class ModelDent48PSHDMeterEntity {
 	}
 	public void setWattDemandElement(double wattDemandElement) {
 		WattDemandElement = wattDemandElement;
-	}
-	public double getNvmActivePower() {
-		return nvmActivePower;
-	}
-	public void setNvmActivePower(double nvmActivePower) {
-		this.nvmActivePower = nvmActivePower;
-	}
-	public double getNvmActiveEnergy() {
-		return nvmActiveEnergy;
-	}
-	public void setNvmActiveEnergy(double nvmActiveEnergy) {
-		this.nvmActiveEnergy = nvmActiveEnergy;
-	}
-	public double getMeasuredProduction() {
-		return MeasuredProduction;
-	}
-	public void setMeasuredProduction(double measuredProduction) {
-		MeasuredProduction = measuredProduction;
-	}
-	public String getDatatablename() {
-		return datatablename;
-	}
-	public void setDatatablename(String datatablename) {
-		this.datatablename = datatablename;
-	}
-	public String getView_tablename() {
-		return view_tablename;
-	}
-	public void setView_tablename(String view_tablename) {
-		this.view_tablename = view_tablename;
-	}
-	public String getJob_tablename() {
-		return job_tablename;
-	}
-	public void setJob_tablename(String job_tablename) {
-		this.job_tablename = job_tablename;
 	}
 
 	

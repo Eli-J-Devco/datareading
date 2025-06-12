@@ -11,12 +11,19 @@
 		<result property="description" column="description" />
 		<result property="icon" column="icon" />
 		<result property="is_consumption" column="is_consumption" />
+		<result property="text_color" column="text_color" />
 		<result property="offset" column="offset" />
 		<result property="status" column="status" />
 		<result property="is_delete" column="is_delete" />
 		<result property="created_date" column="created_date" />
 		<result property="created_by" column="created_by" />
 		<result property="updated_date" column="updated_by" />
+		<result property="unit" column="unit" />
+		<result property="energy_flow_enable" column="energy_flow_enable" />
+		<result property="energy_usage_enable" column="energy_usage_enable" />
+		<result property="widget_type" column="widget_type" />
+		
+		
 	</resultMap>
 	
 
@@ -31,6 +38,12 @@
 			s.is_consumption,
 			s.id_site,
 			s.description,
+			s.text_color,
+			s.unit,
+			s.energy_flow_enable,
+			s.energy_usage_enable,
+			s.widget_type,
+			s.menu_order,
 			GROUP_CONCAT(lm.id_device) AS id_devices
 		FROM
 			leviton_overview_widget s 	
@@ -81,14 +94,6 @@
 	</update>
 	
 	
-	<update id="updateIsConsumption">
-		UPDATE `leviton_overview_widget`
-		SET
-			`is_consumption` = 0
-		WHERE
-			`id_site` = #{id_site}
-	</update>
-	
 	<update id="delete">
 		DELETE from `leviton_overview_widget` WHERE id = #{id};
 	</update>
@@ -117,13 +122,24 @@
 			`id_site`,
 			`description`,
 			`is_consumption`,
-			`icon`
+			`icon`,
+			`text_color`,
+			`unit`,
+			`energy_flow_enable`,
+			`menu_order`,
+			`energy_usage_enable`,
+			`widget_type`
 		)VALUES(
 			#{name},
 			#{id_site},
 			#{description},
 			#{is_consumption},
-			#{icon}
+			#{icon},
+			#{text_color},
+			#{unit},
+			#{energy_flow_enable},
+			#{energy_usage_enable},
+			#{widget_type}
 		);
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
@@ -137,8 +153,13 @@
 			`name` = #{name},
 			`description` = #{description},
 			`is_consumption` = #{is_consumption},
-			`icon` = #{icon}
-			
+			`icon` = #{icon},
+			`text_color` = #{text_color},
+			`unit` = #{unit},
+			`energy_flow_enable` = #{energy_flow_enable},
+			`menu_order` = #{menu_order},
+			`energy_usage_enable` = #{energy_usage_enable},
+			`widget_type` = #{widget_type}
 		WHERE
 			`id` = #{id}
 	</update>

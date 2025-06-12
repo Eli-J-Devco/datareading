@@ -10,10 +10,12 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.KioskViewTodayEntity;
 import com.nwm.api.entities.SiteEntity;
+import com.nwm.api.utils.Lib;
 
 public class MiniSiteService extends DB {
 
@@ -30,6 +32,7 @@ public class MiniSiteService extends DB {
 		Object dataObj = null;
 		try {
 			dataObj = queryForObject("MiniSite.getMiniSiteInfo", obj);
+			
 			if (dataObj == null)
 				return new SiteEntity();
 		} catch (Exception ex) {
@@ -37,42 +40,6 @@ public class MiniSiteService extends DB {
 		}
 		return dataObj;
 	}
-	
-	/**
-	 * @description fulfill data in specific range of time
-	 * @author Hung.Bui
-	 * @since 2024-03-20
-	 * @param List<KioskViewTodayEntity> dateTimeList
-	 * @param List<KioskViewTodayEntity> dataList
-	 */
-	private List<KioskViewTodayEntity> fulfillData(List<KioskViewTodayEntity> dateTimeList, List<KioskViewTodayEntity> dataList) {
-		List<KioskViewTodayEntity> fulfilledDataList = new ArrayList<KioskViewTodayEntity>();
-		
-		try {
-			if(dataList.size() > 0 && dateTimeList.size() > 0) {
-				int count = 0;
-				for (int i = 0; i < dateTimeList.size(); i++) {
-					KioskViewTodayEntity dateTimeItem = dateTimeList.get(i);
-					if (i - count > dataList.size() - 1) {
-						fulfilledDataList.add(dateTimeItem);
-						continue;
-					}
-					KioskViewTodayEntity dataItem = dataList.get(i - count);
-					if (dateTimeItem.getCategories_time().equals(dataItem.getCategories_time())) {
-						fulfilledDataList.add(dataItem);
-					} else {
-						fulfilledDataList.add(dateTimeItem);
-						count++;
-					}
-				}
-			}
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		
-		return fulfilledDataList;
-	}
-	
 	
 	/**
 	 * @description get monthly report
@@ -128,20 +95,47 @@ public class MiniSiteService extends DB {
 			}
 			// ----- Create DateTime List ----- End
 			
-			List dataListDeviceIrr = queryForList("MiniSite.getListDeviceTypeIrradiance", obj);
-			if (dataListDeviceIrr != null && dataListDeviceIrr.size() > 0) obj.setHave_poa(true);
-			if (obj.getEnable_virtual_device() == 0 && obj.getFilterBy().equals("today")) {
-				List dataListDeviceMeter = queryForList("MiniSite.getListDeviceTypeMeter", obj);
-				List dataListDevicePower = dataListDeviceMeter.size() > 0 ? dataListDeviceMeter : queryForList("MiniSite.getListDeviceTypeInverter", obj);
-				if (dataListDevicePower.size() > 0) {
-					if (dataListDeviceIrr != null && dataListDeviceIrr.size() > 0) dataListDevicePower.addAll(dataListDeviceIrr);
-					obj.setGroupDevices(dataListDevicePower);
+			if(obj.getDevice_mode() == 2) {
+				// get List device meter, inverter, weather station 
+				List devices = queryForList("MiniSite.getListDeviceMeterInverterWeather", obj);
+				List datas = new ArrayList();
+				
+				if(devices.size() > 0) {
+					for(int i = 0; i < devices.size(); i++) {
+						Map<String, Object> item = (Map<String, Object>) devices.get(i);
+						item.put("start_date", obj.getStart_date());
+						item.put("end_date", obj.getEnd_date());
+						item.put("filterBy", obj.getFilterBy());
+						List<KioskViewTodayEntity> dataDevice = queryForList("MiniSite.getDataByDevice", item);
+						List<KioskViewTodayEntity> fulfilledData = Lib.fulfillData(categories, dataDevice, "categories_time");
+						if(dataDevice.size() > 0) {
+							item.put("datas", fulfilledData);
+						}
+						datas.add(item);
+					}
+					
 				}
+				
+				obj.setEnergy(datas);
+
+			} else {
+				List dataListDeviceIrr = queryForList("MiniSite.getListDeviceTypeIrradiance", obj);
+				if (dataListDeviceIrr != null && dataListDeviceIrr.size() > 0) obj.setHave_poa(true);
+				if (obj.getEnable_virtual_device() == 0 && obj.getFilterBy().equals("today")) {
+					List dataListDeviceMeter = queryForList("MiniSite.getListDeviceTypeMeter", obj);
+					List dataListDevicePower = dataListDeviceMeter.size() > 0 ? dataListDeviceMeter : queryForList("MiniSite.getListDeviceTypeInverter", obj);
+					if (dataListDevicePower.size() > 0) {
+						if (dataListDeviceIrr != null && dataListDeviceIrr.size() > 0) dataListDevicePower.addAll(dataListDeviceIrr);
+						obj.setGroupDevices(dataListDevicePower);
+					}
+				}
+				
+				List<KioskViewTodayEntity> dataEnergy = obj.getEnable_virtual_device() == 1 ? queryForList("MiniSite.getDataVirtualDevice", obj) : queryForList("MiniSite.getDataEnergy", obj);
+				List<KioskViewTodayEntity> fulfilledData = Lib.fulfillData(categories, dataEnergy, "categories_time");
+				if (fulfilledData.size() > 0) obj.setEnergy(fulfilledData);
 			}
 			
-			List<KioskViewTodayEntity> dataEnergy = obj.getEnable_virtual_device() == 1 ? queryForList("MiniSite.getDataVirtualDevice", obj) : queryForList("MiniSite.getDataEnergy", obj);
-			List<KioskViewTodayEntity> fulfilledData = fulfillData(categories, dataEnergy);
-			if (fulfilledData.size() > 0) obj.setEnergy(fulfilledData);
+			
 			
 			return obj;
 		} catch (Exception ex) {

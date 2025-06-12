@@ -29,8 +29,10 @@ import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.ClientMonthlyDateEntity;
 import com.nwm.api.entities.DeviceEntity;
 import com.nwm.api.entities.DeviceGroupEntity;
+import com.nwm.api.entities.ElectricInformationEntity;
 import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.utils.Constants;
+import com.nwm.api.utils.Lib;
 
 public class BuildingDashboardService extends DB {
 	
@@ -42,31 +44,30 @@ public class BuildingDashboardService extends DB {
 	 * @param List<ClientMonthlyDateEntity> dataList
 	 */
 	private List<ClientMonthlyDateEntity> fulfillData(List<ClientMonthlyDateEntity> dateTimeList, List<ClientMonthlyDateEntity> dataList) {
-		List<ClientMonthlyDateEntity> fulfilledDataList = new ArrayList<ClientMonthlyDateEntity>();
-		
 		try {
-			if(dataList.size() > 0 && dateTimeList.size() > 0) {
-				int count = 0;
-				for (int i = 0; i < dateTimeList.size(); i++) {
-					ClientMonthlyDateEntity dateTimeItem = dateTimeList.get(i);
-					if (i - count > dataList.size() - 1) {
-						fulfilledDataList.add(dateTimeItem);
-						continue;
-					}
-					ClientMonthlyDateEntity dataItem = dataList.get(i - count);
-					if (dateTimeItem.getTime_full().equals(dataItem.getTime_full())) {
-						fulfilledDataList.add(dataItem);
-					} else {
-						fulfilledDataList.add(dateTimeItem);
-						count++;
-					}
+			if (dataList == null || dateTimeList.size() == 0) return dataList;
+			List<ClientMonthlyDateEntity> fulfilledDataList = new ArrayList<ClientMonthlyDateEntity>();
+			int count = 0;
+			for (int i = 0; i < dateTimeList.size(); i++) {
+				ClientMonthlyDateEntity dateTimeItem = dateTimeList.get(i);
+				if (i - count > dataList.size() - 1) {
+					fulfilledDataList.add(dateTimeItem);
+					continue;
+				}
+				ClientMonthlyDateEntity dataItem = dataList.get(i - count);
+				if (dateTimeItem.getTime_full().equals(dataItem.getTime_full())) {
+					fulfilledDataList.add(dataItem);
+				} else {
+					fulfilledDataList.add(dateTimeItem);
+					count++;
 				}
 			}
+			
+			return fulfilledDataList;
 		} catch (Exception e) {
-			// TODO: handle exception
+			return dataList;
 		}
 		
-		return fulfilledDataList;
 	}
 
 	/**
@@ -384,5 +385,161 @@ public class BuildingDashboardService extends DB {
 
 	}
 	
+	
+	
+	/**
+	 * @description get list site building floor
+	 * @author Long.Pham
+	 * @since 2025-02-20
+	 * @param obj
+	 */
+	
+	
+	public ElectricInformationEntity getElectricInformation(ElectricInformationEntity obj) {
+		ElectricInformationEntity dataObj = null;
+		try {
+			List deviceMainLoad = queryForList("BuildingDashboard.getDeviceMainLoad", obj);
+			obj.setDevices(deviceMainLoad);
+			
+			dataObj = (ElectricInformationEntity) queryForObject("BuildingDashboard.getElectricInformation", obj);
+			if (dataObj == null)
+				return new ElectricInformationEntity();
+		} catch (Exception ex) {
+			return new ElectricInformationEntity();
+		}
+		return dataObj;
+	}
+	
+	
+	
+	/**
+	 * @description get list site building floor
+	 * @author Long.Pham
+	 * @since 2025-02-20
+	 * @param obj
+	 */
+	
+	
+	public ElectricInformationEntity getMonthlyEnergyUsageByComponent(ElectricInformationEntity obj) {
+		ElectricInformationEntity dataObj = null;
+		try {
+			dataObj = (ElectricInformationEntity) queryForObject("BuildingDashboard.getMonthlyEnergyUsageByComponent", obj);
+			if (dataObj == null)
+				return new ElectricInformationEntity();
+		} catch (Exception ex) {
+			return new ElectricInformationEntity();
+		}
+		return dataObj;
+	}
+	
+	
+	
+	/**
+	 * @description get list site building floor
+	 * @author Long.Pham
+	 * @since 2025-02-20
+	 * @param obj
+	 */
+	
+	
+	public List getHourlyPeakPower(SiteEntity obj) {
+		try {
+			List dataEnergy = new ArrayList<>();
+			
+			// if data is in 3 latest months then data is fetch from view, else it's from table
+//			Date dt = new Date();
+//			Calendar c = Calendar.getInstance(); 
+//			c.setTime(dt); 
+//			c.add(Calendar.MONTH, -3);
+//			SimpleDateFormat dateFor = new SimpleDateFormat("yyyy-MM-dd");
+//			Date d1 = dateFor.parse(obj.getStart_date());
+//			Date d2 = dateFor.parse(dateFor.format(c.getTime()));
+//			if(d1.compareTo(d2) < 0) obj.setRead_data_all("all_data");
+			
+			List dataListDeviceMeter = queryForList("EnergyUsage.getListDeviceTypeMeter", obj);
+			if(dataListDeviceMeter.size() > 0 ) {
+				obj.setGroupMeter(dataListDeviceMeter);
+				int interval = 0;
+				DateTimeFormatter timeFullFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm");
+				DateTimeFormatter categoriesTimeFormat = DateTimeFormatter.ofPattern("HH:mm a");
+				ChronoUnit timeUnit = ChronoUnit.HOURS;
+				LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+				LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+				
+				// get Energy usage 
+				List<ClientMonthlyDateEntity> dataEnergyUsage = new ArrayList<>();
+				dataEnergyUsage = queryForList("BuildingDashboard.getHourlyPeakPower", obj);
+				interval = 1;
+//				timeUnit = ChronoUnit.HOURS;
+				timeFullFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm");
+				categoriesTimeFormat = DateTimeFormatter.ofPattern("HH:mm a");
+				
+				List<ClientMonthlyDateEntity> dateTimeList = new ArrayList<>();
+				while (!start.isAfter(end)) {
+					ClientMonthlyDateEntity dateTime = new ClientMonthlyDateEntity();
+					dateTime.setTime_full(start.format(timeFullFormat));
+					dateTime.setCategories_time(start.format(categoriesTimeFormat));
+					dateTimeList.add(dateTime);
+					start = start.plus(interval, timeUnit);
+				}
+				
+				
+				List<ClientMonthlyDateEntity> fulfilledData = Lib.fulfillData(dateTimeList, dataEnergyUsage, "time_full");
+				if (fulfilledData.size() > 0) {
+					Map<String, Object> deviceItem = new HashMap<>();
+					deviceItem.put("data_energy", fulfilledData);
+					deviceItem.put("type", "consumption");
+					deviceItem.put("devicename", "Consumption");
+					dataEnergy.add(deviceItem);
+				}
+			}
+			
+			return dataEnergy;
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		
+	}
+	
+	
+	
+	
+	/**
+	 * @description get list site building floor
+	 * @author Long.Pham
+	 * @since 2025-02-20
+	 * @param obj
+	 */
+	
+	
+	public List getData30DaysByDevice(DeviceEntity obj) {
+		try {
+			int interval = 1;
+			DateTimeFormatter timeFullFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+			DateTimeFormatter categoriesTimeFormat = DateTimeFormatter.ofPattern("dd. LLL");
+			ChronoUnit timeUnit = ChronoUnit.DAYS;
+			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+			
+			// get Energy usage 
+			List<ClientMonthlyDateEntity> dataEnergyUsage = new ArrayList<>();
+			dataEnergyUsage = queryForList("BuildingDashboard.getData30Days", obj);
+			
+			List<ClientMonthlyDateEntity> dateTimeList = new ArrayList<>();
+			while (!start.isAfter(end)) {
+				ClientMonthlyDateEntity dateTime = new ClientMonthlyDateEntity();
+				dateTime.setTime_full(start.format(timeFullFormat));
+				dateTime.setCategories_time(start.format(categoriesTimeFormat));
+				dateTimeList.add(dateTime);
+				start = start.plus(interval, timeUnit);
+			}
+			
+			List<ClientMonthlyDateEntity> fulfilledData = Lib.fulfillData(dateTimeList, dataEnergyUsage, "time_full");
+			return fulfilledData;
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		
+	}
 	
 }

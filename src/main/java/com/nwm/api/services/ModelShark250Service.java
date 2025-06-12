@@ -22,22 +22,14 @@ public class ModelShark250Service extends DB {
 	 * @param data
 	 */
 	
-	public ModelShark250Entity setModelShark250(String line, double offset_data_old) {
+	public ModelShark250Entity setModelShark250(String line) {
 		try {
 			List<String> words = Lists.newArrayList(Splitter.on(',').split(line));
 			if (words.size() > 0) {
 				ModelShark250Entity dataModelShark250 = new ModelShark250Entity();
 				
 				Double power = Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0.001");
-				Double energy = Double.parseDouble(!Lib.isBlank(words.get(12)) ? words.get(12) : "0.001");
-				if(energy < 0 && offset_data_old > 0) {
-					energy = energy * -1;
-					energy = (energy + offset_data_old) * -1;
-				} else if(offset_data_old > 0 && energy > 0) {
-					energy = energy + offset_data_old;
-				}
-				
-				
+				Double energy = Double.parseDouble(!Lib.isBlank(words.get(9)) ? words.get(9) : "0.001");
 				
 				dataModelShark250.setTime(words.get(0).replace("'", ""));
 				dataModelShark250.setError(Integer.parseInt(!Lib.isBlank(words.get(1)) ? words.get(1) : "0"));
@@ -48,11 +40,11 @@ public class ModelShark250Service extends DB {
 				dataModelShark250.setApparentPower(Double.parseDouble(!Lib.isBlank(words.get(6)) ? words.get(6) : "0.001"));
 				dataModelShark250.setActiveEnergyReceived(Double.parseDouble(!Lib.isBlank(words.get(7)) ? words.get(7) : "0.001"));
 				dataModelShark250.setActiveEnergyDelivered(Double.parseDouble(!Lib.isBlank(words.get(8)) ? words.get(8) : "0.001"));
-				dataModelShark250.setActiveEnergyNet(Double.parseDouble(!Lib.isBlank(words.get(9)) ? words.get(9) : "0.001"));
+				dataModelShark250.setActiveEnergyNet(energy);
 				dataModelShark250.setReactiveEnergyReceived(Double.parseDouble(!Lib.isBlank(words.get(10)) ? words.get(10) : "0.001"));
 				
 				dataModelShark250.setReactiveEnergyDelivered(Double.parseDouble(!Lib.isBlank(words.get(11)) ? words.get(11) : "0.001"));
-				dataModelShark250.setReactiveEnergyNet(energy);
+				dataModelShark250.setReactiveEnergyNet(Double.parseDouble(!Lib.isBlank(words.get(12)) ? words.get(12) : "0.001"));
 				dataModelShark250.setApparentEnergy(Double.parseDouble(!Lib.isBlank(words.get(13)) ? words.get(13) : "0.001"));
 				dataModelShark250.setFrequency(Double.parseDouble(!Lib.isBlank(words.get(14)) ? words.get(14) : "0.001"));
 				dataModelShark250.setPowerFactor(Double.parseDouble(!Lib.isBlank(words.get(15)) ? words.get(15) : "0.001"));
@@ -114,16 +106,25 @@ public class ModelShark250Service extends DB {
 	
 	public boolean insertModelShark250(ModelShark250Entity obj) {
 		try {
+			if(obj.getOffset_data_old() !=0) {
+				Double energy = obj.getNvmActiveEnergy();
+				energy = energy + obj.getOffset_data_old();
+				obj.setNvmActiveEnergy(energy);
+				obj.setActiveEnergyNet(energy);
+			}
+			
 			 ModelShark250Entity dataObj = (ModelShark250Entity) queryForObject("ModelShark250.getLastRow", obj);
+			// filter data 
+				if(dataObj != null && ( obj.getError() > 0 || obj.getNvmActiveEnergy() < dataObj.getNvmActiveEnergy() || obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) ) {
+					obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
+					obj.setReactiveEnergyNet(dataObj.getNvmActiveEnergy());
+				}
+				
 			 double measuredProduction = 0;
 			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
 				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
 			 }
 			 
-			 if(obj.getNvmActiveEnergy() == 0.001 || obj.getNvmActiveEnergy() < 0) {
-				 obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
-				 obj.setReactiveEnergyNet(dataObj.getNvmActiveEnergy());
-			 }
 			 
 			 obj.setMeasuredProduction(measuredProduction);
 			 

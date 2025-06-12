@@ -15,13 +15,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nwm.api.DBManagers.DB;
-import com.nwm.api.entities.EmployeeRoleMapEntity;
 import com.nwm.api.entities.EmployeeSiteMapEntity;
 import com.nwm.api.entities.SiteAreaBuildingFloorRoomEntity;
-import com.nwm.api.entities.SiteCustomerMapEntity;
 import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.entities.SiteGasWaterElectricityRateScheduleEntity;
-import com.nwm.api.entities.TablePreferenceEntity;
 
 public class SiteService extends DB {
 	/**
@@ -81,12 +78,10 @@ public class SiteService extends DB {
 				Map<String, Object> item = (Map<String, Object>) dataList.get(i);
 				
 				try {
-					item.put("options", mapper.readValue(item.get("devicesJSON").toString(), new TypeReference<List<Map<String, Object>>>(){}));
+					item.put("options", mapper.readValue(item.get("options").toString(), new TypeReference<List<Map<String, Object>>>(){}));
 				} catch (JsonProcessingException e) {
 					item.put("options", new ArrayList<Map<String, Object>>());
 				}
-				
-				item.put("devicesJSON", null);
 			}
 			return dataList;
 		} catch (Exception ex) {
@@ -169,6 +164,20 @@ public class SiteService extends DB {
 	}
 	
 	
+	/**
+	 * @description get Email CC
+	 * @author long.pham
+	 * @since 2021-01-06
+	 */
+	public String getEmailCC(SiteEntity obj) {
+		try {
+			return (String) queryForObject("Site.getEmailCC", obj);
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+	
+	
 	
 	/**
 	 * @description insert site employee map
@@ -245,6 +254,8 @@ public class SiteService extends DB {
 					EmployeeSiteMapEntity siteEmployeeMaptItem = this._buildSiteEmployeeMapItem(insertLastId, id_employee);
 					session.insert("Site.insertSiteEmployeeMap", siteEmployeeMaptItem);
 				}
+				
+				session.update("Site.updateHidingSite", obj);
 				
 				if (obj.getSite_type() == 2) {
 					List areaList = obj.getAreaList();
@@ -533,15 +544,24 @@ public class SiteService extends DB {
 	
 
 	public List getAllSite(SiteEntity obj) {
-		List dataList = new ArrayList();
 		try {
-			dataList = queryForList("Site.getAllSite", obj);
-			if (dataList == null)
-				return new ArrayList();
+			List dataList = queryForList("Site.getAllSite", obj);
+			if (dataList == null) return new ArrayList();
+			
+			ObjectMapper mapper = new ObjectMapper();
+			for (int i = 0; i < dataList.size(); i++) {
+				Map<String, Object> item = (Map<String, Object>) dataList.get(i);
+				
+				try {
+					item.put("options", mapper.readValue(item.get("options").toString(), new TypeReference<List<Map<String, Object>>>(){}));
+				} catch (JsonProcessingException e) {
+					item.put("options", new ArrayList<Map<String, Object>>());
+				}
+			}
+			return dataList;
 		} catch (Exception ex) {
 			return new ArrayList();
 		}
-		return dataList;
 	}
 	
 	
@@ -995,50 +1015,6 @@ public class SiteService extends DB {
 		return dataList;
 	}
 	
-	/**
-	 * @description get user preference for table sorting column
-	 * @author Hung.Bui
-	 * @since 2023-02-27
-	 * @param id_customer, id_site
-	 */
-	public TablePreferenceEntity getPreference(SiteEntity obj) {
-		try {
-			// get user preference for table sorting column
-			TablePreferenceEntity tablePreference = new TablePreferenceEntity();
-			tablePreference.setId_employee(obj.getId_employee());
-			tablePreference.setTable("Site");
-			tablePreference = (TablePreferenceEntity) queryForObject("TablePreference.getPreference", tablePreference);
-			
-			if ((obj.getOrder_by() != null) && (obj.getOrder_by() != "") && (obj.getSort_column() != null) && (obj.getSort_column() != "")) {
-				if (tablePreference != null) {
-					tablePreference.setOrder_by(obj.getOrder_by());
-					tablePreference.setSort_column(obj.getSort_column());
-					update("TablePreference.updatePreference", tablePreference);
-				} else {
-					tablePreference = new TablePreferenceEntity();
-					tablePreference.setId_employee(obj.getId_employee());
-					tablePreference.setTable("Site");
-					tablePreference.setOrder_by(obj.getOrder_by());
-					tablePreference.setSort_column(obj.getSort_column());
-					insert("TablePreference.insertPreference", tablePreference);
-				}
-			} else {
-				if (tablePreference != null) {
-					obj.setOrder_by(tablePreference.getOrder_by());
-					obj.setSort_column(tablePreference.getSort_column());
-				}
-			}
-			
-			if (tablePreference == null) {
-				return new TablePreferenceEntity();
-			}
-			return tablePreference;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-	
-
 	/**
 	 * @description get site per page
 	 * @author long.pham
