@@ -166,29 +166,29 @@ public class SitesOverviewHVACService extends DB {
 		return new ArrayList<String>();
 	}
 	
-	@Autowired
-	MqttPahoMessageDrivenChannelAdapter mqttAdapter;
+//	@Autowired
+//	MqttPahoMessageDrivenChannelAdapter mqttAdapter;
 	private static Map<String, Map<String, String>> fieldCache = new HashMap<String, Map<String, String>>();
 	private static List<Map<String, String>> updatingFieldList = new ArrayList<Map<String, String>>();
-	
-	/**
-	 * Subscribe to MQTT gateway.
-	 * @author Hung.Bui
-	 * @since 2025-04-08
-	 */
-	@PostConstruct
-	private void subscribeToGateway() {
-		try {
-			List<String> gatewayList = this.getGatewayList();
-			if (gatewayList.size() == 0) return;
-			
-			for (String gateway : gatewayList) {
-				mqttAdapter.addTopic("t/".concat(gateway).concat("/NextWave123/telemetry"));
-			}
-		} catch (Exception ex) {
-			log.error("SitesOverviewHVAC.subscribeToGateway", ex);
-		}
-	}
+//	
+//	/**
+//	 * Subscribe to MQTT gateway.
+//	 * @author Hung.Bui
+//	 * @since 2025-04-08
+//	 */
+//	@PostConstruct
+//	private void subscribeToGateway() {
+//		try {
+//			List<String> gatewayList = this.getGatewayList();
+//			if (gatewayList.size() == 0) return;
+//			
+//			for (String gateway : gatewayList) {
+//				mqttAdapter.addTopic("t/".concat(gateway).concat("/NextWave123/telemetry"));
+//			}
+//		} catch (Exception ex) {
+//			log.error("SitesOverviewHVAC.subscribeToGateway", ex);
+//		}
+//	}
 	
 	/**
 	 * Save field data (cache data for 5 minutes then saving to database).
