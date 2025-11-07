@@ -23,6 +23,8 @@
 			<result property="label" column="label" />
 			<result property="parent" column="parent" />
 			<result property="id_company" column="id_company" />
+			<result property="total_users" column="total_users" />
+			<result property="company_name" column="company_name" />
 			
 	</resultMap>
 	
@@ -53,9 +55,10 @@
 		r.*,
 		r.id AS value,
 		r.`name` as label,
-		r.`name` as text
+		r.`name` as text,
+		c.`name` AS company_name
 		FROM `role` r
-		 
+		 LEFT JOIN company c ON c.id = r.id_company
 		<if test="id_company != null and id_company != 0 and id_company > 1">
 			WHERE r.id_company = #{id_company}
 		</if>
@@ -102,12 +105,14 @@
 			`name`,
 			`parent`,
 			`description`,
-			`id_company`
+			`id_company`,
+			`is_admin_role`
 		)VALUES(
 			#{name},
 			#{parent},
 			#{description},
-			#{id_company}
+			#{id_company},
+			#{is_admin_role}
 		);
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
@@ -146,7 +151,7 @@
 			s.path,
 			s.link_demo,
 			s.description,
-			rcs.auths,
+			IF(rcs.auths > 1 <![CDATA[&& ]]> rcs.auths <![CDATA[<]]> 511, rcs.auths - 1 , rcs.auths) AS auths,
 			rcs.id_role,
 			0 AS collapse,
 			(IFNULL(rcs.auths,0) <![CDATA[&]]> 1) AS `view`,
@@ -178,15 +183,22 @@
 			s.`level` ASC
 	</select>
 	
-	<select id="getAllRole" resultMap="RoleMap" >
-		SELECT t.*, 
+	<select id="getAllRole" resultType="Map" >
+		SELECT t.*,
 		t.id AS value,
 		t.name AS label,
-		0 as is_checked FROM `role` t
+		t.name AS text,
+		0 as is_checked,
+		COUNT(er.id_employee) AS total_users,
+		c.`name` AS company_name
+		FROM `role` t
+		LEFT JOIN company c ON c.id = t.id_company
+		LEFT JOIN employee_role_map er ON er.id_role = t.id
+		WHERE t.status = 1 AND t.is_delete = 0
 		<if test="id_company != null and id_company != 0 and id_company > 1">
-			WHERE t.id_company = #{id_company}
+			AND t.id_company = #{id_company}
 		</if>
-		;
+		GROUP BY t.id
 	</select>
 	
 	<select id="checkRoleScreenMapExist" resultType="int" parameterType="com.nwm.api.entities.RoleScreenMapEntity" >
@@ -213,6 +225,14 @@
 			id = #{id}
 	</update>
 	
+	<delete id="deleteRoleScreenMap">
+		DELETE FROM `role_screen_map` WHERE id_role = #{id_admin_role}
+	</delete>
+	
+
+		
+	
+	
 	
 	<insert id="insertRoleScreenMap">
 		INSERT INTO `role_screen_map`(
@@ -229,5 +249,53 @@
 	<select id="getAllScreen" resultMap="ScreenMap" >
 		SELECT t.* FROM `screen` t WHERE `status` = 1 AND is_delete = 0;
 	</select>
+	
+	
+	
+	<select id="getListRoleByCompanyNotAdminRole" resultType="Map" >
+		SELECT * FROM role r WHERE r.id_company = #{id} AND r.is_admin_role = 0
+	</select>
+	
+	<select id="getDataScreenByRole" resultType="Map" >
+		SELECT 
+			rsm.*,
+			s.screen_name
+		FROM role_screen_map rsm 
+		LEFT JOIN screen s ON s.id = rsm.id_screen
+		WHERE rsm.id_role = #{id}
+	</select>
+	
+	
+	<delete id="deleteMultiRole">
+        DELETE FROM role_screen_map
+        WHERE id_role IN
+        <foreach item="item" collection="dataScreenMap" open="(" separator="," close=")">
+            #{item.id_role}
+        </foreach>
+    </delete>
+    
+    <delete id="">
+        DELETE FROM role_screen_map
+        WHERE id_role IN
+        <foreach item="item" collection="dataScreenMap" open="(" separator="," close=")">
+            #{item.id_role}
+        </foreach>
+    </delete>
+    
+    
+    <insert id="insertMultiRoleScreenMap">
+	    INSERT INTO role_screen_map (
+	    id_role,
+	    id_screen,
+	    auths)
+	    VALUES
+	    <foreach collection="dataScreenMap" item="element" index="index" open="(" separator="),("  close=")">
+	        #{element.id_role},
+	        #{element.id_screen},
+	        #{element.auths}
+	    </foreach>
+	</insert>
+	
+	
 	
 </mapper>

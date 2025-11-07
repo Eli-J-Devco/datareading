@@ -4,18 +4,23 @@
 * 
 *********************************************************/
 package com.nwm.api.controllers;
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.nwm.api.entities.AccountEntity;
 import com.nwm.api.entities.ErrorEntity;
-import com.nwm.api.entities.ErrorLevelEntity;
-import com.nwm.api.services.ErrorLevelService;
+import com.nwm.api.services.AWSService;
 import com.nwm.api.services.ErrorService;
 import com.nwm.api.utils.Constants;
+import com.nwm.api.utils.Lib;
 
 import springfox.documentation.annotations.ApiIgnore;
 import javax.validation.Valid;
@@ -24,7 +29,8 @@ import javax.validation.Valid;
 @ApiIgnore
 @RequestMapping("/error")
 public class ErrorController extends BaseController {
-
+	@Autowired
+	private AWSService awsService;
 	/**
 	 * @description Get list error
 	 * @author long.pham
@@ -102,7 +108,32 @@ public class ErrorController extends BaseController {
 	public Object save(@Valid @RequestBody ErrorEntity obj) {
 		try {
 			ErrorService service = new ErrorService();
+			List recommendTools = obj.getRecommendTools();
+			List dataTools = new ArrayList();
 			if (obj.getScreen_mode() == 1) {
+				
+				
+				if(recommendTools.size() > 0) {
+					for(int i = 0; i < recommendTools.size(); i++) {
+						Map<String, Object> item = (Map<String, Object>) recommendTools.get(i);
+						String fileName = "";
+						String saveDir = "";
+						if(!Lib.isBlank(item.get("file_upload"))) {
+							saveDir = uploadRootPath() +"/"+ Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathConfigKeyIcons);
+							fileName = randomAlphabetic(16);
+							String saveFileName = Lib.uploadFromBase64(item.get("file_upload").toString(), fileName, saveDir);
+							String filePath = awsService.uploadFile(saveDir + "/" + saveFileName, Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathConfigKeyIcons) + "/" + saveFileName);
+							item.replace("image", filePath);
+						}
+						
+						dataTools.add(item);
+					}
+					
+					obj.setRecommendTools(dataTools);
+				}
+				
+				
+				
 				ErrorEntity data = service.insertError(obj);
 				if (data != null) {
 					return this.jsonResult(true, Constants.SAVE_SUCCESS_MSG, obj, 1);
@@ -111,6 +142,26 @@ public class ErrorController extends BaseController {
 				}
 			} else {
 				if (obj.getScreen_mode() == 2) {
+					
+					if(recommendTools.size() > 0) {
+						for(int i = 0; i < recommendTools.size(); i++) {
+							Map<String, Object> item = (Map<String, Object>) recommendTools.get(i);
+							String fileName = "";
+							String saveDir = "";
+							if(!Lib.isBlank(item.get("file_upload"))) {
+								saveDir = uploadRootPath() +"/"+ Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathConfigKeyIcons);
+								fileName = randomAlphabetic(16);
+								String saveFileName = Lib.uploadFromBase64(item.get("file_upload").toString(), fileName, saveDir);
+								String filePath = awsService.uploadFile(saveDir + "/" + saveFileName, Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadFilePathConfigKeyIcons) + "/" + saveFileName);
+								item.replace("image", filePath);
+							}
+							
+							dataTools.add(item);
+						}
+						
+						obj.setRecommendTools(dataTools);
+					}
+					
 					boolean update = service.updateError(obj);
 					if (update == true) {
 						return this.jsonResult(true, Constants.UPDATE_SUCCESS_MSG, obj, 1);
@@ -181,4 +232,31 @@ public class ErrorController extends BaseController {
 			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
 		}
 	}
+	
+	/**
+	 * @description Get error detail
+	 * @author Long.Pham
+	 * @since 2025-08-23
+	 * @param id
+	 * @return data (status, message, array
+	 */
+	@PostMapping("/error-detail")
+	public Object getErrorDetail(@RequestBody ErrorEntity obj) {
+		try {
+
+			ErrorService service = new ErrorService();
+
+			ErrorEntity errorDetail = service.getErrorDetail(obj);
+			
+			if (errorDetail != null) {
+				return this.jsonResult(true, Constants.GET_SUCCESS_MSG, errorDetail, 1);
+			} else {
+				return this.jsonResult(false, Constants.GET_ERROR_MSG, null, 0);
+			}
+		} catch (Exception e) {
+			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
+	
 }

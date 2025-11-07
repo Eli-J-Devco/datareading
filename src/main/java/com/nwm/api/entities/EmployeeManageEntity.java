@@ -65,8 +65,31 @@ public class EmployeeManageEntity extends SortEntity {
 	private int portfolio_metrics_enable;
 	private String domain;
 	private String domain_role;
+	private String site_names;
+	private int is_admin_company;
+	private String data_roles;
 	
 	
+	
+	
+	public String getData_roles() {
+		return data_roles;
+	}
+	public void setData_roles(String data_roles) {
+		this.data_roles = data_roles;
+	}
+	public int getIs_admin_company() {
+		return is_admin_company;
+	}
+	public void setIs_admin_company(int is_admin_company) {
+		this.is_admin_company = is_admin_company;
+	}
+	public String getSite_names() {
+		return site_names;
+	}
+	public void setSite_names(String site_names) {
+		this.site_names = site_names;
+	}
 	public String getDomain_role() {
 		return domain_role;
 	}

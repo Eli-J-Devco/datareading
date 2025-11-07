@@ -51,11 +51,116 @@ public class CompanyEntity{
 	private String file_upload;
 	private int primary_contact;
 	private int bill_different_address;
+	private List screens;
+	private int id_admin_role;
+	private List dataScreenMap;
+	private double overPerformingActualExpected;
+	private double onTargetBetweenActualExpected;
+	private double onTargetAndActualExpected;
+	private double underPerformingActualExpected;
+	private double highAvailability;
+	private double moderateAvailabilityBetween;
+	private double moderateAvailabilityAnd;
+	private double lowAvailability;
+	private double highPerformance;
+	private double moderatePerformanceBetween;
+	private double moderatePerformanceAnd;
+	private double lowPerformance;
 	
 	
 	
 	
 	
+	public double getLowPerformance() {
+		return lowPerformance;
+	}
+	public void setLowPerformance(double lowPerformance) {
+		this.lowPerformance = lowPerformance;
+	}
+	public double getOverPerformingActualExpected() {
+		return overPerformingActualExpected;
+	}
+	public void setOverPerformingActualExpected(double overPerformingActualExpected) {
+		this.overPerformingActualExpected = overPerformingActualExpected;
+	}
+	public double getOnTargetBetweenActualExpected() {
+		return onTargetBetweenActualExpected;
+	}
+	public void setOnTargetBetweenActualExpected(double onTargetBetweenActualExpected) {
+		this.onTargetBetweenActualExpected = onTargetBetweenActualExpected;
+	}
+	public double getOnTargetAndActualExpected() {
+		return onTargetAndActualExpected;
+	}
+	public void setOnTargetAndActualExpected(double onTargetAndActualExpected) {
+		this.onTargetAndActualExpected = onTargetAndActualExpected;
+	}
+	public double getUnderPerformingActualExpected() {
+		return underPerformingActualExpected;
+	}
+	public void setUnderPerformingActualExpected(double underPerformingActualExpected) {
+		this.underPerformingActualExpected = underPerformingActualExpected;
+	}
+	public double getHighAvailability() {
+		return highAvailability;
+	}
+	public void setHighAvailability(double highAvailability) {
+		this.highAvailability = highAvailability;
+	}
+	public double getModerateAvailabilityBetween() {
+		return moderateAvailabilityBetween;
+	}
+	public void setModerateAvailabilityBetween(double moderateAvailabilityBetween) {
+		this.moderateAvailabilityBetween = moderateAvailabilityBetween;
+	}
+	public double getModerateAvailabilityAnd() {
+		return moderateAvailabilityAnd;
+	}
+	public void setModerateAvailabilityAnd(double moderateAvailabilityAnd) {
+		this.moderateAvailabilityAnd = moderateAvailabilityAnd;
+	}
+	public double getLowAvailability() {
+		return lowAvailability;
+	}
+	public void setLowAvailability(double lowAvailability) {
+		this.lowAvailability = lowAvailability;
+	}
+	public double getHighPerformance() {
+		return highPerformance;
+	}
+	public void setHighPerformance(double highPerformance) {
+		this.highPerformance = highPerformance;
+	}
+	public double getModeratePerformanceBetween() {
+		return moderatePerformanceBetween;
+	}
+	public void setModeratePerformanceBetween(double moderatePerformanceBetween) {
+		this.moderatePerformanceBetween = moderatePerformanceBetween;
+	}
+	public double getModeratePerformanceAnd() {
+		return moderatePerformanceAnd;
+	}
+	public void setModeratePerformanceAnd(double moderatePerformanceAnd) {
+		this.moderatePerformanceAnd = moderatePerformanceAnd;
+	}
+	public List getDataScreenMap() {
+		return dataScreenMap;
+	}
+	public void setDataScreenMap(List dataScreenMap) {
+		this.dataScreenMap = dataScreenMap;
+	}
+	public int getId_admin_role() {
+		return id_admin_role;
+	}
+	public void setId_admin_role(int id_admin_role) {
+		this.id_admin_role = id_admin_role;
+	}
+	public List getScreens() {
+		return screens;
+	}
+	public void setScreens(List screens) {
+		this.screens = screens;
+	}
 	public int getBill_different_address() {
 		return bill_different_address;
 	}

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -109,8 +110,11 @@ public class SitesDevicesService extends DB {
 							device.setYieldYesterday(yield.getYieldYesterday());
 							device.setYieldLast7Days(yield.getYieldLast7Days());
 							device.setYieldYTD(yield.getYieldYTD());
-							device.setAdvance_tech_control_tag(item.get("advance_tech_control_tag").toString());
 						}
+						
+						if (Objects.nonNull(item.get("advance_tech_control_tag"))) device.setAdvance_tech_control_tag(item.get("advance_tech_control_tag").toString());
+						if (Objects.nonNull(item.get("advance_tech_field_device_status"))) device.setAdvance_tech_field_device_status(item.get("advance_tech_field_device_status").toString());
+						
 						
 						// Get all parameter by device
 						List dataList = queryForList("SitesDevices.getListParameterByDevice", item);

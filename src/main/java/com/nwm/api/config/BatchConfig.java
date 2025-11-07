@@ -88,17 +88,17 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 * */60 * * *")
-	public void startBatchJobGetWeather() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.runCronJobGetWeather();
-		}
-		
-	}
-	
+//	@Scheduled(cron = "0 * */60 * * *")
+//	public void startBatchJobGetWeather() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.runCronJobGetWeather();
+//		}
+//		
+//	}
+//	
 	
 	/**
 	 * @description batch job get sunset, sunrise
@@ -107,17 +107,17 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 * */60 * * *")
-	public void startBatchJobGetSunriseSunset() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.runCronJobGeSunriseSunsetJava();
-		}
-		
-	}
-	
+//	@Scheduled(cron = "0 * */60 * * *")
+//	public void startBatchJobGetSunriseSunset() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.runCronJobGeSunriseSunsetJava();
+//		}
+//		
+//	}
+//	
 	/**
 	 * @description batch job get alert for all device No Communication
 	 * @author long.pham
@@ -217,15 +217,15 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */60 * * * *")
-	public void startBatchJobGenerateDataReport() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.runCronJobGenerateDataReport();
-		}
-	}
+//	@Scheduled(cron = "0 */60 * * * *")
+//	public void startBatchJobGenerateDataReport() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.runCronJobGenerateDataReport();
+//		}
+//	}
 	
 	
 	/**
@@ -235,35 +235,35 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */20 * * * *")
-	
-	// Start every day 2 PM.
-//	@Scheduled(cron = "0 0 0/20 ? * *")
-	public void startBatchJobGeneratePerformanceRatio() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.startBatchJobGeneratePerformanceRatio();
-		}
-		
-		
-	}
-	
+//	@Scheduled(cron = "0 */20 * * * *")
+//	
+//	// Start every day 2 PM.
+////	@Scheduled(cron = "0 0 0/20 ? * *")
+//	public void startBatchJobGeneratePerformanceRatio() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.startBatchJobGeneratePerformanceRatio();
+//		}
+//		
+//		
+//	}
+//	
 	
 	/**
 	 * @description sent mail report on schedule
 	 * @author Hung.Bui
 	 * @since 2022-12-22
 	 */
-	@Bean
-    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
-		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-		taskScheduler.setRemoveOnCancelPolicy(true);
-		taskScheduler.setPoolSize(5);
-        return taskScheduler;
-    }
-	
+//	@Bean
+//    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
+//		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+//		taskScheduler.setRemoveOnCancelPolicy(true);
+//		taskScheduler.setPoolSize(5);
+//        return taskScheduler;
+//    }
+//	
 	
 	/**
 	 * @description read folder from FTP account
@@ -289,14 +289,14 @@ public class BatchConfig {
 //	}
 	
 	
-	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
-		String value = defaultValue;
-		try {
-			value = resourceBundle.getString(key);
-		} catch (Exception e) {}
-		return value;
-	}
-	
+//	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
+//		String value = defaultValue;
+//		try {
+//			value = resourceBundle.getString(key);
+//		} catch (Exception e) {}
+//		return value;
+//	}
+//	
 	/**
 	 * @description SMA read folder from FTP account
 	 * @author Long.Pham

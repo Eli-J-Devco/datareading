@@ -6,13 +6,20 @@
 package com.nwm.api.services;
 
 
+import java.sql.SQLException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.nwm.api.DBManagers.DB;
+import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.ModelDent48PSHDMeterEntity;
 import com.nwm.api.utils.Lib;
+import com.nwm.api.utils.LibErrorCode;
 
 public class ModelDent48PSHDMeterService extends DB {
 	
@@ -29,7 +36,7 @@ public class ModelDent48PSHDMeterService extends DB {
 			if (words.size() > 0) {
 				ModelDent48PSHDMeterEntity dataModel = new ModelDent48PSHDMeterEntity();
 				
-				Double power = Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0.001");
+				Double power = Double.parseDouble(!Lib.isBlank(words.get(17)) ? words.get(17) : "0.001");
 				Double energy = Double.parseDouble(!Lib.isBlank(words.get(37)) ? words.get(37) : "0.001");
 				
 				dataModel.setTime(words.get(0).replace("'", ""));
@@ -37,7 +44,7 @@ public class ModelDent48PSHDMeterService extends DB {
 				dataModel.setLow_alarm(Integer.parseInt(!Lib.isBlank(words.get(2)) ? words.get(2) : "0"));
 				dataModel.setHigh_alarm(Integer.parseInt(!Lib.isBlank(words.get(3)) ? words.get(3) : "0"));
 				
-				dataModel.setCurrentSum(power);
+				dataModel.setCurrentSum(Double.parseDouble(!Lib.isBlank(words.get(4)) ? words.get(4) : "0"));
 				dataModel.setCurrentCH1A(Double.parseDouble(!Lib.isBlank(words.get(5)) ? words.get(5) : "0.001"));
 				dataModel.setCurrentCH2B(Double.parseDouble(!Lib.isBlank(words.get(6)) ? words.get(6) : "0.001"));
 				dataModel.setCurrentCH3C(Double.parseDouble(!Lib.isBlank(words.get(7)) ? words.get(7) : "0.001"));
@@ -50,7 +57,7 @@ public class ModelDent48PSHDMeterService extends DB {
 				dataModel.setVoltageL2L3(Double.parseDouble(!Lib.isBlank(words.get(14)) ? words.get(14) : "0.001"));
 				dataModel.setVoltageL3L1(Double.parseDouble(!Lib.isBlank(words.get(15)) ? words.get(15) : "0.001"));
 				dataModel.setLineFrequency(Double.parseDouble(!Lib.isBlank(words.get(16)) ? words.get(16) : "0.001"));
-				dataModel.setPowerSum(Double.parseDouble(!Lib.isBlank(words.get(17)) ? words.get(17) : "0.001"));
+				dataModel.setPowerSum(power);
 				dataModel.setPowerCH1A(Double.parseDouble(!Lib.isBlank(words.get(18)) ? words.get(18) : "0.001"));
 				dataModel.setPowerCH2B(Double.parseDouble(!Lib.isBlank(words.get(19)) ? words.get(19) : "0.001"));
 				dataModel.setPowerCH3C(Double.parseDouble(!Lib.isBlank(words.get(20)) ? words.get(20) : "0.001"));
@@ -180,15 +187,178 @@ public class ModelDent48PSHDMeterService extends DB {
 			 obj.setMeasuredProduction(measuredProduction);
 			 
 			 Object insertId = insert("ModelDent48PSHDMeter.insertModelDent48PSHDMeter", obj);
-		        if(insertId == null ) {
-		        	return false;
-		        }
-		        return true;
+	        if(insertId == null ) {
+	        	return false;
+	        }
+	        
+	        ZoneId zoneIdLosAngeles = ZoneId.of("America/Los_Angeles"); // "America/Los_Angeles"
+	        ZonedDateTime zdtNowLosAngeles = ZonedDateTime.now(zoneIdLosAngeles);
+	        int hours = zdtNowLosAngeles.getHour();
+	        
+	        if (hours >= 9 && hours <= 17 && dataObj.getEnable_alert() >= 1) {
+	        	checkTriggerAlertModelDent48PSHDMeter(obj);
+	        }
+	        return true;
 		} catch (Exception ex) {
 			log.error("insert", ex);
 			return false;
 		}
 
+	}
+	
+
+	/**
+	 * @description get last row "data table name" by device
+	 * @author duy.phan
+	 * @since 2023-05-23
+	 * @param datatablename
+	 */
+
+	public ModelDent48PSHDMeterEntity checkAlertWriteCode(ModelDent48PSHDMeterEntity obj) {
+		ModelDent48PSHDMeterEntity rowItem = new ModelDent48PSHDMeterEntity();
+		try {
+//			rowItem = (ModelXantrexGT100250500Entity) queryForObject("ModelXantrexGT100250500.checkAlertWriteCode", obj);
+			List dataList = queryForList("ModelDent48PSHDMeter.checkAlertWriteCode", obj);
+			if(dataList.size() > 0) {
+				int totalApparentPFAvg = 0;
+				int totalLineFrequency = 0; 
+				for(int i =0; i < dataList.size(); i ++) {
+					Map<String, Object> item = (Map<String, Object>) dataList.get(i);
+					double ApparentPFAvg = (double) item.get("ApparentPFAvg");
+					double LineFrequency = (double) item.get("LineFrequency");
+					
+					if(ApparentPFAvg < -0.7 || ApparentPFAvg > 0.7) { 
+						totalApparentPFAvg++;
+					}
+					
+					if(LineFrequency < 59.8 || LineFrequency > 60.2) { 
+						totalLineFrequency++;
+					}
+					
+				}
+				rowItem.setTotalApparentPFAvg(totalApparentPFAvg);
+				rowItem.setTotalLineFrequency(totalLineFrequency);
+			}
+			
+			if (rowItem == null)
+				return new ModelDent48PSHDMeterEntity();
+		} catch (Exception ex) {
+			log.error("ModelDent48PSHDMeter.checkAlertWriteCode", ex);
+			return new ModelDent48PSHDMeterEntity();
+		}
+		return rowItem;
+	}
+	
+	
+	/**
+	 * @description check trigger alert fault code
+	 * @author duy.phan
+	 * @since 2023-05-23
+	 * @param data from datalogger
+	 */
+
+	public void checkTriggerAlertModelDent48PSHDMeter(ModelDent48PSHDMeterEntity obj) {
+		// Check device alert by fault code
+		
+		 ModelDent48PSHDMeterEntity rowItem = (ModelDent48PSHDMeterEntity) checkAlertWriteCode(obj);
+		
+		if((obj.getApparentPFAvg() < -0.7 || obj.getApparentPFAvg() > 0.7) && rowItem.getTotalApparentPFAvg() >= 20) {
+			try {
+				int errorId = LibErrorCode.GetAlertModelDent48PSHDMeter(1);	
+				if (errorId > 0) {
+					AlertEntity alertDeviceItem = new AlertEntity();
+					alertDeviceItem.setId_device(obj.getId_device());
+					alertDeviceItem.setStart_date(obj.getTime());
+					alertDeviceItem.setId_error(errorId);
+					boolean checkAlertDeviceExist = (int) queryForObject("BatchJob.checkAlertlExist",
+							alertDeviceItem) > 0;
+					boolean errorExits = (int) queryForObject("BatchJob.checkErrorExist", alertDeviceItem) > 0;
+					if (!checkAlertDeviceExist && errorExits) {
+						insert("BatchJob.insertAlert", alertDeviceItem);
+					}
+				}
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			// Close faultCode
+			try {
+				if(rowItem.getTotalApparentPFAvg() == 0) {
+					AlertEntity alertItemClose = new AlertEntity();
+					alertItemClose.setId_device(obj.getId_device());
+					// type 1 is error code
+					alertItemClose.setFaultCodeLevel(1);
+					List dataListWarningCode = new ArrayList();
+					dataListWarningCode = queryForList("ModelDent48PSHDMeter.getListTriggerFaultCode", alertItemClose);
+					if(dataListWarningCode.size() > 0) {
+						for(int i = 0; i < dataListWarningCode.size(); i++) {
+							Map<String, Object> itemFault = (Map<String, Object>) dataListWarningCode.get(i);
+							int id =  Integer.parseInt(itemFault.get("id").toString());
+							int idError =  Integer.parseInt(itemFault.get("id_error").toString());
+							alertItemClose.setEnd_date(itemFault.get("end_date").toString());
+							alertItemClose.setId(id );
+							alertItemClose.setId_error(idError);
+							update("Alert.UpdateErrorRow", alertItemClose);
+						}
+					}
+				}
+				
+			}
+			catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		if((obj.getLineFrequency() < 59.8 || obj.getLineFrequency() > 60.2) && rowItem.getTotalLineFrequency() >= 20) {
+			try {
+				int errorId = LibErrorCode.GetAlertModelDent48PSHDMeter(2);	
+				if (errorId > 0) {
+					AlertEntity alertDeviceItem = new AlertEntity();
+					alertDeviceItem.setId_device(obj.getId_device());
+					alertDeviceItem.setStart_date(obj.getTime());
+					alertDeviceItem.setId_error(errorId);
+					boolean checkAlertDeviceExist = (int) queryForObject("BatchJob.checkAlertlExist",
+							alertDeviceItem) > 0;
+					boolean errorExits = (int) queryForObject("BatchJob.checkErrorExist", alertDeviceItem) > 0;
+					if (!checkAlertDeviceExist && errorExits) {
+						insert("BatchJob.insertAlert", alertDeviceItem);
+					}
+				}
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			// Close faultCode
+			try {
+				if(rowItem.getTotalLineFrequency() == 0) {
+					AlertEntity alertItemClose = new AlertEntity();
+					alertItemClose.setId_device(obj.getId_device());
+					// type 2 is error code
+					alertItemClose.setFaultCodeLevel(2);
+					List dataListWarningCode = new ArrayList();
+					dataListWarningCode = queryForList("ModelDent48PSHDMeter.getListTriggerFaultCode", alertItemClose);
+					if(dataListWarningCode.size() > 0) {
+						for(int i = 0; i < dataListWarningCode.size(); i++) {
+							Map<String, Object> itemFault = (Map<String, Object>) dataListWarningCode.get(i);
+							int id =  Integer.parseInt(itemFault.get("id").toString());
+							int idError =  Integer.parseInt(itemFault.get("id_error").toString());
+							alertItemClose.setEnd_date(itemFault.get("end_date").toString());
+							alertItemClose.setId(id );
+							alertItemClose.setId_error(idError);
+							update("Alert.UpdateErrorRow", alertItemClose);
+						}
+					}
+				}
+				
+			}
+			catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 
 }

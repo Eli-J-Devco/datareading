@@ -5,12 +5,7 @@
 *********************************************************/
 package com.nwm.api.entities;
 
-public class ModelG3LightControllerEntity {
-	private String time;
-	private int id_device;
-	private int error;
-	private int low_alarm;
-	private int high_alarm;
+public class ModelG3LightControllerEntity extends ModelBaseEntity {
 	private double InputsStatus132;
 	private double InputsManualFlag132;
 	private double ZonesStatus132;
@@ -37,39 +32,64 @@ public class ModelG3LightControllerEntity {
 	private double NonRespondingBreakersPanel2R;
 	private double ScheduleStatus116;
 	private double Schedule1PeriodStatus124;
-	private String datatablename;
-	private String view_tablename;
-	private String job_tablename;
-	private int enable_alert;
-	public String getTime() {
-		return time;
+	
+	private int totalNoComm;
+	private int totalZonesAlarmState132;
+	private int totalBreakersPanel0L;
+	private int totalBreakersPanel0R;
+	private int totalBreakersPanel1L;
+	private int totalBreakersPanel1R;
+	private int totalBreakersPanel2L;
+	private int totalBreakersPanel2R;
+	
+	
+	public int getTotalNoComm() {
+		return totalNoComm;
 	}
-	public void setTime(String time) {
-		this.time = time;
+	public void setTotalNoComm(int totalNoComm) {
+		this.totalNoComm = totalNoComm;
 	}
-	public int getId_device() {
-		return id_device;
+	public int getTotalZonesAlarmState132() {
+		return totalZonesAlarmState132;
 	}
-	public void setId_device(int id_device) {
-		this.id_device = id_device;
+	public void setTotalZonesAlarmState132(int totalZonesAlarmState132) {
+		this.totalZonesAlarmState132 = totalZonesAlarmState132;
 	}
-	public int getError() {
-		return error;
+	public int getTotalBreakersPanel0L() {
+		return totalBreakersPanel0L;
 	}
-	public void setError(int error) {
-		this.error = error;
+	public void setTotalBreakersPanel0L(int totalBreakersPanel0L) {
+		this.totalBreakersPanel0L = totalBreakersPanel0L;
 	}
-	public int getLow_alarm() {
-		return low_alarm;
+	public int getTotalBreakersPanel0R() {
+		return totalBreakersPanel0R;
 	}
-	public void setLow_alarm(int low_alarm) {
-		this.low_alarm = low_alarm;
+	public void setTotalBreakersPanel0R(int totalBreakersPanel0R) {
+		this.totalBreakersPanel0R = totalBreakersPanel0R;
 	}
-	public int getHigh_alarm() {
-		return high_alarm;
+	public int getTotalBreakersPanel1L() {
+		return totalBreakersPanel1L;
 	}
-	public void setHigh_alarm(int high_alarm) {
-		this.high_alarm = high_alarm;
+	public void setTotalBreakersPanel1L(int totalBreakersPanel1L) {
+		this.totalBreakersPanel1L = totalBreakersPanel1L;
+	}
+	public int getTotalBreakersPanel1R() {
+		return totalBreakersPanel1R;
+	}
+	public void setTotalBreakersPanel1R(int totalBreakersPanel1R) {
+		this.totalBreakersPanel1R = totalBreakersPanel1R;
+	}
+	public int getTotalBreakersPanel2L() {
+		return totalBreakersPanel2L;
+	}
+	public void setTotalBreakersPanel2L(int totalBreakersPanel2L) {
+		this.totalBreakersPanel2L = totalBreakersPanel2L;
+	}
+	public int getTotalBreakersPanel2R() {
+		return totalBreakersPanel2R;
+	}
+	public void setTotalBreakersPanel2R(int totalBreakersPanel2R) {
+		this.totalBreakersPanel2R = totalBreakersPanel2R;
 	}
 	public double getInputsStatus132() {
 		return InputsStatus132;
@@ -227,32 +247,6 @@ public class ModelG3LightControllerEntity {
 	public void setSchedule1PeriodStatus124(double schedule1PeriodStatus124) {
 		Schedule1PeriodStatus124 = schedule1PeriodStatus124;
 	}
-	public String getDatatablename() {
-		return datatablename;
-	}
-	public void setDatatablename(String datatablename) {
-		this.datatablename = datatablename;
-	}
-	public String getView_tablename() {
-		return view_tablename;
-	}
-	public void setView_tablename(String view_tablename) {
-		this.view_tablename = view_tablename;
-	}
-	public String getJob_tablename() {
-		return job_tablename;
-	}
-	public void setJob_tablename(String job_tablename) {
-		this.job_tablename = job_tablename;
-	}
-	public int getEnable_alert() {
-		return enable_alert;
-	}
-	public void setEnable_alert(int enable_alert) {
-		this.enable_alert = enable_alert;
-	}
-	
-	
 	
 	
 }

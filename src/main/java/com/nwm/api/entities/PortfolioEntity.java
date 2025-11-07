@@ -28,6 +28,7 @@ public class PortfolioEntity extends SortEntity {
 	private Date created_date;
 	private String created_by;
 	private Date updated_date;
+	private Integer updated_by;
 	private String built_since;
 	private int limit;
 	private int offset;
@@ -70,8 +71,22 @@ public class PortfolioEntity extends SortEntity {
 	private String start_date;
 	private String end_date;
 	private String id_filter;
+	private int id_site_group = 0;
+	private int is_subtract_pv;
 	
 	
+	public int getIs_subtract_pv() {
+		return is_subtract_pv;
+	}
+	public void setIs_subtract_pv(int is_subtract_pv) {
+		this.is_subtract_pv = is_subtract_pv;
+	}
+	public int getId_site_group() {
+		return id_site_group;
+	}
+	public void setId_site_group(int id_site_group) {
+		this.id_site_group = id_site_group;
+	}
 	public String getDomain_role() {
 		return domain_role;
 	}
@@ -242,6 +257,12 @@ public class PortfolioEntity extends SortEntity {
 	}
 	public void setUpdated_date(Date updated_date) {
 		this.updated_date = updated_date;
+	}
+	public Integer getUpdated_by() {
+		return updated_by;
+	}
+	public void setUpdated_by(Integer updated_by) {
+		this.updated_by = updated_by;
 	}
 	public String getBuilt_since() {
 		return built_since;

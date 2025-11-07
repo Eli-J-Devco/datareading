@@ -28,10 +28,11 @@ public class SiteEntity extends SortEntity {
 	private int status;
 	private int is_delete;
 	private Date created_date;
-	private String created_by;
+	private Integer created_by;
 	private Date updated_date;
-	private String updated_by;
+	private Integer updated_by;
 	private String built_since;
+	private String last_updated;
 	private int limit;
 	private int offset;
 	private int totalRecord;
@@ -321,11 +322,107 @@ public class SiteEntity extends SortEntity {
 	private double humidity;
 	private int device_mode;
 	private int inv_level;
+	private int year;
+	private double overPerformingActualExpected;
+	private double onTargetBetweenActualExpected;
+	private double onTargetAndActualExpected;
+	private double underPerformingActualExpected;
+	
+	private List dataDevice;
+	private String model_name;
+	private int ai_train_type;
+	private double temperature_2m_max;
+	private double temperature_2m_min;
+	private int is_subtract_pv;
+	private String id_filter;
+	private List meterType;
 	
 	
 	
-	
-	
+	public List getMeterType() {
+		return meterType;
+	}
+	public void setMeterType(List meterType) {
+		this.meterType = meterType;
+	}
+	public String getId_filter() {
+		return id_filter;
+	}
+	public void setId_filter(String id_filter) {
+		this.id_filter = id_filter;
+	}
+	public int getIs_subtract_pv() {
+		return is_subtract_pv;
+	}
+	public void setIs_subtract_pv(int is_subtract_pv) {
+		this.is_subtract_pv = is_subtract_pv;
+	}
+	public double getTemperature_2m_max() {
+		return temperature_2m_max;
+	}
+	public void setTemperature_2m_max(double temperature_2m_max) {
+		this.temperature_2m_max = temperature_2m_max;
+	}
+	public double getTemperature_2m_min() {
+		return temperature_2m_min;
+	}
+	public void setTemperature_2m_min(double temperature_2m_min) {
+		this.temperature_2m_min = temperature_2m_min;
+	}
+	public double getOverPerformingActualExpected() {
+		return overPerformingActualExpected;
+	}
+	public void setOverPerformingActualExpected(double overPerformingActualExpected) {
+		this.overPerformingActualExpected = overPerformingActualExpected;
+	}
+	public double getOnTargetBetweenActualExpected() {
+		return onTargetBetweenActualExpected;
+	}
+	public void setOnTargetBetweenActualExpected(double onTargetBetweenActualExpected) {
+		this.onTargetBetweenActualExpected = onTargetBetweenActualExpected;
+	}
+	public double getOnTargetAndActualExpected() {
+		return onTargetAndActualExpected;
+	}
+	public void setOnTargetAndActualExpected(double onTargetAndActualExpected) {
+		this.onTargetAndActualExpected = onTargetAndActualExpected;
+	}
+	public double getUnderPerformingActualExpected() {
+		return underPerformingActualExpected;
+	}
+	public void setUnderPerformingActualExpected(double underPerformingActualExpected) {
+		this.underPerformingActualExpected = underPerformingActualExpected;
+	}
+	public List getDataDevice() {
+		return dataDevice;
+	}
+	public void setDataDevice(List dataDevice) {
+		this.dataDevice = dataDevice;
+	}
+	public String getModel_name() {
+		return model_name;
+	}
+	public void setModel_name(String model_name) {
+		this.model_name = model_name;
+	}
+	public int getAi_train_type() {
+		return ai_train_type;
+	}
+	public void setAi_train_type(int ai_train_type) {
+		this.ai_train_type = ai_train_type;
+	}
+	public String getLast_updated() {
+		return last_updated;
+	}
+	public void setLast_updated(String last_updated) {
+		this.last_updated = last_updated;
+	}
+	public int getYear() {
+		return year;
+	}
+	public void setYear(int year) {
+		this.year = year;
+	}
 	public int getInv_level() {
 		return inv_level;
 	}
@@ -1301,10 +1398,10 @@ public class SiteEntity extends SortEntity {
 	public void setCreated_date(Date created_date) {
 		this.created_date = created_date;
 	}
-	public String getCreated_by() {
+	public Integer getCreated_by() {
 		return created_by;
 	}
-	public void setCreated_by(String created_by) {
+	public void setCreated_by(Integer created_by) {
 		this.created_by = created_by;
 	}
 	public Date getUpdated_date() {
@@ -1313,10 +1410,10 @@ public class SiteEntity extends SortEntity {
 	public void setUpdated_date(Date updated_date) {
 		this.updated_date = updated_date;
 	}
-	public String getUpdated_by() {
+	public Integer getUpdated_by() {
 		return updated_by;
 	}
-	public void setUpdated_by(String updated_by) {
+	public void setUpdated_by(Integer updated_by) {
 		this.updated_by = updated_by;
 	}
 	public String getBuilt_since() {

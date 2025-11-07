@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,20 +23,25 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TimeZone;
@@ -57,20 +63,25 @@ import org.apache.commons.net.ftp.FTPReply;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
-import com.nwm.api.controllers.BuiltInReportController;
-import com.nwm.api.controllers.ReportsController;
 import com.nwm.api.entities.DeviceEntity;
 import com.nwm.api.entities.ModelCellModemEntity;
 import com.nwm.api.entities.ModelDataloggerEntity;
+import com.nwm.api.entities.ModelHuaweiSun200028ktlEntity;
+import com.nwm.api.entities.ModelIMTSolarTvClass8004Entity;
+import com.nwm.api.entities.ModelOpenMeteoWeatherEntity;
 import com.nwm.api.entities.ModelSmaInverterStp3000ktlus10Entity;
 import com.nwm.api.entities.ModelSmaInverterStp62us41Entity;
 import com.nwm.api.entities.ModelSolarOpenWeatherEntity;
@@ -78,12 +89,18 @@ import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.entities.ViewReportEntity;
 import com.nwm.api.entities.WeatherEntity;
 import com.nwm.api.services.BatchJobService;
+import com.nwm.api.services.BuiltInReportService;
 import com.nwm.api.services.DeviceService;
 import com.nwm.api.services.ModelCellModemService;
 import com.nwm.api.services.ModelDataloggerService;
+import com.nwm.api.services.ModelHuaweiSun200028ktlService;
+import com.nwm.api.services.ModelIMTSolarTvClass8004Service;
 import com.nwm.api.services.ModelSmaInverterStp3000ktlus10Service;
 import com.nwm.api.services.ModelSmaInverterStp62us41Service;
+import com.nwm.api.services.ReportsService;
 import com.nwm.api.utils.Constants;
+import com.nwm.api.utils.Constants.ReportRange;
+import com.nwm.api.utils.Constants.ReportType;
 import com.nwm.api.utils.FLLogger;
 import com.nwm.api.utils.Lib;
 
@@ -149,10 +166,10 @@ public class BatchJob {
 				JSONArray jsonarr_1 = (JSONArray) jobj.get("weather");
 				for (int k = 0; k < jsonarr_1.size(); k++) {
 					JSONObject jsonobj_1 = (JSONObject) jsonarr_1.get(k);
-					String weatherIcon = (String) jsonobj_1.get("icon");
-					String weatherDescription = (String) jsonobj_1.get("description");
-//					item.setWeather_icon(weatherIcon);
-//					item.setWeather_description(weatherDescription);
+					String weather_icon = (String) jsonobj_1.get("icon");
+					String weather_description = (String) jsonobj_1.get("description");
+//					item.setWeather_icon(weather_icon);
+//					item.setWeather_description(weather_description);
 				}
 			}
 			return item;
@@ -185,10 +202,10 @@ public class BatchJob {
 				JSONArray jsonarr_1 = (JSONArray) jobj.get("weather");
 				for (int k = 0; k < jsonarr_1.size(); k++) {
 					JSONObject jsonobj_1 = (JSONObject) jsonarr_1.get(k);
-					String weatherIcon = (String) jsonobj_1.get("icon");
-					String weatherDescription = (String) jsonobj_1.get("description");
-					item.setWeather_icon(weatherIcon);
-					item.setWeather_description(weatherDescription);
+					String weather_icon = (String) jsonobj_1.get("icon");
+					String weather_description = (String) jsonobj_1.get("description");
+					item.setWeather_icon(weather_icon);
+					item.setWeather_description(weather_description);
 				}
 			}
 			return item;
@@ -281,6 +298,316 @@ public class BatchJob {
 			log.error(e);
 		}
 	}
+	
+	
+	
+	public void startBatchJobMeteo() {
+		try {
+			BatchJobService service = new BatchJobService();
+			// Get list site
+			List listSite = service.getListSite(new SiteEntity());
+			if (listSite == null || listSite.size() == 0) { return; }
+			
+			for (int i = 0; i < listSite.size(); i++) {
+				SiteEntity siteItem = (SiteEntity) listSite.get(i);
+				// Get sunrise sunset API
+				double latitude = (double) siteItem.getLat();
+				double longitude = (double) siteItem.getLng();
+				if(latitude != 0L && longitude != 0L) {
+					String inline = "";
+					SiteEntity item = new SiteEntity();
+					item.setId_site(siteItem.getId_site());
+					String APIURL = "https://customer-api.open-meteo.com/v1/forecast?latitude="+latitude+"&longitude="+longitude+"&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&current=temperature_2m,weather_code,is_day,wind_speed_10m,apparent_temperature,wind_gusts_10m,relative_humidity_2m,rain,snowfall&apikey=uHFwcW4hseLrXbuT&forecast_days=1";
+							
+					URL url = new URL(APIURL);
+					HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+					conn.setRequestMethod("GET");
+					conn.connect();
+					int responsecode = conn.getResponseCode();
+					if (responsecode == 200) {
+						Scanner sc = new Scanner(url.openStream());
+						while (sc.hasNext()) {
+							inline += sc.nextLine();
+						}
+						sc.close();
+						JSONParser parse = new JSONParser();
+						
+						JSONObject jobj = (JSONObject) parse.parse(inline);
+						JSONObject current = (JSONObject) jobj.get("current");
+						JSONObject currentUnits = (JSONObject) jobj.get("current_units");
+						JSONObject daily = (JSONObject) jobj.get("daily");
+						
+						
+						
+						JSONArray sunriseArr = (JSONArray) daily.get("sunrise");
+						JSONArray sunsetArr = (JSONArray) daily.get("sunset");
+						
+						JSONArray tempMaxArr = (JSONArray) daily.get("temperature_2m_max");
+						JSONArray tempMinArr = (JSONArray) daily.get("temperature_2m_min");
+						
+						int weather_code = Integer.parseInt(current.get("weather_code").toString());
+						String weather_icon = "";
+						String weather_description = "";
+						String sunrise = sunriseArr.get(0).toString() + ":00+00:00";
+						String sunset = sunsetArr.get(0).toString()+ ":00+00:00";
+						double weather_indoor_temp = 0;
+						String weather_indoor_temp_unit = "";
+						double weater_outdoor_temp = 0;
+						String weather_outdoor_temp_unit = "";
+						String weather_time = "";
+						double weather_humidity = 0;
+						String weather_humidity_unit = "";
+						double weather_wind = 0;
+						String weather_wind_unit = "";
+						double weather_rain = 0;
+						String weather_rain_unit = "";
+						
+						double weather_snow = 0;
+						String weather_snow_unit = "";
+						double temperature_2m_max =  Double.parseDouble(tempMaxArr.get(0).toString());
+						double temperature_2m_min = Double.parseDouble(tempMinArr.get(0).toString());
+						
+						
+						
+						int is_day = Integer.parseInt(current.get("is_day").toString());
+						switch(weather_code){
+							case 0: 
+								weather_description = "Clear sky";
+								weather_icon = is_day == 1 ? "01d": "01n";
+								break;
+							case 1:
+							case 2:
+							case 3:
+								weather_description = "Mainly clear, partly cloudy, and overcast";
+								weather_icon = is_day == 1 ? "02d" : "02n";
+								break;
+							case 45:
+							case 48:
+								weather_description = "Fog and depositing rime fog";
+								weather_icon = is_day == 1 ? "50d" : "50n";
+								break;
+							case 51:
+							case 53:
+							case 55:
+								weather_description = "Drizzle: Light, moderate, and dense intensity";
+								weather_icon = is_day == 1 ? "09d" : "09n";
+								break;
+							case 56:
+							case 57:
+								weather_description = "Freezing Drizzle: Light and dense intensity";
+								weather_icon = is_day == 1 ? "09d" : "09n";
+								break;
+							case 61:
+							case 63:
+							case 65:
+								weather_description = "Rain: Slight, moderate and heavy intensity";
+								weather_icon = is_day == 1 ? "10d" : "10n";
+								break;
+							case 66:
+							case 67:
+								weather_description = "Freezing Rain: Light and heavy intensity";
+								weather_icon = is_day == 1 ? "11d" : "11n";
+								break;
+							case 71:
+							case 73:
+							case 75:
+								weather_description = "Snow fall: Slight, moderate, and heavy intensity";
+								weather_icon = is_day == 1 ? "10d" : "10n";
+								break;
+							case 77: 
+								weather_description = "Snow grains";
+								weather_icon = is_day == 1 ? "13d" : "13n";
+								break;
+							case 80:
+							case 81:
+							case 82:
+								weather_description = "Rain showers: Slight, moderate, and violent";
+								weather_icon = is_day == 1 ? "13d" : "13n";
+								break;
+							case 85:
+							case 86:
+								weather_description = "Snow showers slight and heavy";
+								weather_icon = is_day == 1 ? "13d" : "13n";
+								break;
+							case 95: 
+								weather_description = "Thunderstorm: Slight or moderate";
+								weather_icon = is_day == 1 ? "13d" : "13n";
+								break;
+							case 96:
+							case 99:
+								weather_description = "Thunderstorm with slight and heavy hail";
+								weather_icon = is_day == 1 ? "13d" : "13n";
+								break;
+							default:
+								weather_description = "Could not calculate";
+								weather_icon ="";
+						}
+						
+						weather_wind = Double.parseDouble( current.get("wind_speed_10m").toString());
+						weater_outdoor_temp = Double.parseDouble( current.get("temperature_2m").toString());
+						weather_indoor_temp = Double.parseDouble(current.get("apparent_temperature").toString());
+						weather_rain =  Double.parseDouble(current.get("rain").toString());
+						weather_humidity =  Double.parseDouble(current.get("relative_humidity_2m").toString());
+						weather_snow =  Double.parseDouble(current.get("snowfall").toString());
+						
+						
+					    weather_outdoor_temp_unit = (String) currentUnits.get("temperature_2m");
+						weather_indoor_temp_unit = (String) currentUnits.get("apparent_temperature");
+						weather_humidity_unit = (String) currentUnits.get("relative_humidity_2m");
+						weather_wind_unit = (String) currentUnits.get("wind_speed_10m");
+						weather_rain_unit = (String) currentUnits.get("rain");
+						weather_time = (String) current.get("time");
+						weather_snow_unit = (String) currentUnits.get("snowfall");
+						
+						
+						
+						
+						WeatherEntity weather = new WeatherEntity();
+						weather.setId_site(siteItem.getId());
+						weather.setWeather_description(weather_description);
+						weather.setWeather_icon(weather_icon);
+						weather.setSunrise(sunrise);
+						weather.setSunset(sunset);
+						weather.setWeather_indoor_temp(weather_indoor_temp);
+						weather.setWeather_indoor_temp_unit(weather_indoor_temp_unit);
+						weather.setWeather_outdoor_temp(weater_outdoor_temp);
+						weather.setWeather_outdoor_temp_unit(weather_outdoor_temp_unit);
+						weather.setWeather_time(weather_time);
+						weather.setWeather_humidity(weather_humidity);
+						weather.setWeather_humidity_unit(weather_humidity_unit);
+						weather.setWeather_wind(weather_wind);
+						weather.setWeather_wind_unit(weather_wind_unit);
+						weather.setWeather_rain(weather_rain);
+						weather.setWeather_rain_unit(weather_rain_unit);
+						weather.setWeather_snow(weather_snow);
+						weather.setWeather_snow_unit(weather_snow_unit);
+						weather.setTemperature_2m_max(temperature_2m_max);
+						weather.setTemperature_2m_min(temperature_2m_min);
+						
+						service.updateWeather(weather);
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.error(e);
+		}
+	}
+	
+	
+	
+	public void startBatchJobOpenMeteoWeather() {
+		try {
+			BatchJobService service = new BatchJobService();
+			// Get devices by open meteo weather
+			List devices = service.getListDeviceOpenMeteoWeather(new DeviceEntity());
+			if (devices == null || devices.size() == 0) { return; }
+			
+			for (int i = 0; i < devices.size(); i++) {
+				DeviceEntity deviceItem = (DeviceEntity) devices.get(i);
+				double latitude = (double) deviceItem.getLat();
+				double longitude = (double) deviceItem.getLng();
+				if(latitude != 0L && longitude != 0L) {
+					String inline = "";
+					String APIURL = "https://customer-api.open-meteo.com/v1/forecast?latitude="+latitude+"&longitude="+longitude+"&daily=uv_index_max,sunrise,sunset&current=cloud_cover,precipitation,surface_pressure,wind_direction_10m,global_tilted_irradiance,temperature_2m,weather_code,is_day,wind_speed_10m,apparent_temperature,wind_gusts_10m,relative_humidity_2m,rain,snowfall&apikey=uHFwcW4hseLrXbuT&forecast_days=1";
+							
+					URL url = new URL(APIURL);
+					HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+					conn.setRequestMethod("GET");
+					conn.connect();
+					int responsecode = conn.getResponseCode();
+					if (responsecode == 200) {
+						Scanner sc = new Scanner(url.openStream());
+						while (sc.hasNext()) {
+							inline += sc.nextLine();
+						}
+						sc.close();
+						
+						ModelOpenMeteoWeatherEntity itemMeteo = new ModelOpenMeteoWeatherEntity();
+						itemMeteo.setId_device(deviceItem.getId());
+						JSONParser parse = new JSONParser();
+						JSONObject jobj = (JSONObject) parse.parse(inline);
+						JSONObject current = (JSONObject) jobj.get("current");
+						JSONObject daily = (JSONObject) jobj.get("daily");
+						JSONArray sunriseArr = (JSONArray) daily.get("sunrise");
+						JSONArray sunsetArr = (JSONArray) daily.get("sunset");
+						JSONArray uvIndexMax = (JSONArray) daily.get("uv_index_max");
+						
+						String sunrise = sunriseArr.get(0).toString() + ":00+00:00";
+						String sunset = sunsetArr.get(0).toString()+ ":00+00:00";
+						double uv_index_max = Double.parseDouble(uvIndexMax.get(0).toString());
+						itemMeteo.setUv_index(uv_index_max);
+						
+						double irradiance = 0;
+						irradiance =  Double.parseDouble(current.get("global_tilted_irradiance").toString());
+						itemMeteo.setIrradiance(irradiance);
+						itemMeteo.setNvm_irradiance(irradiance);
+						
+						double temperature = 0;
+						temperature = Double.parseDouble( current.get("temperature_2m").toString());
+						itemMeteo.setTemperature(temperature);
+						itemMeteo.setNvm_temperature(temperature);
+						itemMeteo.setNvm_panel_temperature(temperature);
+						
+						double humid = 0;
+						humid =  Double.parseDouble(current.get("relative_humidity_2m").toString());
+						itemMeteo.setHumid(humid);
+						
+						double wind = 0;
+						wind = Double.parseDouble( current.get("wind_speed_10m").toString());
+						itemMeteo.setWind_speed(wind);
+						
+						double wind_direction = 0;
+						wind_direction = Double.parseDouble( current.get("wind_direction_10m").toString());
+						itemMeteo.setWind_direction(wind_direction);
+						
+						
+						double surface_pressure;
+						surface_pressure = Double.parseDouble( current.get("surface_pressure").toString());
+						itemMeteo.setSurface_pressure(surface_pressure);
+						
+						
+						double precipitation = 0;
+						precipitation = Double.parseDouble( current.get("precipitation").toString());
+						itemMeteo.setTotal_precipitation(precipitation);
+						
+						double rain = 0;
+						rain =  Double.parseDouble(current.get("rain").toString());
+						itemMeteo.setRain(rain);
+						
+						
+						double snowfall = 0;
+						snowfall =  Double.parseDouble(current.get("snowfall").toString());
+						itemMeteo.setSnowfall(snowfall);
+						
+						
+						double cloud_cover;
+						cloud_cover =  Double.parseDouble(current.get("cloud_cover").toString());
+						itemMeteo.setCloud_cover(cloud_cover);
+						
+						
+						itemMeteo.setSunrise(sunrise);
+						itemMeteo.setSunset(sunset);
+						
+						String date = (String) current.get("time"); 
+						SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
+						SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+						Date parsedDate = inputFormat.parse(date);
+						String formattedDate = outputFormat.format(parsedDate);
+						
+						itemMeteo.setTime(formattedDate);
+						itemMeteo.setHigh_alarm(0);
+						itemMeteo.setLow_alarm(0);
+						itemMeteo.setError(0);
+						itemMeteo.setDatatablename(deviceItem.getDatatablename());
+						service.insertOpenMeteoWeather(itemMeteo);
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.error(e);
+		}
+	}
+	
 
 //	public void runCronJobUpdateEnergyLifetime() {
 //		try {
@@ -1154,94 +1481,162 @@ public class BatchJob {
 	}
 
 	public void sentMailReportOnSchedule(ViewReportEntity report) {
+		getReport(report, false);
+	}
+	
+	public Resource reportDownload(ViewReportEntity report) {
+		String filePath = getReport(report, true);
+		if (Objects.isNull(filePath)) return null;
+		return new FileSystemResource(filePath);
+	}
+	
+	private String getReport(ViewReportEntity objReport, boolean isDownload) {
 		try {
-			ViewReportEntity objReport = report;
 			ZonedDateTime nowLocalDateTime = ZonedDateTime.now();
 			ZonedDateTime nowTimeZonedDateTime = nowLocalDateTime.withZoneSameInstant(ZoneId.of(objReport.getOffset_timezone()));
 			String startDateFormat = "yyyy-MM-dd 00:00:00";
 			String endDateFormat = "yyyy-MM-dd 23:59:59";
-
-			ReportsController controller = new ReportsController();
-			BuiltInReportController builtInController = new BuiltInReportController();
-
-			objReport.setIds(objReport.getId_sites() != null ? Arrays.asList(objReport.getId_sites().split(",")).stream().map(Integer::parseInt).collect(Collectors.toList()) : null);
+	
+			ReportsService reportService = new ReportsService();
+			BuiltInReportService builtInService = new BuiltInReportService();
+	
+			String idSiteList = objReport.getId_sites() != null ? objReport.getId_sites() : (objReport.getIds_site() != null ? objReport.getIds_site() : null);
+			objReport.setIds(idSiteList != null ? Arrays.asList(idSiteList.split(",")).stream().map(Integer::parseInt).collect(Collectors.toList()) : null);
 			
-			switch (objReport.getType_report()) {
-				case 1: // Solar Production Report
-					switch (objReport.getCadence_range()) {
-						case 1: // daily
-							objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusDays(3)));
-							objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusDays(1)));
-							if (objReport.getFile_type() == 1) controller.sentMailPdfDailyReport(objReport);
-							else if (objReport.getFile_type() == 2) controller.sentMailDailyReport(objReport);
-							break;
+			switch (ReportType.fromValue(objReport.getType_report())) {
+				case SOLAR_PRODUCTION_REPORT:
+					switch (ReportRange.fromValue(objReport.getCadence_range())) {
+						case DAILY:
+//							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusDays(3)));
+//							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusDays(1)));
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusDays(2)));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime));
+							if (isDownload) return reportService.downloadDailyReport(objReport);
+							reportService.sentMailDailyReport(objReport);
+							return null;
 							
-						case 2: // monthly
-							objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.firstDayOfMonth())));
-							objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())));
-							if (objReport.getFile_type() == 1) controller.sentMailPdfMonthlyReport(objReport);
-							else if (objReport.getFile_type() == 2) controller.sentMailMonthlyReport(objReport);
-							break;
+						case LAST_MONTH:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.firstDayOfMonth())));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())));
+							if (isDownload) return reportService.downloadMonthlyReport(objReport);
+							reportService.sentMailMonthlyReport(objReport);
+							return null;
 							
-						case 3: // quarterly
-							objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(nowTimeZonedDateTime.minusMonths(3).getMonth().firstMonthOfQuarter()).with(TemporalAdjusters.firstDayOfMonth())));
-							objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(nowTimeZonedDateTime.minusMonths(3).getMonth().firstMonthOfQuarter().plus(2)).with(TemporalAdjusters.lastDayOfMonth())));
-							if (objReport.getFile_type() == 1) controller.sentMailPdfQuarterlyReport(objReport);
-							else if (objReport.getFile_type() == 2) controller.sentMailQuarterlyReport(objReport);
-							break;
+						case MONTHLY:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.firstDayOfMonth())));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfMonth())));
+							if (isDownload) return reportService.downloadMonthlyReport(objReport);
+							reportService.sentMailMonthlyReport(objReport);
+							return null;
 							
-						case 4: // annually
-							objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.firstDayOfYear())));
-							objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.lastDayOfYear())));
-							if (objReport.getFile_type() == 1) controller.sentMailPdfAnnuallyReport(objReport);
-							else if (objReport.getFile_type() == 2) controller.sentMailAnnuallyReport(objReport);
-							break;
-	
+						case LAST_QUARTER:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(nowTimeZonedDateTime.minusMonths(3).getMonth().firstMonthOfQuarter()).with(TemporalAdjusters.firstDayOfMonth())));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(nowTimeZonedDateTime.minusMonths(3).getMonth().firstMonthOfQuarter().plus(2)).with(TemporalAdjusters.lastDayOfMonth())));
+//							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(nowTimeZonedDateTime.getMonth().firstMonthOfQuarter()).with(TemporalAdjusters.firstDayOfMonth())));
+//							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(nowTimeZonedDateTime.getMonth().firstMonthOfQuarter().plus(2)).with(TemporalAdjusters.lastDayOfMonth())));
+							if (isDownload) return reportService.downloadQuarterlyReport(objReport);
+							reportService.sentMailQuarterlyReport(objReport);
+							return null;
+							
+						case ANNUALLY:
+//							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.firstDayOfYear())));
+//							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.lastDayOfYear())));
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.firstDayOfYear())));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfYear())));
+							if (isDownload) return reportService.downloadAnnuallyReport(objReport);
+							reportService.sentMailAnnuallyReport(objReport);
+							return null;
+
+						case CUSTOM:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(LocalDateTime.parse(objReport.getDate_from(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).format(DateTimeFormatter.ofPattern(startDateFormat)));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(LocalDateTime.parse(objReport.getDate_to(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).format(DateTimeFormatter.ofPattern(endDateFormat)));
+							if (isDownload) return reportService.downloadCustomReport(objReport);
+							reportService.sentMailCustomReport(objReport);
+							return null;
+							
 						default:
-							break;
+							return null;
 					}
-					break;
 					
-				case 2: // Production Trend Report
-					switch (objReport.getCadence_range()) {
-						case 2: // monthly
-							objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.firstDayOfMonth())));
-							objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())));
-							if (objReport.getFile_type() == 1) {}
-							else if (objReport.getFile_type() == 2) builtInController.sentMailMonthlyTrendReport(objReport);
-							break;
+				case PRODUCTION_TREND_REPORT:
+					switch (ReportRange.fromValue(objReport.getCadence_range())) {
+						case LAST_MONTH:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.firstDayOfMonth())));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())));
+							if (isDownload) return builtInService.downloadMonthlyTrendReport(objReport);
+							builtInService.sentMailMonthlyTrendReport(objReport);
+							return null;
 							
-						case 4: // annually
-							objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.firstDayOfYear())));
-							objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.lastDayOfYear())));
-							if (objReport.getFile_type() == 1) {}
-							else if (objReport.getFile_type() == 2) builtInController.sentMailAnnualTrendReport(objReport);
-							break;
+						case MONTHLY:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.firstDayOfMonth())));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfMonth())));
+							if (isDownload) return builtInService.downloadMonthlyTrendReport(objReport);
+							builtInService.sentMailMonthlyTrendReport(objReport);
+							return null;
 							
-						case 6: // weekly
-							objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
-							objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusWeeks(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))));
-							if (objReport.getFile_type() == 1) {}
-							else if (objReport.getFile_type() == 2) builtInController.sentMailWeeklyTrendReport(objReport);
-							break;
-	
+						case ANNUALLY:
+//							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.firstDayOfYear())));
+//							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.lastDayOfYear())));
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.firstDayOfYear())));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfYear())));
+							if (isDownload) return builtInService.downloadAnnualTrendReport(objReport);
+							builtInService.sentMailAnnualTrendReport(objReport);
+							return null;
+							
+						case CUSTOM:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(LocalDateTime.parse(objReport.getDate_from(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).format(DateTimeFormatter.ofPattern(startDateFormat)));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(LocalDateTime.parse(objReport.getDate_to(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).format(DateTimeFormatter.ofPattern(endDateFormat)));
+							if (isDownload) return builtInService.downloadMonthlyTrendReport(objReport);
+							builtInService.sentMailMonthlyTrendReport(objReport);
+							return null;
+							
+						case LAST_WEEK:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusWeeks(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))));
+							if (isDownload) return builtInService.downloadWeeklyTrendReport(objReport);
+							builtInService.sentMailWeeklyTrendReport(objReport);
+							return null;
+							
+						case WEEKLY:
+							if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))));
+							if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))));
+							if (isDownload) return builtInService.downloadWeeklyTrendReport(objReport);
+							builtInService.sentMailWeeklyTrendReport(objReport);
+							return null;
+							
 						default:
-							break;
+							return null;
 					}
-					break;
 					
-				case 4: // Asset Management and Operation Performance Report, no cadence range
-					objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.firstDayOfMonth())));
-					objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfMonth())));
-					if (objReport.getFile_type() == 1) {}
-					else if (objReport.getFile_type() == 2) controller.sentMailAssetManagementAndOperationPerformanceReport(objReport);
-					break;
-	
+				case ASSET_MANAGEMENT_AND_OPERATION_PERFORMANCE_REPORT:
+					if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusYears(1).with(TemporalAdjusters.firstDayOfMonth())));
+					if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfMonth())));
+					if (isDownload) return reportService.downloadAssetManagementAndOperationPerformanceReport(objReport);
+					reportService.sentMailAssetManagementAndOperationPerformanceReport(objReport);
+					return null;
+					
+				case SANITY_CHECK_REPORT:
+					if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.firstDayOfMonth())));
+					if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())));
+//					if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.firstDayOfMonth())));
+//					if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfMonth())));
+					if (isDownload) return reportService.downloadSanityCheckReport(objReport);
+					reportService.sentMailSanityCheckReport(objReport);
+					return null;
+					
+				case METER_LEVEL_PRODUCTION_IRRADIANCE_TEMP_REPORT:
+			          if (Objects.isNull(objReport.getStart_date())) objReport.setStart_date(DateTimeFormatter.ofPattern(startDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.firstDayOfMonth())));
+			          if (Objects.isNull(objReport.getEnd_date())) objReport.setEnd_date(DateTimeFormatter.ofPattern(endDateFormat).format(nowTimeZonedDateTime.with(TemporalAdjusters.lastDayOfMonth())));
+			          if (isDownload) return reportService.downloadMeterLevelProductionIrradianceTempReport(objReport);
+			          reportService.sentMailMeterLevelProductionIrradianceTempReport(objReport);
+			          return null;
+					
 				default:
-					break;
+					return null;
 			}
 		} catch (Exception e) {
 			log.error(e);
+			return null;
 		}
 	}
 
@@ -2799,5 +3194,6 @@ public class BatchJob {
 			}
 		}
 	}
+	
 
 }

@@ -7,6 +7,7 @@ package com.nwm.api.entities;
 import java.util.Date;
 import java.util.List;
 
+
 public class SitesDevicesEntity extends SortEntity {
 	private int id;
 	private int id_customer;
@@ -32,7 +33,7 @@ public class SitesDevicesEntity extends SortEntity {
 	private Date created_date;
 	private String created_by;
 	private Date updated_date;
-	private String updated_by;
+	private Integer updated_by;
 	private String built_since;
 	private int limit;
 	private int offset;
@@ -142,6 +143,7 @@ public class SitesDevicesEntity extends SortEntity {
 	private String start_date;
 	private String end_date;
 	private String id_filter;
+	private String id_time_filter;
 	private double cost;
 	private String cost_unit;
 	private int site_domain_type;
@@ -154,6 +156,7 @@ public class SitesDevicesEntity extends SortEntity {
 	private String advance_tech_field_restart;
 	private String advance_tech_field_stop;
 	private String advance_tech_field_start;
+	private String advance_tech_control_tag;
 	private int advance_tech_control_enable = 0;
 	private String domain;
 	private boolean isUserNW;
@@ -177,6 +180,8 @@ public class SitesDevicesEntity extends SortEntity {
 	private String weather_rain_unit;
 	private double weather_wind;
 	private String weather_wind_unit;
+	private double temperature_2m_max;
+	private double temperature_2m_min;
 	
 	private String domain_role;
 	
@@ -185,9 +190,76 @@ public class SitesDevicesEntity extends SortEntity {
 	private int id_hvac_layout;
 	private String device_group_title_trans;
 	private String device_type_title_trans;
+	private String advance_tech_field_device_status;
+	private int id_error_level;
+	private int id_error_type;
+	private int id_sort_by;
+	private int id_site_group;
+	private int is_subtract_pv;
 	
 	
 	
+	
+	public int getIs_subtract_pv() {
+		return is_subtract_pv;
+	}
+	public void setIs_subtract_pv(int is_subtract_pv) {
+		this.is_subtract_pv = is_subtract_pv;
+	}
+	public double getTemperature_2m_max() {
+		return temperature_2m_max;
+	}
+	public void setTemperature_2m_max(double temperature_2m_max) {
+		this.temperature_2m_max = temperature_2m_max;
+	}
+	public double getTemperature_2m_min() {
+		return temperature_2m_min;
+	}
+	public void setTemperature_2m_min(double temperature_2m_min) {
+		this.temperature_2m_min = temperature_2m_min;
+	}
+	public String getId_time_filter() {
+		return id_time_filter;
+	}
+	public void setId_time_filter(String id_time_filter) {
+		this.id_time_filter = id_time_filter;
+	}
+	public int getId_site_group() {
+		return id_site_group;
+	}
+	public void setId_site_group(int id_site_group) {
+		this.id_site_group = id_site_group;
+	}
+	public int getId_sort_by() {
+		return id_sort_by;
+	}
+	public void setId_sort_by(int id_sort_by) {
+		this.id_sort_by = id_sort_by;
+	}
+	public int getId_error_level() {
+		return id_error_level;
+	}
+	public void setId_error_level(int id_error_level) {
+		this.id_error_level = id_error_level;
+	}
+	public int getId_error_type() {
+		return id_error_type;
+	}
+	public void setId_error_type(int id_error_type) {
+		this.id_error_type = id_error_type;
+	}
+	public String getAdvance_tech_field_device_status() {
+		return advance_tech_field_device_status;
+	}
+	public void setAdvance_tech_field_device_status(String advance_tech_field_device_status) {
+		this.advance_tech_field_device_status = advance_tech_field_device_status;
+	}
+	public String getAdvance_tech_control_tag() {
+		return advance_tech_control_tag;
+	}
+	public void setAdvance_tech_control_tag(String advance_tech_control_tag) {
+		this.advance_tech_control_tag = advance_tech_control_tag;
+	}
 	public String getDevice_group_title_trans() {
 		return device_group_title_trans;
 	}
@@ -856,10 +928,10 @@ public class SitesDevicesEntity extends SortEntity {
 	public void setUpdated_date(Date updated_date) {
 		this.updated_date = updated_date;
 	}
-	public String getUpdated_by() {
+	public Integer getUpdated_by() {
 		return updated_by;
 	}
-	public void setUpdated_by(String updated_by) {
+	public void setUpdated_by(Integer updated_by) {
 		this.updated_by = updated_by;
 	}
 	public String getBuilt_since() {

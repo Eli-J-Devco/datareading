@@ -3009,6 +3009,11 @@ Lib {
 		}
 	}
 	
+	public static int getUserId(String authz) {
+		Map<String, Object> claims = getClaimsFromToken(authz);
+		return (int) claims.get("id_user");
+	}
+	
 	public static boolean isUserNW(String authz) {
 		Map<String, Object> claims = getClaimsFromToken(authz);
 		if (claims == null) return false;
@@ -3042,6 +3047,25 @@ Lib {
 					)
 					.mapToInt(Integer::parseInt)
 					.anyMatch(item -> item == 1);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	public static boolean isDemoUser(String authz) {
+		Map<String, Object> claims = getClaimsFromToken(authz);
+		if (claims == null) return false;
+		try {
+			return Arrays
+					.stream(claims
+							.get("authorities")
+							.toString()
+							.replace("[", "")
+							.replace("]", "")
+							.split(",")
+							)
+					.mapToInt(Integer::parseInt)
+					.anyMatch(item -> item == 24);
 		} catch (Exception e) {
 			return false;
 		}

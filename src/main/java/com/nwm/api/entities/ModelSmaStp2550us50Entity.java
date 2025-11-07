@@ -48,9 +48,65 @@ public class ModelSmaStp2550us50Entity extends ModelBaseEntity {
 	private double DC_Power_Input_2;
 	private double DC_Power_Input_3;
 	private double DC_Power_Input_4;
+	private double EventMessage;
+	private double HealthCondition;
+	private double FaultCorrectionMeasure;
+	private double BlockStatus;
+	private double ReasonforDerating;
+	private int totalFaultCode1;
+	private int totalFaultCode2;
+	private int totalFaultCode3;
 	
 	
 	
+	public int getTotalFaultCode1() {
+		return totalFaultCode1;
+	}
+	public void setTotalFaultCode1(int totalFaultCode1) {
+		this.totalFaultCode1 = totalFaultCode1;
+	}
+	public int getTotalFaultCode2() {
+		return totalFaultCode2;
+	}
+	public void setTotalFaultCode2(int totalFaultCode2) {
+		this.totalFaultCode2 = totalFaultCode2;
+	}
+	public int getTotalFaultCode3() {
+		return totalFaultCode3;
+	}
+	public void setTotalFaultCode3(int totalFaultCode3) {
+		this.totalFaultCode3 = totalFaultCode3;
+	}
+	public double getEventMessage() {
+		return EventMessage;
+	}
+	public void setEventMessage(double eventMessage) {
+		EventMessage = eventMessage;
+	}
+	public double getHealthCondition() {
+		return HealthCondition;
+	}
+	public void setHealthCondition(double healthCondition) {
+		HealthCondition = healthCondition;
+	}
+	public double getFaultCorrectionMeasure() {
+		return FaultCorrectionMeasure;
+	}
+	public void setFaultCorrectionMeasure(double faultCorrectionMeasure) {
+		FaultCorrectionMeasure = faultCorrectionMeasure;
+	}
+	public double getBlockStatus() {
+		return BlockStatus;
+	}
+	public void setBlockStatus(double blockStatus) {
+		BlockStatus = blockStatus;
+	}
+	public double getReasonforDerating() {
+		return ReasonforDerating;
+	}
+	public void setReasonforDerating(double reasonforDerating) {
+		ReasonforDerating = reasonforDerating;
+	}
 	public double getDC_Voltage_Input_1() {
 		return DC_Voltage_Input_1;
 	}

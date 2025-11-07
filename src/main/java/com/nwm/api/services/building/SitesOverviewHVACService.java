@@ -5,6 +5,9 @@
 *********************************************************/
 package com.nwm.api.services.building;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -12,12 +15,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.annotation.PostConstruct;
+import java.util.concurrent.CompletableFuture;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.ibatis.session.SqlSession;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.entities.HVACGatewayEntity;
 import com.nwm.api.entities.building.ChartConsumptionEntity;
 import com.nwm.api.entities.building.HVACMappingPointEntity;
 import com.nwm.api.entities.building.SitesOverviewHVACFieldChartEntity;
@@ -156,39 +158,18 @@ public class SitesOverviewHVACService extends DB {
 	 * @since 2025-04-08
 	 * @return list of gateway
 	 */
-	private List<String> getGatewayList() {
+	public List<HVACGatewayEntity> getGatewayList() {
 		try {
-			List<String> dataList = queryForList("SitesOverviewHVAC.getGatewayList", null);
+			List<HVACGatewayEntity> dataList = queryForList("SitesOverviewHVAC.getGatewayList", null);
 			if (dataList != null && dataList.size() > 0) return dataList;
 		} catch (Exception ex) {
 			log.error("SitesOverviewHVAC.getGatewayList", ex);
 		}
-		return new ArrayList<String>();
+		return new ArrayList<>();
 	}
 	
-//	@Autowired
-//	MqttPahoMessageDrivenChannelAdapter mqttAdapter;
 	private static Map<String, Map<String, String>> fieldCache = new HashMap<String, Map<String, String>>();
 	private static List<Map<String, String>> updatingFieldList = new ArrayList<Map<String, String>>();
-//	
-//	/**
-//	 * Subscribe to MQTT gateway.
-//	 * @author Hung.Bui
-//	 * @since 2025-04-08
-//	 */
-//	@PostConstruct
-//	private void subscribeToGateway() {
-//		try {
-//			List<String> gatewayList = this.getGatewayList();
-//			if (gatewayList.size() == 0) return;
-//			
-//			for (String gateway : gatewayList) {
-//				mqttAdapter.addTopic("t/".concat(gateway).concat("/NextWave123/telemetry"));
-//			}
-//		} catch (Exception ex) {
-//			log.error("SitesOverviewHVAC.subscribeToGateway", ex);
-//		}
-//	}
 	
 	/**
 	 * Save field data (cache data for 5 minutes then saving to database).
@@ -201,9 +182,11 @@ public class SitesOverviewHVACService extends DB {
 			int maxBatchSize = 500;
 			int minutesToCache = 5; 
 			ObjectMapper mapper = new ObjectMapper();
-			List<Map<String, Object>> payload = mapper.readValue(message.getPayload().toString(), new TypeReference<List<Map<String, Object>>>(){});
+			String decompressedPayload = decompressGzip(message.getPayload());
+			if (decompressedPayload == null) return;
+			List<Map<String, Object>> payload = mapper.readValue(decompressedPayload, new TypeReference<List<Map<String, Object>>>(){});
 			if (payload == null || payload.size() == 0) return;
-			String id_gateway = message.getHeaders().get("mqtt_receivedTopic").toString().split("/")[1];
+			String id_gateway = message.getHeaders().get("mqtt_receivedTopic").toString().split("/")[3];
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 			
 			for (Map<String, Object> item : payload) {
@@ -229,12 +212,34 @@ public class SitesOverviewHVACService extends DB {
 			}
 			
 			if (updatingFieldList.size() > maxBatchSize) {
-				int rows = (int) insert("SitesOverviewHVAC.insertFieldData", updatingFieldList);
-				if (rows > 0) updatingFieldList.clear();
+				List<Map<String, String>> insertData = new ArrayList<Map<String, String>>(updatingFieldList);
+				CompletableFuture.runAsync(() -> {
+					try { insert("SitesOverviewHVAC.insertFieldData", insertData); }
+					catch (SQLException ex) { log.error("SitesOverviewHVAC.saveFieldData", ex); }
+				});
+				updatingFieldList.clear();
 			}
 		} catch (Exception ex) {
-			log.error("SitesOverviewHVAC.saveFieldData", ex);
 		}
 	}
+	
+	private String decompressGzip(Object payload) {
+		try (
+			ByteArrayInputStream bis = new ByteArrayInputStream((byte[]) payload);
+			GZIPInputStream gis = new GZIPInputStream(bis);
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		) {
+			byte[] buffer = new byte[1024];
+			int len;
+			
+			while ((len = gis.read(buffer)) != -1) {
+				bos.write(buffer, 0, len);
+			}
+			
+			return new String(bos.toByteArray());
+		} catch (Exception e) {
+			return null;
+		}
+    }
 	
 }

@@ -17,6 +17,9 @@ import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.AlertFilterEntity;
 import com.nwm.api.entities.AlertHistoryEntity;
+import com.nwm.api.entities.AlertNoteEntity;
+import com.nwm.api.entities.AlertsBySiteDeviceRequest;
+import com.nwm.api.entities.AlertsBySiteDeviceResponse;
 import com.nwm.api.entities.ChartAlertDateEntity;
 import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.utils.Lib;
@@ -189,6 +192,30 @@ public class AlertService extends DB {
 		}
 	}
 
+	
+	
+	/**
+	 * @description insert alert note
+	 * @author long.pham
+	 * @since 2021-01-29
+	 * @param id
+	 */
+	public AlertNoteEntity updateAlertNote(AlertNoteEntity obj) {
+		SqlSession session = this.beginTransaction();
+		try {
+			session.update("Alert.updateAlertNote", obj);
+			session.commit();
+			return obj;
+		} catch (Exception ex) {
+			session.rollback();
+			log.error("Alert.updateAlertNote", ex);
+			return null;
+		} finally {
+			session.close();
+		}
+	}
+
+	
 	/**
 	 * @description get list alert by site
 	 * @author long.pham
@@ -542,6 +569,35 @@ public class AlertService extends DB {
 		} catch (Exception ex) {
 			log.error("AlertFilter.deleteAllAlertFilterById", ex);
 			return false;
+		}
+	}
+	
+	/**
+	 * get site alert count list
+	 * @author Hung.Bui
+	 * @since 2025-06-27
+	 * @return list of alert count
+	 */
+	public List<AlertEntity> getSiteAlertCountListInDuration(AlertEntity obj) {
+		try {
+			return queryForList("Alert.getSiteAlertCountListInDuration", obj);
+		} catch (Exception e) {
+			return new ArrayList<>();
+		}
+	}
+	
+	/**
+	 * get alerts by site's devices
+	 * @author Hung.Bui
+	 * @since 2025-09-19
+	 * @param obj { id, date_from, date_to, device_list, data_send_time }
+	 * @return list of alerts
+	 */
+	public List<AlertsBySiteDeviceResponse> getSiteDeviceAlerts(AlertsBySiteDeviceRequest obj) {
+		try {
+			return queryForList("Alert.getSiteDeviceAlerts", obj);
+		} catch (Exception e) {
+			return new ArrayList<>();
 		}
 	}
 }

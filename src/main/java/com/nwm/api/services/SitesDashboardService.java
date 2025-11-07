@@ -14,6 +14,7 @@ import java.util.Map;
 
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.AlertEntity;
+import com.nwm.api.entities.BuildingReportDateEntity;
 import com.nwm.api.entities.ClientMonthlyDateEntity;
 import com.nwm.api.entities.DevicePanelEntity;
 import com.nwm.api.entities.DeviceZoneEntity;
@@ -267,6 +268,54 @@ public class SitesDashboardService extends DB {
 	}
 	
 	/**
+	 * @description get data 7days
+	 * @author long.pham
+	 * @since 2022-03-04
+	 * @param id_site
+	 * @return Object
+	 */
+	
+	public List getData7Days(SitesDevicesEntity obj) {
+		try {
+			List dataDevices = queryForList("SitesDashboard.getListDeviceByMeterType", obj);
+			
+			if (dataDevices.size() > 0) {
+				obj.setList_device(dataDevices);
+				
+				int interval = 1;
+				DateTimeFormatter timeFullFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+				DateTimeFormatter categoriesTimeFormat = DateTimeFormatter.ofPattern("E MMM dd, yyyy");
+				DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("E MMM dd, yyyy");
+				
+				ChronoUnit timeUnit = ChronoUnit.DAYS;
+				LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+				LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+				
+				List<BuildingReportDateEntity> dateTimeList = new ArrayList<>();
+				while (!start.isAfter(end)) {
+					BuildingReportDateEntity dateTime = new BuildingReportDateEntity();
+					dateTime.setTime_full(start.format(timeFullFormat));
+					dateTime.setCategories_time(start.format(categoriesTimeFormat));
+					dateTime.setTime_format(start.format(timeFormat));
+					dateTimeList.add(dateTime);
+					start = start.plus(interval, timeUnit);
+				}
+				
+				List dataWeatherCurrentMonth = queryForList("SitesDashboard.getData7Days", obj);
+				List<BuildingReportDateEntity> fillData = Lib.fulfillData(dateTimeList, dataWeatherCurrentMonth, "time_full");
+				
+				return fillData;
+			} else {
+				return new ArrayList();
+			}
+				
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+	}
+	
+	
+	/**
 	 * @description get list device by id site
 	 * @author long.pham
 	 * @since 2022-03-04
@@ -277,43 +326,6 @@ public class SitesDashboardService extends DB {
 	public List getListDeviceByIdSite(SitesDevicesEntity obj) {
 		try {
 			List dataList = queryForList("SitesDashboard.getListDeviceByIdSite", obj);
-			
-			if (dataList.size() > 0) {
-				for (int i = 0; i < dataList.size(); i++) {
-					Map<String, Object> device = (Map<String, Object>) dataList.get(i);
-					String last_updated = (String) device.get("last_updated");
-					int id_device_type = (int) device.get("id_device_type");
-					long totalError = 0;
-					if(device.get("totalError") != null) {
-						totalError = (long) device.get("totalError");
-					}
-					int id_error_level = 0;
-					if(device.get("id_error_level") != null) {
-						id_error_level = (int) device.get("id_error_level");
-					}
-					
-					String key_indicator = (String) device.get("key_indicator");
-					String times_ago_unit = (String) device.get("times_ago_unit");
-					if (key_indicator.equals("Never")) {}
-					// Find the last value and time
-					else if (last_updated.equals("-") || (totalError > 0 && id_error_level == 33) || ((id_device_type == 4) && key_indicator.equals("-"))) {
-						Map<String, Object> device_site = (Map<String, Object>) queryForObject("SitesDashboard.getLastUpdated", dataList.get(i));
-						if(device_site != null) {
-							device.put("last_updated", device_site.get("time"));	
-							if((id_device_type == 1 || id_device_type == 3 || id_device_type == 4 || id_device_type == 12) && id_error_level != 33 && (device_site.get("key_indicator") != null  || times_ago_unit.equals("-"))) {
-								device.put("key_indicator", device_site.get("key_indicator"));
-							} else if (id_error_level == 33) {
-								device.put("key_indicator", "-");
-								device.put("times_ago_unit", device_site.get("times_ago_unit"));
-								device.put("times_ago", device_site.get("times_ago"));
-							}
-						} else {
-							device.put("last_updated", "-");
-							device.put("key_indicator", "-");
-						}
-					}
-				}
-			}
 			return dataList;
 				
 		} catch (Exception ex) {
@@ -437,12 +449,20 @@ public class SitesDashboardService extends DB {
 						// get Energy usage 
 						List<ClientMonthlyDateEntity> data = new ArrayList<>();
 						
+						
 						switch (obj.getId_filter()) {
-							case "today": // 1 hour
+							case "hourly": // 1 hour
 								interval = 1;
 								timeUnit = ChronoUnit.HOURS;
-								timeFullFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm");
+								timeFullFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 								categoriesTimeFormat = DateTimeFormatter.ofPattern("HH:mm a");
+								break;
+							
+							case "day": // 1 hour
+								interval = 1;
+								timeUnit = ChronoUnit.DAYS;
+								timeFullFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+								categoriesTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
 								break;
 								
 							case "this_week": // 1 day
@@ -453,6 +473,14 @@ public class SitesDashboardService extends DB {
 								timeUnit = ChronoUnit.DAYS;
 								timeFullFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
 								categoriesTimeFormat = DateTimeFormatter.ofPattern("dd");
+								break;
+								
+							case "month":
+								interval = 1;
+								timeUnit = ChronoUnit.MONTHS;
+								timeFullFormat = DateTimeFormatter.ofPattern("yyyy-MM");
+								categoriesTimeFormat = DateTimeFormatter.ofPattern("LLL. yyyy");
+								start = start.withDayOfMonth(1);
 								break;
 								
 							case "12_month":
@@ -471,6 +499,13 @@ public class SitesDashboardService extends DB {
 								start = start.withDayOfMonth(1);
 								break;
 								
+							default:
+								interval = 1;
+								timeUnit = ChronoUnit.DAYS;
+								timeFullFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+								categoriesTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyyy");
+								break;
+								
 								
 						}
 						
@@ -479,6 +514,7 @@ public class SitesDashboardService extends DB {
 							ClientMonthlyDateEntity dateTime = new ClientMonthlyDateEntity();
 							dateTime.setTime_full(start.format(timeFullFormat));
 							dateTime.setCategories_time(start.format(categoriesTimeFormat));
+							dateTime.setEnergy(0.0);
 							dateTimeList.add(dateTime);
 							start = start.plus(interval, timeUnit);
 						}

@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nwm.api.entities.ClientMonthlyDateEntity;
 import com.nwm.api.entities.EnergyEntity;
 import com.nwm.api.entities.PortfolioEntity;
 import com.nwm.api.entities.SiteEnergyEntity;
-import com.nwm.api.entities.PortfolioAvailabilityVsPerformanceEntity;
 import com.nwm.api.entities.SitesMetricsSummaryEntity;
 import com.nwm.api.services.EmployeeService;
 import com.nwm.api.services.PortfolioService;
@@ -81,8 +81,9 @@ public class PortfolioController extends BaseController {
 	 * @return data (status, message, array, total_row
 	 */
 	@PostMapping("/update-note")
-	public Object updateIsColor(@RequestBody PortfolioEntity obj) {
+	public Object updateIsColor(@RequestBody PortfolioEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
+			obj.setUpdated_by(Lib.getUserId(authz));
 			PortfolioService service = new PortfolioService();
 			service.updateNote(obj);
 			return this.jsonResult(true, Constants.UPDATE_SUCCESS_MSG, obj, 1);
@@ -139,20 +140,19 @@ public class PortfolioController extends BaseController {
 	 * @since 2025-05-07
 	 * @return data (status, message, array, total_row
 	 */
-	@PostMapping("/get-availability-vs-performance")
-	public Object getAvailabilityVsPerformance(
-			@RequestBody PortfolioEntity obj,
-			@RequestHeader(name = "Authorization") String authz
-		) {
+	@PostMapping("/metrics/get-availability-vs-performance")
+	public Object getAvailabilityVsPerformance(@RequestBody PortfolioEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
 			List sites = Lib.sitesManagedByUser(authz);
-			if (sites.size() > 0) obj.setId_sites(sites);
+			if (sites.size() == 0) return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
+			
+			obj.setId_sites(sites);
 			PortfolioService service = new PortfolioService();
 			List data = service.getAvailabilityVsPerformance(obj);
 			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data);
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
 		}
 	}
 			
@@ -167,14 +167,16 @@ public class PortfolioController extends BaseController {
 	public Object getSitesMetricsSummary(@RequestBody PortfolioEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
 			List sites = Lib.sitesManagedByUser(authz);
-			if (sites.size() > 0) obj.setId_sites(sites);
-			PortfolioService service = new PortfolioService();
-			SitesMetricsSummaryEntity data = service.getSitesMetricsSummary(obj);
+			if (sites.size() == 0) return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
 			
-			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, 1);
+			obj.setId_sites(sites);
+			PortfolioService service = new PortfolioService();
+			List<SitesMetricsSummaryEntity> data = service.getSitesMetricsSummary(obj);
+			
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
 		}
 	}
 	
@@ -189,14 +191,16 @@ public class PortfolioController extends BaseController {
 	public Object getSitesMetricsLossPast24h(@RequestBody PortfolioEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
 			List sites = Lib.sitesManagedByUser(authz);
-			if (sites.size() > 0) obj.setId_sites(sites);
-			PortfolioService service = new PortfolioService();
-			EnergyEntity data = service.getSitesMetricsLossPast24h(obj);
+			if (sites.size() == 0) return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
 			
-			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, 1);
+			obj.setId_sites(sites);
+			PortfolioService service = new PortfolioService();
+			List<EnergyEntity> data = service.getSitesMetricsLossPast24h(obj);
+			
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
 		}
 	}
 	
@@ -211,14 +215,40 @@ public class PortfolioController extends BaseController {
 	public Object getSitesMetricsActualVsExpected(@RequestBody PortfolioEntity obj, @RequestHeader(name = "Authorization") String authz) {
 		try {
 			List sites = Lib.sitesManagedByUser(authz);
-			if (sites.size() > 0) obj.setId_sites(sites);
+			if (sites.size() == 0) return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
+				
+			obj.setId_sites(sites);
 			PortfolioService service = new PortfolioService();
 			List<SiteEnergyEntity> data = service.getSitesMetricsActualVsExpected(obj);
 			
 			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, data.size());
 		} catch (Exception e) {
 			log.error(e);
-			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
+		}
+	}
+	
+	/**
+	 * @description Get sites metrics chart generation
+	 * @author Hung.Bui
+	 * @since 2025-07-21
+	 * @param obj
+	 * @return data (status, message, array, total_row
+	 */
+	@PostMapping("/metrics/chart-generation")
+	public Object getSitesMetricsChartGeneration(@RequestBody PortfolioEntity obj, @RequestHeader(name = "Authorization") String authz) {
+		try {
+			List sites = Lib.sitesManagedByUser(authz);
+			if (sites.size() == 0) return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
+			
+			obj.setId_sites(sites);
+			PortfolioService service = new PortfolioService();
+			List<ClientMonthlyDateEntity> data = service.getSitesMetricsChartGeneration(obj);
+			
+			return this.jsonResult(true, Constants.GET_SUCCESS_MSG, data, 1);
+		} catch (Exception e) {
+			log.error(e);
+			return this.jsonResult(false, Constants.GET_ERROR_MSG, null);
 		}
 	}
 }

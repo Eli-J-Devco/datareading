@@ -59,6 +59,8 @@
 		<result property="id_company" column="id_company" />
 		<result property="note" column="note" />
 		<result property="portfolio_metrics_enable" column="portfolio_metrics_enable" />
+		<result property="data_roles" column="data_roles" />
+		
 		
 	</resultMap>
 	
@@ -143,8 +145,10 @@
 						FROM
 							employee em
 							JOIN employee_role_map er ON er.id_employee = em.id
+							LEFT JOIN role r ON r.id = er.id_role
 						WHERE
 							em.email = #{value}
+							AND r.status = 1 and r.is_delete = 0
 						GROUP BY em.id
 					) r ON r.id = em.id
 					JOIN site s ON s.`status` = 1 AND s.is_delete = 0
@@ -186,110 +190,86 @@
 					s.show_menu,
 					CONCAT_WS(', ',e.first_name,e.last_name) AS full_name,
 					
-					IF(rs.auths >= 1, 1, 0) AS `view`,
-					IF(rs.auths >= 2, 2, 0) AS `new`,
-					IF(rs.auths >= 4, 4, 0) AS `delete`,
-					IF(rs.auths >= 8, 8, 0) AS `edit`,
-					IF(rs.auths >= 16, 16, 0) AS `excel`,
-					IF(rs.auths >= 32, 32, 0) AS `pdf`,
-					IF(rs.auths >= 64, 64, 0) AS `print`,
-					IF(rs.auths >= 128, 128, 0) AS `translate`,
-					IF(rs.auths >= 256, 256, 0)  AS `approval`
-		
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 1) AS `view`,
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 2) AS `new`,
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 4) AS `delete`,
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 8) AS `edit`,
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 16) AS `excel`,
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 32) AS `pdf`,
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 64) AS `print`, 
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 128) AS `translate`,
+					(IFNULL(rs.auths,0) <![CDATA[&]]> 256) AS `approval`
 				FROM
 					role_screen_map rs
 					LEFT JOIN screen s ON s.id = rs.id_screen
 					LEFT JOIN role r ON r.id = rs.id_role
 					LEFT JOIN employee_role_map er ON r.id = er.id_role
 					LEFT JOIN employee e ON e.id = er.id_employee
-				WHERE e.id = #{id} AND s.`status` = 1 AND s.is_delete = 0 AND rs.auths > 0
+				WHERE e.id = #{id} AND s.`status` = 1 AND s.is_delete = 0 AND rs.auths > 0 AND r.status = 1 AND r.is_delete = 0
 			)m  GROUP BY m.id_screen ORDER BY m.`level`
 	</select>
 	
-	
-	<select id="getList" resultMap="EmployeeMap" parameterType="com.nwm.api.entities.EmployeeManageEntity" >
+	<sql id="managedSitesDerivedTable">
 		SELECT
-			e.id,
-			e.first_name,
-			e.last_name,
-			e.phone,
-			e.email,
-			e.email AS re_email,
-			e.address,
-			e.is_delete,
-			e.`status`,
-			e.skype,
-			e.avatar,
-			DATE_FORMAT(e.birthday, '%m/%d%Y') AS birthday,
-			CONCAT_WS(' ',e.first_name,e.last_name) AS fullname,
-			t.group_roles,
-			t.role_ids,
-			t.color,
-			m.manage_site_total,
-			m.ids_site,
-			s.last_login,
-			s.offset_timezone,
-			s.page_login,
-			e.account_locked,
-			e.failed_attempt,
-			e.lock_time,
-			e.created_by,
-			SHA2(e.`id`, 256) AS hash_id_user,
-			e.id_company,
-			e.note,
-			e.portfolio_metrics_enable
+			id_employee,
+			GROUP_CONCAT(sem.`id_site`) AS ids_site,
+			GROUP_CONCAT(s.`name`) AS site_name,
+			COUNT(sem.id_employee) AS manage_site_total
 		FROM
-			`employee` e	
+			site_employee_map sem
+			LEFT JOIN site s ON s.id = sem.id_site
+		WHERE
+			s.status = 1
+			AND s.is_delete = 0
+        <include refid="com.nwm.common.siteByDomainCondition"/>
+		GROUP BY
+			sem.id_employee
+	</sql>
+	
+	<sql id="rolesDerivedTable">
+		SELECT 
+			er.id_employee,
+			GROUP_CONCAT(r.`name` SEPARATOR ', ') AS group_roles, 
+			GROUP_CONCAT(r.`id`) AS role_ids, 
+			r.color,
+			IF(
+				COUNT(r.id) = 0,
+				JSON_ARRAY(),
+				JSON_ARRAYAGG(JSON_OBJECT(
+					'id', r.id,
+					'name', r.name,
+					'color', r.color
+				))
+			) AS data_roles
+		FROM
+			employee_role_map er 
+			LEFT JOIN employee e ON e.id = er.id_employee
+			LEFT JOIN role r ON r.id = er.id_role
+		WHERE
+			r.status = 1
+			AND r.is_delete = 0
 			
-			LEFT JOIN (
-						SELECT
-							id_employee,
-							GROUP_CONCAT(sem.`id_site`) AS ids_site,
-							GROUP_CONCAT(s.`name`) AS site_name,
-							COUNT(sem.id_employee) AS manage_site_total
-						FROM
-							site_employee_map sem
-							LEFT JOIN site s ON s.id = sem.id_site
-						WHERE
-							s.status = 1
-							AND s.is_delete = 0
-			            <include refid="com.nwm.common.siteByDomainCondition"/>
-						GROUP BY
-							sem.id_employee
-			)m ON m.id_employee = e.id
-					
-					
-			LEFT JOIN (
-						SELECT er.id_employee, GROUP_CONCAT(r.`name` SEPARATOR ', ') AS group_roles, GROUP_CONCAT(r.`id`) AS role_ids, r.color 
-						FROM employee_role_map er 
-						LEFT JOIN role r ON r.id = er.id_role
-						<!-- <if test="id_role != 0">
-							WHERE r.id = #{id_role}
-						</if> -->
-						
-						<if test="roles != null and !roles.isEmpty()">
-							WHERE r.id IN  (
-								<foreach item="item" index="index" collection="roles" separator=" , ">
-									#{item.id}
-								</foreach>
-							)
-						</if>
-						
-						GROUP BY er.id_employee
-					)t ON t.id_employee = e.id
-					
-			LEFT JOIN (
-				SELECT *
-				FROM account_status
-				WHERE (id_employee, id) IN (
-					SELECT 
-						id_employee,
-						MAX(id) AS id
-					FROM account_status
-					GROUP BY id_employee
+			<if test="roles != null and !roles.isEmpty()">
+				AND r.id IN  (
+					<foreach item="item" index="index" collection="roles" separator=" , ">
+						#{item.id}
+					</foreach>
 				)
-			)s ON s.id_employee = e.id
-		WHERE e.is_delete = 0
+			</if>
+			
+			<if test="id_company != null and id_company != 0 and id_company > 1">
+				AND e.id_company = #{id_company}
+			</if>
+			
+			<if test="id_role != 0">
+				AND r.id = #{id_role}
+			</if>
+		GROUP BY
+			er.id_employee
+	</sql>
+	
+	<sql id="getListCondition">
+		e.is_delete = 0
 		<if test="roles != null and !roles.isEmpty() ">
 			AND t.group_roles <![CDATA[!=]]> ""
 		</if>
@@ -313,11 +293,66 @@
 					AND m.site_name LIKE CONCAT("%",#{keyword}, "%")
 				</when>
 				<otherwise>
-					AND ( e.first_name LIKE CONCAT("%",#{keyword}, "%") OR e.last_name LIKE CONCAT("%",#{keyword}, "%") )
+					AND ( CONCAT_WS(" ", TRIM(e.first_name), TRIM(e.last_name)) LIKE CONCAT("%",TRIM(#{keyword}), "%")  )
 				</otherwise>
 			</choose>
-		</if> 	
-		    order by
+		</if>
+	</sql>
+	
+	<select id="getList" resultMap="EmployeeMap" parameterType="com.nwm.api.entities.EmployeeManageEntity" >
+		SELECT
+			e.id,
+			e.first_name,
+			e.last_name,
+			e.phone,
+			e.email,
+			e.email AS re_email,
+			e.address,
+			e.is_delete,
+			e.`status`,
+			e.skype,
+			e.avatar,
+			DATE_FORMAT(e.birthday, '%m/%d%Y') AS birthday,
+			CONCAT_WS(' ',e.first_name,e.last_name) AS fullname,
+			t.group_roles,
+			t.role_ids,
+			t.color,
+			t.data_roles,
+			m.manage_site_total,
+			m.ids_site,
+			m.site_name AS site_names,
+			CONVERT_TZ(s.last_login, s.offset_timezone, 'UTC') AS last_login,
+			s.page_login,
+			e.account_locked,
+			e.failed_attempt,
+			e.lock_time,
+			e.created_by,
+			SHA2(e.`id`, 256) AS hash_id_user,
+			e.id_company,
+			e.note,
+			e.portfolio_metrics_enable,
+			e.is_admin_company
+		FROM
+			`employee` e	
+			LEFT JOIN (<include refid="managedSitesDerivedTable"/>) m ON m.id_employee = e.id
+			LEFT JOIN (<include refid="rolesDerivedTable"/>)t ON t.id_employee = e.id
+			LEFT JOIN (
+				SELECT *
+				FROM account_status
+				WHERE (id_employee, id) IN (
+					SELECT 
+						id_employee,
+						MAX(id) AS id
+					FROM account_status
+					GROUP BY id_employee
+				)
+			)s ON s.id_employee = e.id
+		
+		WHERE
+			<include refid="getListCondition"/>
+		GROUP BY
+			e.id
+		ORDER BY
 	        <choose>  
 	            <when test="sort_column == 'first_name'">
 	                CONCAT(e.first_name, ' ', e.last_name) ${order_by}
@@ -326,7 +361,7 @@
 	                t.group_roles ${order_by}
 	            </when>
 	            <when test="sort_column == 'status'">
-	                s.last_login ${order_by}
+	                last_login ${order_by}
 	            </when>
 	            <when test="sort_column == 'manage_site'">
 	                m.manage_site_total ${order_by}
@@ -351,57 +386,12 @@
 	
 	<select id="getListCount"  resultType="int" parameterType="com.nwm.api.entities.EmployeeManageEntity">
     	SELECT count(*) as totalRecord
-		FROM employee e
-		LEFT JOIN (
-				SELECT er.id_employee, GROUP_CONCAT(r.`name` SEPARATOR ', ') AS group_roles, GROUP_CONCAT(r.`id`) AS role_ids, r.color 
-				FROM employee_role_map er 
-				LEFT JOIN role r ON r.id = er.id_role
-				
-				<if test="roles != null and !roles.isEmpty()">
-					WHERE r.id IN  (
-						<foreach item="item" index="index" collection="roles" separator=" , ">
-							#{item.id}
-						</foreach>
-					)
-				</if>
-				
-				GROUP BY er.id_employee
-			)t ON t.id_employee = e.id
-		LEFT JOIN (
-			SELECT id_employee, GROUP_CONCAT(s.`name`) AS site_name
-			FROM site_employee_map sem
-			LEFT JOIN site s ON s.id = sem.id_site
-			GROUP BY sem.id_employee
-		)m ON m.id_employee = e.id
-		
-		WHERE e.is_delete = 0
-		<if test="roles != null and !roles.isEmpty() ">
-			AND t.group_roles <![CDATA[!=]]> ""
-		</if>
-		
-		<if test="id_company != null and id_company != 0 and id_company > 1">
-			AND e.id_company = #{id_company}
-		</if>
-		
-		<if test="keyword != null">
-			<choose>
-				<when test="filterBy == 'fullname'">
-					AND ( e.first_name LIKE CONCAT("%",#{keyword}, "%") OR e.last_name LIKE CONCAT("%",#{keyword}, "%") )
-				</when>
-				<when test="filterBy == 'phone'">
-					AND e.phone LIKE CONCAT("%",#{keyword}, "%")
-				</when>
-				<when test="filterBy == 'email'">
-					AND e.email LIKE CONCAT("%",#{keyword}, "%")
-				</when>
-				<when test="filterBy == 'manage_site'">
-					AND m.site_name LIKE CONCAT("%",#{keyword}, "%")
-				</when>
-				<otherwise>
-					AND ( e.first_name LIKE CONCAT("%",#{keyword}, "%") OR e.last_name LIKE CONCAT("%",#{keyword}, "%") )
-				</otherwise>
-			</choose>
-		</if>
+		FROM
+			employee e
+			LEFT JOIN (<include refid="managedSitesDerivedTable"/>) m ON m.id_employee = e.id
+			LEFT JOIN (<include refid="rolesDerivedTable"/>) t ON t.id_employee = e.id
+		WHERE
+			<include refid="getListCondition"/>
   	</select>
   	
   	<update id="updateStatus">

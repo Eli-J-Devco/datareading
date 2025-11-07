@@ -8,17 +8,21 @@ package com.nwm.api.services;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.ibatis.session.SqlSession;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.nwm.api.DBManagers.DB;
+import com.nwm.api.entities.AuditLog;
 import com.nwm.api.entities.EmployeeSiteMapEntity;
 import com.nwm.api.entities.SiteAreaBuildingFloorRoomEntity;
 import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.entities.SiteGasWaterElectricityRateScheduleEntity;
+import com.nwm.api.entities.SiteLogs;
 
 public class SiteService extends DB {
 	/**
@@ -229,7 +233,7 @@ public class SiteService extends DB {
 	{
 		SqlSession session = this.beginTransaction();
 		try {
-			List dataEmployee = obj.getDataEmployee();
+			List<Map<String, Object>> dataEmployee = obj.getDataEmployee();
 			if (dataEmployee.size() <= 0) {
 				throw new Exception();
 			}
@@ -238,6 +242,9 @@ public class SiteService extends DB {
 			int insertLastId = obj.getId();
 
 			if (insertLastId > 0) {
+				dataEmployee.sort((a,b) -> ((Integer) a.get("id")).compareTo(((Integer) b.get("id"))));
+				dataEmployee.forEach(item -> item.put("id_site", insertLastId));
+				
 				// Update table virtual and table report
 				obj.setTable_data_report("site" + insertLastId + "_data_report");
 				obj.setTable_data_virtual("model"+ insertLastId + "_virtual_meter_or_inverter");
@@ -246,16 +253,7 @@ public class SiteService extends DB {
 				session.insert("Site.createTableReportSite", obj);
 				session.insert("Site.createTableVirtualDeviceSite", obj);
 				session.insert("Site.updateTableVirtualAndReport", obj);
-				
-				
-				for (int i = 0; i < dataEmployee.size(); i++) {
-					Map<String, Object> employee = (Map<String, Object>) dataEmployee.get(i);
-					int id_employee = (int) employee.get("id");
-					EmployeeSiteMapEntity siteEmployeeMaptItem = this._buildSiteEmployeeMapItem(insertLastId, id_employee);
-					session.insert("Site.insertSiteEmployeeMap", siteEmployeeMaptItem);
-				}
-				
-				session.update("Site.updateHidingSite", obj);
+				session.insert("Site.insertSiteEmployeeMap", obj);
 				
 				if (obj.getSite_type() == 2) {
 					List areaList = obj.getAreaList();
@@ -285,28 +283,6 @@ public class SiteService extends DB {
 			
 	}
 	
-	
-	/**
-	 * build order product item
-	 * 
-	 * @param productItem
-	 * @param productId
-	 * @param insertOrderLastId
-	 * @return
-	 */
-	@SuppressWarnings("unused")
-	private EmployeeSiteMapEntity _buildSiteEmployeeMapItem(int id_site, int id_employee ) {
-		try {
-			EmployeeSiteMapEntity item = new EmployeeSiteMapEntity();
-			item.setId_employee(id_employee);
-			item.setId_site(id_site);
-			return item;
-		} catch (Exception e) {
-			return null;
-		}
-	}
-	
-	
 	/**
 	 * @description update role
 	 * @author long.pham
@@ -321,22 +297,16 @@ public class SiteService extends DB {
 			
 			switch (obj.getTab_menu()) {
 			case 1:
-				List dataEmployee = obj.getDataEmployee();
+				List<Map<String, Object>> dataEmployee = obj.getDataEmployee();
 				if (dataEmployee.size() <= 0) {
 					throw new Exception();
 				}
+				dataEmployee.sort((a,b) -> ((Integer) a.get("id")).compareTo(((Integer) b.get("id"))));
+				dataEmployee.forEach(item -> item.put("id_site", insertLastId));
 
-				session.delete("Site.deleteSiteEmployeeMapEdit", obj);
 				session.update("Site.updateSite", obj);
-
-				for (int i = 0; i < dataEmployee.size(); i++) {
-					Map<String, Object> customer = (Map<String, Object>) dataEmployee.get(i);
-					int id_employee = (int) customer.get("id");
-					EmployeeSiteMapEntity siteCustomerMaptItem = this._buildSiteEmployeeMapItem(obj.getId(), id_employee);
-					session.insert("Site.insertSiteEmployeeMap", siteCustomerMaptItem);
-				}
-				
-				session.update("Site.updateHidingSite", obj);
+				session.delete("Site.deleteSiteEmployeeMapEdit", obj);
+				session.insert("Site.insertSiteEmployeeMap", obj);
 				
 				if (obj.getSite_type() == 2) {
 					// add Area
@@ -553,7 +523,9 @@ public class SiteService extends DB {
 				Map<String, Object> item = (Map<String, Object>) dataList.get(i);
 				
 				try {
-					item.put("options", mapper.readValue(item.get("options").toString(), new TypeReference<List<Map<String, Object>>>(){}));
+					List<Map<String, Object>> sites = mapper.readValue(item.get("options").toString(), new TypeReference<List<Map<String, Object>>>(){});
+					sites.sort((s1, s2) -> s1.get("text").toString().compareTo(s2.get("text").toString()));
+					item.put("options", sites);
 				} catch (JsonProcessingException e) {
 					item.put("options", new ArrayList<Map<String, Object>>());
 				}
@@ -1034,6 +1006,23 @@ public class SiteService extends DB {
 		}
 		return dataObj;
 
+	}
+	
+	/**
+	 * @description Get site logs
+	 * @author Hung.Bui
+	 * @since 2025-09-05
+	 * @param id
+	 */
+	public List<AuditLog> getLogs(SiteEntity obj) {
+		try {
+			List<SiteLogs> logs = queryForList("Site.getLogs", obj);
+			if (Objects.isNull(logs)) return new ArrayList<>();
+			AuditingLogsService logsService = new AuditingLogsService();
+			return logsService.getLogDifferences(logs, null);
+		} catch (Exception ex) {
+			return new ArrayList<>();
+		}
 	}
 	
 	/**
