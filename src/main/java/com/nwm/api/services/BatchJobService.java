@@ -928,7 +928,7 @@ public class BatchJobService extends DB {
 			Date endDate = new Date();
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(endDate);
-			cal.add(Calendar.DATE, -40);
+			cal.add(Calendar.DATE, -30);
 			Date startDate = new Date(cal.getTimeInMillis());
 			
 			if(obj.getStart_date() != null && obj.getEnd_date() != null) {
