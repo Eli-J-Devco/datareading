@@ -7,7 +7,6 @@ package com.nwm.api.controllers;
 import java.util.List;
 import java.io.File;
 import javax.servlet.http.HttpServletRequest;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FilenameFilter;
@@ -21,29 +20,15 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-import com.nwm.api.entities.DeviceEntity;
-import com.nwm.api.entities.ModelGinlongSolisInverterClass6007Entity;
-import com.nwm.api.entities.ModelHuaweiSun200028ktlEntity;
-import com.nwm.api.entities.ModelIMTSolarTvClass8004Entity;
-import com.nwm.api.entities.ModelQuint4UPSEntity;
-import com.nwm.api.entities.ModelSmartLogger3000Entity;
-import com.nwm.api.entities.ModelVerisIndustriesE51c2PowerMeterEntity;
-import com.nwm.api.entities.SiteEntity;
-import com.nwm.api.services.ImportOldDataBoVietService;
-import com.nwm.api.services.ModelGinlongSolisInverterClass6007Service;
-import com.nwm.api.services.ModelHuaweiSun200028ktlService;
-import com.nwm.api.services.ModelIMTSolarTvClass8004Service;
-import com.nwm.api.services.ModelQuint4UPSService;
-import com.nwm.api.services.ModelSmartLogger3000Service;
-import com.nwm.api.services.ModelVerisIndustriesE51c2PowerMeterService;
+import com.nwm.api.entities.*;
+import com.nwm.api.services.*;
 import com.nwm.api.utils.Constants;
 import com.nwm.api.utils.Lib;
 
@@ -53,6 +38,8 @@ import springfox.documentation.annotations.ApiIgnore;
 @ApiIgnore
 @RequestMapping("/import-old-data-boviet")
 public class ImportBoVietController extends BaseController {
+
+
 	
 	/**
 	 * @description Get list role
@@ -98,12 +85,9 @@ public class ImportBoVietController extends BaseController {
 					System.out.println(filePath);
 					
 					String fileName = file.getName();
-//					String[] stringArray = fileName.split(".");
-//					int index = fileName.indexOf('.');
 					
 					String modbusdevicenumber = fileName.substring(0, fileName.indexOf('.')).replace("mb-", "");
 					
-//					if(!serialNumber.equals(serialNumberTmp) && deviceItem.getId() > 0 && dataInserts.size() > 0) {}
 					DeviceEntity deviceItem = new DeviceEntity();
 					if(Integer.parseInt(modbusdevicenumber) > 0){
                 		for (DeviceEntity device : devices) {
@@ -112,32 +96,12 @@ public class ImportBoVietController extends BaseController {
                 			}
                         }
                 	}
-						
-					
-//					text.replace("World", "")
-					
+
 					long lineIndex = 0;
-//					long totalLine = 0;
-//					try (BufferedReader brLine = new BufferedReader(new FileReader(filePath))) {
-//						while (brLine.readLine() != null) {
-//							totalLine++;
-//			            }
-//					} catch (IOException e) {
-//						e.printStackTrace();
-//	                }
-					
 					try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
 						String line;
-//						String serialNumber = "", serialNumberTmp = "";
-//						List dataInserts = new ArrayList();	
-//                        DeviceEntity deviceItem = new DeviceEntity();
                         while ((line = br.readLine()) != null) {
                         	if(lineIndex > 0) {
-                        		
-                        		
-//                        		System.out.println("line: " + line);
-                        		
-                        		
                         		// save data 
                 				switch(deviceItem.getDevice_group_table()) {
                     				case "model_huawei_sun2000_28ktl":
@@ -199,119 +163,7 @@ public class ImportBoVietController extends BaseController {
                         	}
 
                             lineIndex++;
-//                        	int indexFindSerialNumber = line.indexOf("ESN:");
-//                        	if (indexFindSerialNumber != -1) {
-//                            	String[] stringArray = line.split(":");
-//                            	if(stringArray.length > 1) {
-//                            		serialNumberTmp = stringArray[1];
-//                            	}
-//                            } else {
-//                            	serialNumber = serialNumberTmp;
-//                            }
-//                        	
-//                        	if(totalLine - 1 == lineIndex) {
-//                        		serialNumber = "end";
-//                        	}
-//                        	
-//                        	int indexTitle = line.indexOf("#Time");
-//                        	if(indexTitle != -1) { continue; }
-//                        	
-//                        	if(serialNumber.equals(serialNumberTmp) || "end".equals(serialNumber)){
-//                        		for (DeviceEntity device : devices) {
-//                                    if ((device.getSerialnumber()).equals(serialNumber) || ((device.getSerialnumber()).equals(serialNumberTmp) && "end".equals(serialNumber)  ) ) {
-//                                    	deviceItem = device;
-//                                        break;
-//                                    }
-//                                }
-//                        	}
-                        	
-//                        	if((serialNumber.equals(serialNumberTmp) || "end".equals(serialNumber)) && indexTitle == -1 && deviceItem.getId() > 0) {
-//                        		String[] stringValue = line.split(";");
-//                        		String dateStr ="20"+stringValue[0] + " EDT";
-//                            	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z");
-//                                DateTimeFormatter formatterSql = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-//                                LocalDateTime localDateTime = LocalDateTime.parse(dateStr, formatter);
-//                                ZonedDateTime newYorkTime = localDateTime.atZone(ZoneId.of("America/New_York"));
-//                                // Convert to UTC
-//                                ZonedDateTime utcTime = newYorkTime.withZoneSameInstant(ZoneId.of("UTC"));
-//                                
-//                            	switch(deviceItem.getDevice_group_table()) {
-//                                	case "model_huawei_sun2000_28ktl":
-//                                    	ModelHuaweiSun200028ktlEntity item = new ModelHuaweiSun200028ktlEntity();
-//                                    	if(stringValue.length > 0) {
-//                                    		item.setDatatablename(deviceItem.getDatatablename());
-//                                    		item.setView_tablename(deviceItem.getView_tablename());
-//                                    		item.setTime(utcTime.format(formatterSql));
-//                                    		item.setId_device(deviceItem.getId()) ;
-//                                    		item.setError(0);
-//                                    		item.setLow_alarm(0);
-//                                    		item.setHigh_alarm(0);
-//                                    		item.setActivePower(stringValue.length > 24 && !Lib.isBlank(stringValue[24]) ? Double.parseDouble(stringValue[24]) * 10: 0);
-//                                    		item.setReactivePower(stringValue.length > 25 && !Lib.isBlank(stringValue[25]) ? Double.parseDouble(stringValue[25]): 0);
-//                                    		Double totalDC = 
-//                                    				stringValue.length > 7 && !Lib.isBlank(stringValue[7]) ? Double.parseDouble(stringValue[7]): 0 + 
-//                                    						stringValue.length > 8 && !Lib.isBlank(stringValue[8]) ? Double.parseDouble(stringValue[8]): 0 + 
-//                                    								stringValue.length > 9 && !Lib.isBlank(stringValue[9]) ? Double.parseDouble(stringValue[9]): 0 + 
-//                                    										stringValue.length > 10 && !Lib.isBlank(stringValue[10]) ? Double.parseDouble(stringValue[10]): 0 + 
-//                                    												stringValue.length > 11 && !Lib.isBlank(stringValue[11]) ? Double.parseDouble(stringValue[11]): 0 + 
-//                                    														stringValue.length > 12 && !Lib.isBlank(stringValue[12]) ? Double.parseDouble(stringValue[12]): 0;
-//                                    		item.setTotalDCInputCurrent(totalDC);
-//                                    		item.setTotalInputPower(0);
-//                                    		item.setInsulationResistance(0);
-//                                    		item.setPowerFactor(0);
-//                                    		item.setInverterStatus(stringValue.length > 19 && !Lib.isBlank(stringValue[19]) ? Double.parseDouble(stringValue[19]): 0);
-//                                    		item.setCabinetTemperature(stringValue.length > 21 && !Lib.isBlank(stringValue[21]) ? Double.parseDouble(stringValue[21]): 0);
-//                                    		item.setMajorFaultCode(stringValue.length > 20 && !Lib.isBlank(stringValue[20]) ? Double.parseDouble(stringValue[20]): 0);
-//                                    		item.setMinorFaultCode(0);
-//                                    		item.setWarningCode(0);
-//                                    		item.setNvmActivePower(stringValue.length > 24 && !Lib.isBlank(stringValue[24]) ? Double.parseDouble(stringValue[24]) * 10: 0 );
-//                                    		item.setNvmActiveEnergy(0);
-//                                    		item.setMeasuredProduction(stringValue.length > 26 && !Lib.isBlank(stringValue[26]) ? Double.parseDouble(stringValue[26]) * 100: 0 );
-//                                    		dataInserts.add(item);
-//                                    	}
-//                                    	
-//                                		break;
-//                                	case "model_imtsolar_tv_class8004":
-//                        				if(stringValue.length > 0) {
-//                        					ModelIMTSolarTvClass8004Entity dataEntity = new ModelIMTSolarTvClass8004Entity();
-//	                                		dataEntity.setDatatablename(deviceItem.getDatatablename());
-//	                                		dataEntity.setView_tablename(deviceItem.getView_tablename());
-//	                                		dataEntity.setTime(utcTime.format(formatterSql));
-//	                                		dataEntity.setId_device(deviceItem.getId()) ;
-//	                                		dataEntity.setError(0);
-//	                                		dataEntity.setLow_alarm(0);
-//	                                		dataEntity.setHigh_alarm(0);
-//	                                		dataEntity.setIrradiance(stringValue.length > 5 && !Lib.isBlank(stringValue[5]) ? Double.parseDouble(stringValue[5]): 0);
-//	                                		dataEntity.setTcell(stringValue.length > 3 && !Lib.isBlank(stringValue[3]) ? Double.parseDouble(stringValue[3]): 0);
-//	                                		dataEntity.setText(stringValue.length > 4 && !Lib.isBlank(stringValue[4]) ? Double.parseDouble(stringValue[4]): 0);
-//	                                		dataEntity.setWspeed(stringValue.length > 1 && !Lib.isBlank(stringValue[1]) ? Double.parseDouble(stringValue[1]): 0);
-//	                                		dataEntity.setNvm_irradiance(stringValue.length > 5 && !Lib.isBlank(stringValue[5]) ? Double.parseDouble(stringValue[5]): 0);
-//	                                		dataEntity.setNvm_temperature(stringValue.length > 3 && !Lib.isBlank(stringValue[3]) ? Double.parseDouble(stringValue[3]): 0);
-//	                                		dataEntity.setNvm_panel_temperature(0);
-//	                                		dataInserts.add(dataEntity);
-//                        				}
-//                                		
-//                                		break;
-//                            	}
-//                        	}
-                        	
-                        	
-                        	
-                        	
-//                        	if(!serialNumber.equals(serialNumberTmp) && deviceItem.getId() > 0 && dataInserts.size() > 0) {
-//                        		deviceItem.setParameters(dataInserts);
-//                				// save data 
-//                				switch(deviceItem.getDevice_group_table()) {
-//                    				case "model_huawei_sun2000_28ktl":
-//                    					service.insertModelHuaweiSun200028ktl(deviceItem);
-//                    					dataInserts = new ArrayList();	
-//                    					break;
-//                    				case "model_imtsolar_tv_class8004":
-//                    					service.insertModelImtsolarTvClass8004(deviceItem);
-//                    					dataInserts = new ArrayList();	
-//                    					break;
-//                				}
-//                        	}
+
                         }
 					} catch (IOException e) {
                       e.printStackTrace();
