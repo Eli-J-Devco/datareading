@@ -7201,9 +7201,9 @@
 							`ResidualVoltage` double DEFAULT NULL,
 							`NegativeSequenceCurrent` double DEFAULT NULL,
 							`LineFrequency` double DEFAULT NULL,
-							`PhaseAAngle` double DEFAULT NULL,
-							`PhaseBAngle` double DEFAULT NULL,
-							`PhaseCAngle` double DEFAULT NULL,
+							`PhaseAPowerFactor` double DEFAULT NULL,
+							`PhaseBPowerFactor` double DEFAULT NULL,
+							`PhaseCPowerFactor` double DEFAULT NULL,
 							`AuxillaryPowerSupply` double DEFAULT NULL,
 							`ActivePowerPhaseA` double DEFAULT NULL,
 							`ActivePowerPhaseB` double DEFAULT NULL,
@@ -7225,6 +7225,26 @@
 							`OutputRelay5` double DEFAULT NULL,
 							`HotLineTag` double DEFAULT NULL,
 							`EnableRemoteReset` double DEFAULT NULL,
+							`TotalActivePower` double DEFAULT NULL,
+							`TotalReactivePower` double DEFAULT NULL,
+							`PhaseandNeutralCurrentTransformerRatio` double DEFAULT NULL,
+							`InputCurrentTransformerRatio` double DEFAULT NULL,
+							`PotentialTransformerRatio` double DEFAULT NULL,
+							`PhaseAActivePowerUncalculated` double DEFAULT NULL,
+							`PhaseBActivePowerUncalculated` double DEFAULT NULL,
+							`PhaseCActivePowerUncalculated` double DEFAULT NULL,
+							`TotalActivePowerUncalculated` double DEFAULT NULL,
+							`TotalReactivePowerUncalculated` double DEFAULT NULL,
+							`PowerFactorUncalculated` double DEFAULT NULL,
+							`PhaseAPowerFactorUncalculated` double DEFAULT NULL,
+							`PhaseBPowerFactorUncalculated` double DEFAULT NULL,
+							`PhaseCPowerFactorUncalculated` double DEFAULT NULL,
+							`PhaseAi2tUncalculated` double DEFAULT NULL,
+							`PhaseBi2tUncalculated` double DEFAULT NULL,
+							`PhaseCi2tUncalculated` double DEFAULT NULL,
+							`ProtectionStateFlags` double DEFAULT NULL,
+							`ProtectionStateFlags2` double DEFAULT NULL,
+							`ProtectionStateFlagsOutputRelays` double DEFAULT NULL,
 						  
 						  						  
 						  `nvmActivePower` double DEFAULT NULL,
@@ -7543,6 +7563,28 @@
 							`BatteryInternalTemperature` double DEFAULT NULL,
 							`BatteryExternalTemperature` double DEFAULT NULL,
 							`BatteryStateOfHealth` double DEFAULT NULL,
+				
+							PRIMARY KEY (`time`,`id_device`) USING BTREE,
+							KEY `id_device` (`id_device`),
+							CONSTRAINT `fk_data${id}_${device_group_table}` FOREIGN KEY (`id_device`) REFERENCES `device` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+					  )
+					  ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	            </when>
+	            
+	            
+	            <when test="id_device_group == 132">
+	            	CREATE TABLE IF NOT EXISTS `data${id}_${device_group_table}` 
+						(
+							`time` datetime NOT NULL,
+							`id_device` int NOT NULL,
+							`error` int unsigned DEFAULT '0',
+							`low_alarm` int unsigned DEFAULT '0',
+							`high_alarm` int unsigned DEFAULT '0',
+							
+							`nvmActivePower` double DEFAULT NULL,
+						    `nvmActiveEnergy` double DEFAULT NULL,
+						    `MeasuredProduction` double DEFAULT NULL,
+						    `power_factor` double DEFAULT NULL,
 				
 							PRIMARY KEY (`time`,`id_device`) USING BTREE,
 							KEY `id_device` (`id_device`),
