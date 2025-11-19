@@ -16,6 +16,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.nwm.api.batchjob.BatchJob;
 import com.nwm.api.utils.Constants;
+
 @Configuration
 @EnableBatchProcessing
 @EnableScheduling
@@ -118,6 +119,47 @@ public class BatchConfig {
 //		
 //	}
 //	
+	
+	/**
+	 * @description batch job get data meteo
+	 * @author long.pham
+	 * @since 2025-02-15
+	 */
+//	@Scheduled(cron = "* * * * * *")
+//	@Scheduled(cron = "0 */1 * * * *")
+	@Scheduled(cron = "0 */5 * * * *")
+	public void startBatchJobMeteo() throws Exception {
+		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+		if (env.equals("staging")) {
+			BatchJob job =new BatchJob(); 
+			job.startBatchJobMeteo();
+		}
+		
+	}
+	
+	
+	/**
+	 * @description batch job get data meteo
+	 * @author long.pham
+	 * @since 2025-02-15
+	 */
+//	@Scheduled(cron = "* * * * * *")
+//	@Scheduled(cron = "0 */1 * * * *")
+	@Scheduled(cron = "0 */5 * * * *")
+	public void startBatchJobOpenMeteoWeather() throws Exception {
+		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+		if (env.equals("staging")) {
+			BatchJob job =new BatchJob(); 
+			job.startBatchJobOpenMeteoWeather();
+		}
+		
+	}
+	
+	
+	 
+	
 	/**
 	 * @description batch job get alert for all device No Communication
 	 * @author long.pham
@@ -210,23 +252,6 @@ public class BatchConfig {
 //	}
 	
 	
-	/**
-	 * @description batch job generate data report
-	 * @author long.pham
-	 * @since 2021-05-18
-	 */
-//	@Scheduled(cron = "* * * * * *")
-//	@Scheduled(cron = "0 */1 * * * *")
-//	@Scheduled(cron = "0 */60 * * * *")
-//	public void startBatchJobGenerateDataReport() throws Exception {
-//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-//		if (env.equals("staging")) {
-//			BatchJob job =new BatchJob(); 
-//			job.runCronJobGenerateDataReport();
-//		}
-//	}
-	
 	
 	/**
 	 * @description batch job generate data report
@@ -235,35 +260,70 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-//	@Scheduled(cron = "0 */20 * * * *")
-//	
-//	// Start every day 2 PM.
-////	@Scheduled(cron = "0 0 0/20 ? * *")
-//	public void startBatchJobGeneratePerformanceRatio() throws Exception {
-//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-//		if (env.equals("staging")) {
-//			BatchJob job =new BatchJob(); 
-//			job.startBatchJobGeneratePerformanceRatio();
-//		}
-//		
-//		
-//	}
-//	
+	@Scheduled(cron = "0 */10 * * * *")
+	public void startBatchJobGenerateDataReport() throws Exception {
+		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+		if (env.equals("staging")) {
+			BatchJob job =new BatchJob(); 
+			job.runCronJobGenerateDataReport();
+		}
+	}
+	
+	
+	/**
+	 * @description batch job get data meteo
+	 * @author long.pham
+	 * @since 2025-02-15
+	 */
+//	@Scheduled(cron = "* * * * * *")
+//	@Scheduled(cron = "0 */1 * * * *")
+	@Scheduled(cron = "0 */5 * * * *")
+	public void startBatchJobBEMSLoadVitualMeter() throws Exception {
+		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+		if (env.equals("staging")) {
+			BatchJob job =new BatchJob(); 
+			job.startBatchJobBEMSLoadVitualMeter();
+		}
+		
+	}
+	
+	/**
+	 * @description batch job generate data report
+	 * @author long.pham
+	 * @since 2021-05-18
+	 */
+//	@Scheduled(cron = "* * * * * *")
+//	@Scheduled(cron = "0 */1 * * * *")
+	@Scheduled(cron = "0 */20 * * * *")
+	
+	// Start every day 2 PM.
+//	@Scheduled(cron = "0 0 0/20 ? * *")
+	public void startBatchJobGeneratePerformanceRatio() throws Exception {
+		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+		if (env.equals("staging")) {
+			BatchJob job =new BatchJob(); 
+			job.startBatchJobGeneratePerformanceRatio();
+		}
+		
+		
+	}
+	
 	
 	/**
 	 * @description sent mail report on schedule
 	 * @author Hung.Bui
 	 * @since 2022-12-22
 	 */
-//	@Bean
-//    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
-//		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-//		taskScheduler.setRemoveOnCancelPolicy(true);
-//		taskScheduler.setPoolSize(5);
-//        return taskScheduler;
-//    }
-//	
+	@Bean
+    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
+		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+		taskScheduler.setRemoveOnCancelPolicy(true);
+		taskScheduler.setPoolSize(5);
+        return taskScheduler;
+    }
 	
 	/**
 	 * @description read folder from FTP account
@@ -289,14 +349,14 @@ public class BatchConfig {
 //	}
 	
 	
-//	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
-//		String value = defaultValue;
-//		try {
-//			value = resourceBundle.getString(key);
-//		} catch (Exception e) {}
-//		return value;
-//	}
-//	
+	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
+		String value = defaultValue;
+		try {
+			value = resourceBundle.getString(key);
+		} catch (Exception e) {}
+		return value;
+	}
+	
 	/**
 	 * @description SMA read folder from FTP account
 	 * @author Long.Pham
