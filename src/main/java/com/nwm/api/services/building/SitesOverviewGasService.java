@@ -32,6 +32,7 @@ import com.nwm.api.entities.building.SitesOverviewGasEventEntity;
 import com.nwm.api.entities.building.SitesOverviewGasSummaryEntity;
 import com.nwm.api.utils.Lib;
 import com.nwm.api.utils.Constants.ChartingFilter;
+import com.nwm.api.utils.Constants.ChartingTimeFilter;
 
 public class SitesOverviewGasService extends DB {
 	
@@ -60,10 +61,12 @@ public class SitesOverviewGasService extends DB {
 				default:
 					break;
 				case THIS_WEEK:
-					end = end.with(DayOfWeek.SUNDAY);
-					timefullFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-					categoryTimeFormat = DateTimeFormatter.ofPattern("dd. LLL");
-					timeUnit = ChronoUnit.DAYS;
+                    if (Lib.isBlank(obj.getTime_id_filter()) || ChartingTimeFilter.fromValue(obj.getTime_id_filter()).equals(ChartingTimeFilter.DAY)) {
+                        end = end.with(DayOfWeek.SUNDAY);
+                        timefullFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                        categoryTimeFormat = DateTimeFormatter.ofPattern("dd. LLL");
+                        timeUnit = ChronoUnit.DAYS;
+                    }
 					break;
 				case THIS_MONTH:
 				case LAST_MONTH:
@@ -235,15 +238,28 @@ public class SitesOverviewGasService extends DB {
 						params.setTimezone_value(obj.getTimezone_value());
 						params.setReading_field(obj.getReading_field());
 						params.setDevices(devices);
-						
-						if (label.equals("predicted")) {
-							DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-							LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), formatter);
-							LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), formatter);
-							
-							params.setStart_date(ChartingFilter.fromValue(obj.getId_filter()) == ChartingFilter.THIS_YEAR ? start.minusYears(1).format(formatter) : start.minusMonths(1).format(formatter));
-							params.setEnd_date(ChartingFilter.fromValue(obj.getId_filter()) == ChartingFilter.THIS_YEAR ? end.minusYears(1).with(TemporalAdjusters.lastDayOfYear()).format(formatter) : end.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth()).format(formatter));
-						}
+                        params.setTime_id_filter(obj.getTime_id_filter());
+
+                        if (label.equals("predicted")) {
+                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                            LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), formatter);
+                            LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), formatter);
+                            ChartingFilter filterValue = ChartingFilter.fromValue(obj.getId_filter());
+                            String startDate = start.minusDays(1).format(formatter);
+                            String endDate = end.minusDays(1).format(formatter);
+                            if (filterValue == ChartingFilter.THIS_WEEK ) {
+                                startDate = start.minusWeeks(1).format(formatter);
+                                endDate = end.minusWeeks(1).with(DayOfWeek.SUNDAY).format(formatter);
+                            } else if (filterValue == ChartingFilter.THIS_MONTH) {
+                                startDate = start.minusMonths(1).format(formatter);
+                                endDate = end.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth()).format(formatter);
+                            } else if (filterValue == ChartingFilter.THIS_YEAR){
+                                startDate = start.minusYears(1).format(formatter);
+                                endDate = end.minusYears(1).with(TemporalAdjusters.lastDayOfYear()).format(formatter);
+                            }
+                            params.setStart_date(startDate);
+                            params.setEnd_date(endDate);
+                        }
 						
 						entity.setId(label);
 						List<ChartConsumptionEntity> dataList = queryForList("SitesOverviewGas.getConsumption", params);
