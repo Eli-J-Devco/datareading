@@ -252,14 +252,15 @@
 		    	WHEN 4 THEN "Asset Management and Operation Performance Report"
 		    	WHEN 5 THEN "Sanity Check Report"
 		    	WHEN 6 THEN "Meter-Level Production vs Irradiance/Temp"
+		    	WHEN 7 THEN "Boviet Format Production Report"
 		    	ELSE "Report"
 			END,
 			IF(
 				r.duplicated_from IS NULL,
 				NULL,
 				IF(
-					ROW_NUMBER() OVER(PARTITION BY r.duplicated_from) > 1,
-					CONCAT("(COPY ", ROW_NUMBER() OVER(PARTITION BY r.duplicated_from), ")"),
+					ROW_NUMBER() OVER(PARTITION BY r.duplicated_from ORDER BY r.id) > 1,
+					CONCAT("(COPY ", ROW_NUMBER() OVER(PARTITION BY r.duplicated_from ORDER BY r.id), ")"),
 					"(COPY)"
 				)
 			)
@@ -363,14 +364,43 @@
   	
 	
 	<select id="getListCount"  resultType="int" parameterType="com.nwm.api.entities.ReportsEntity">
-    	SELECT count(*) as totalRow
-		FROM report r
-		WHERE r.status = 1
-		<if test="is_supper_admin != 1">
-			AND r.id_employee = #{id_employee}
-		</if>
+<!--    	SELECT count(*) as totalRow-->
+<!--		FROM report r-->
+<!--		WHERE r.status = 1-->
+<!--		<if test="is_supper_admin != 1">-->
+<!--			AND r.id_employee = #{id_employee}-->
+<!--		</if>-->
 		
-		
+		SELECT
+            count(id) as totalRow
+        FROM (
+            SELECT
+                r.id
+            FROM report r
+            JOIN site_employee_map sem ON sem.id_employee = r.id_employee
+            JOIN site s ON s.id = sem.id_site
+            JOIN time_zone tz ON tz.id = s.id_time_zone
+            LEFT JOIN site_sub_group ssg ON ssg.id = s.id_site_sub_group
+            LEFT JOIN report_site_map rsm ON r.type_option = 2 AND rsm.id_site = s.id AND rsm.id_report = r.id
+            WHERE
+                r.STATUS = 1
+                AND s.`status` = 1
+                AND s.is_delete = 0
+                AND (CONVERT_TZ(NOW(), 'UTC', tz.value) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+                AND (
+                    CASE r.type_option
+                        WHEN 1 THEN TRUE
+                        WHEN 2 THEN rsm.id_report IS NOT NULL
+                        WHEN 3 THEN r.id_sub_group = ssg.id
+                        WHEN 4 THEN s.is_rec_report = 1
+                        ELSE TRUE
+                    END
+                )
+                <if test="is_supper_admin != 1">
+                    AND r.id_employee = #{id_employee}
+                </if>
+            GROUP BY r.id
+        ) as sub
   	</select>
   	
   	
@@ -447,6 +477,7 @@
 			s.ac_capacity,
 			s.dc_capacity,
 			s.is_rec_report,
+			s.commissioning,
 			r.subscribers,
 			r.data_intervals,
 			r.type_report,
@@ -1644,6 +1675,61 @@
 			ORDER BY time_group_by ASC
 			) t
 		GROUP BY t.Timestamp
+	</select>
+	
+	<select id="getPredictedPerformance" resultType="com.nwm.api.entities.PredictedPerformanceEntity">
+		SELECT
+			pp.month,
+			pp.energy,
+			pp.insolation
+		FROM
+			predicted_performance pp
+			JOIN site s ON s.id = pp.id_site
+		WHERE
+			s.status = 1
+			AND s.is_delete = 0
+			AND s.id = #{id_site}
+		ORDER BY
+			pp.month ASC
+	</select>
+	
+	<select id="getInsolation" resultType="com.nwm.api.entities.ReportValueByDatetimeDTO">
+		SELECT
+			CAST(SUM(irradiance) / 1000 AS DECIMAL(10, 2)) AS value,
+			DATE_FORMAT(time_group_by, '%m/%Y') AS categories_time
+		FROM (
+			SELECT
+				AVG(dv.nvm_irradiance) AS irradiance,
+				DATE_FORMAT(CONVERT_TZ(dv.time, 'UTC', t.value), '%Y-%m-%d %H:00') AS time_group_by
+			FROM
+				${datatablename} dv
+				JOIN device d ON dv.id_device = d.id
+				JOIN site s ON s.id = d.id_site
+				JOIN time_zone t ON t.id = s.id_time_zone
+			WHERE
+				dv.time BETWEEN CONVERT_TZ(#{start_date}, t.value, 'UTC') AND CONVERT_TZ(#{end_date}, t.value, 'UTC')
+			GROUP BY
+				time_group_by
+		) t
+		GROUP BY
+			categories_time
+	</select>
+	
+	<select id="getHourlyInverterAvailability" resultType="com.nwm.api.entities.ReportValueByDatetimeDTO">
+		SELECT
+			DATE_FORMAT(CONVERT_TZ(dv.time, 'UTC', t.value), '%Y-%m-%d %H:00') AS categories_time,
+			IF(AVG(dv.nvmActivePower) > 1, 1, 0) AS value
+		FROM
+			${datatablename} dv
+			JOIN device d ON d.id = dv.id_device
+			JOIN site s ON s.id = d.id_site
+			JOIN time_zone t ON t.id = s.id_time_zone
+		WHERE
+			dv.time BETWEEN CONVERT_TZ(#{start_date}, t.value, 'UTC') AND CONVERT_TZ(#{end_date}, t.value, 'UTC')
+			AND dv.time >= CONVERT_TZ(DATE_FORMAT(CONVERT_TZ(dv.time, 'UTC', t.value), '%Y-%m-%d 09:00'), t.value, 'UTC')
+			AND dv.time <![CDATA[ < ]]> CONVERT_TZ(DATE_FORMAT(CONVERT_TZ(dv.time, 'UTC', t.value), '%Y-%m-%d 18:00'), t.value, 'UTC')
+		GROUP BY
+			categories_time
 	</select>
 	
 </mapper>

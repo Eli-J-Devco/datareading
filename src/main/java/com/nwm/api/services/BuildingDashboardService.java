@@ -7,7 +7,9 @@ package com.nwm.api.services;
 
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -493,12 +495,15 @@ public class BuildingDashboardService extends DB {
 			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 			
-			switch (obj.getId_filter()) {
+			switch (obj.getId_time_filter()) {
 				case "hourly": // 1 hour
 					interval = 1;
 					timeUnit = ChronoUnit.HOURS;
 					timeFullFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-					categoriesTimeFormat = DateTimeFormatter.ofPattern("HH:mm a");
+					categoriesTimeFormat = DateTimeFormatter.ofPattern("hh:mm a");
+                    if(!"today".equals(obj.getId_filter() )) {
+                        categoriesTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm");
+                    }
 					break;
 				
 				case "day": // 1 hour
@@ -546,7 +551,7 @@ public class BuildingDashboardService extends DB {
 					interval = 1;
 					timeUnit = ChronoUnit.HOURS;
 					timeFullFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-					categoriesTimeFormat = DateTimeFormatter.ofPattern("HH:mm a");
+					categoriesTimeFormat = DateTimeFormatter.ofPattern("hh:mm a");
 					break;
 					
 					
@@ -562,7 +567,7 @@ public class BuildingDashboardService extends DB {
 			}
 			
 			// get Energy usage
-			List<ClientMonthlyDateEntity> dataEnergyUsage = queryForList("BuildingDashboard.getHourlyPeakPower", obj);
+			List<ClientMonthlyDateEntity> dataEnergyUsage = queryForList("BuildingDashboard.getHourlyPeakPowerV2", obj);
 			List<ClientMonthlyDateEntity> fulfilledData = Lib.fulfillData(dateTimeList, dataEnergyUsage, "time_full");
 			
 			return fulfilledData;
@@ -595,7 +600,33 @@ public class BuildingDashboardService extends DB {
 			// get Energy usage 
 			List<ClientMonthlyDateEntity> dataEnergyUsage = new ArrayList<>();
 			dataEnergyUsage = queryForList("BuildingDashboard.getData30Days", obj);
-			
+
+            switch (Constants.ChartingFilter.fromValue(obj.getFilterBy())) {
+                case TODAY:
+                    timeUnit = ChronoUnit.HOURS;
+                    timeFullFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm");
+                    categoriesTimeFormat = DateTimeFormatter.ofPattern("hh:mm a");
+                    break;
+                case THIS_WEEK:
+                case LAST_WEEK:
+                case THIS_MONTH:
+                case LAST_MONTH:
+                    timeFullFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+                    categoriesTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+                    break;
+                case LAST_12_MONTHS:
+                case THIS_YEAR:
+                case LIFETIME:
+                    timeUnit = ChronoUnit.MONTHS;
+                    timeFullFormat = DateTimeFormatter.ofPattern("MMM. yyyy");
+                    categoriesTimeFormat = DateTimeFormatter.ofPattern("MMM, yyyy");
+                    if ( dataEnergyUsage != null && !dataEnergyUsage.isEmpty()) {
+                        YearMonth ym = YearMonth.parse(dataEnergyUsage.get(0).getTime_full(), timeFullFormat);
+                        start = ym.atDay(1).atStartOfDay();
+                    }
+                    break;
+            }
+
 			List<ClientMonthlyDateEntity> dateTimeList = new ArrayList<>();
 			while (!start.isAfter(end)) {
 				ClientMonthlyDateEntity dateTime = new ClientMonthlyDateEntity();

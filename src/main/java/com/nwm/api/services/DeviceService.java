@@ -6,20 +6,16 @@
 
 package com.nwm.api.services;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 import org.apache.ibatis.session.SqlSession;
 
 import com.nwm.api.DBManagers.DB;
-import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.DeviceEntity;
-import com.nwm.api.entities.SiteEntity;
 
 
 public class DeviceService extends DB {
@@ -62,20 +58,18 @@ public class DeviceService extends DB {
 	 * @since 2021-01-12
 	 */
 	
-	public DeviceEntity getDataloggerBySerialNumber(DeviceEntity obj) {
-		DeviceEntity dataObj = new DeviceEntity();
+	public List<DeviceEntity> getDataloggerBySerialNumber(DeviceEntity obj) {
 		try {
-			dataObj = (DeviceEntity) queryForObject("Device.getDataloggerBySerialNumber", obj);
-			if (dataObj == null)
-				return new DeviceEntity();
+			List<DeviceEntity> dataList = queryForList("Device.getDataloggerBySerialNumber", obj);
+			if (dataList == null) return new ArrayList<>();
+			return dataList;
 		} catch (Exception ex) {
-			return new DeviceEntity();
+			return new ArrayList<>();
 		}
-		return dataObj;
 	}
 	
 	
-	
+	// có thể bỏ được vì sử dụng getDeviceBySerialNumber thay vì dùng getDeviceListBySerialNumber
 	/**
 	 * @description get device list by serial_number
 	 * @author long.pham
@@ -93,6 +87,21 @@ public class DeviceService extends DB {
 			return new ArrayList();
 		}
 		return dataList;
+	}
+	
+	/**
+	 * @description get single device by serial number and modbus device number
+	 * @author Duc.pham
+	 * @since 2025-12-01
+	 * @param obj (serial_number, modbusdevicenumber)
+	 * @return DeviceEntity or null
+	 */
+	public DeviceEntity getDeviceBySerialNumber(DeviceEntity obj) {
+		try {
+			return (DeviceEntity) queryForObject("Device.getListBySerialNumber", obj);
+		} catch (Exception ex) {
+			return null;
+		}
 	}
 	
 	
@@ -212,20 +221,48 @@ public class DeviceService extends DB {
 	{
 		SqlSession session = this.beginTransaction();
 		try {
-			Object insertId =  session.insert("Device.insertDevice", obj);
-			if(insertId != null && insertId instanceof Integer && obj.getId() > 0) {
-//				 Create table, view, BJob
-				session.insert("Device.createTableDevice", obj);
-				session.insert("Device.createViewThreeMonthData", obj);
-				session.insert("Device.createBJobData", obj);
-				obj.setDatatablename("data" + obj.getId() + "_"+ obj.getDevice_group_table());
-				obj.setView_tablename("View" + obj.getId() + "_"+ obj.getDevice_group_table());
-				obj.setJob_tablename("BJob" + obj.getId() + "_"+ obj.getDevice_group_table());
-				session.update("Device.updateTableDevice", obj);
-				session.update("Device.updateFTPSite", obj);
-			} else {
-				throw new Exception();
+			int create_total_device = obj.getCreate_total_device();
+			String modbusnumber = obj.getModbusdevicenumber();
+			String devicename = obj.getDevicename();
+			if (create_total_device > 0) {
+				for (int i = 0; i < create_total_device; i++) {
+					if(create_total_device > 1) { 
+						obj.setDevicename(devicename + String.valueOf(Integer.parseInt(modbusnumber) + i) ); 
+						obj.setModbusdevicenumber( String.valueOf(Integer.parseInt(modbusnumber) + i) ); 
+					}
+					
+					Object insertId =  session.insert("Device.insertDevice", obj);
+					if(insertId != null && insertId instanceof Integer && obj.getId() > 0) {
+//						 Create table, view, BJob
+						session.insert("Device.createTableDevice", obj);
+						session.insert("Device.createViewThreeMonthData", obj);
+						session.insert("Device.createBJobData", obj);
+						obj.setDatatablename("data" + obj.getId() + "_"+ obj.getDevice_group_table());
+						obj.setView_tablename("View" + obj.getId() + "_"+ obj.getDevice_group_table());
+						obj.setJob_tablename("BJob" + obj.getId() + "_"+ obj.getDevice_group_table());
+						session.update("Device.updateTableDevice", obj);
+						session.update("Device.updateFTPSite", obj);
+					} else {
+						throw new Exception();
+					}
+				}
+				
 			}
+			
+//			Object insertId =  session.insert("Device.insertDevice", obj);
+//			if(insertId != null && insertId instanceof Integer && obj.getId() > 0) {
+////				 Create table, view, BJob
+//				session.insert("Device.createTableDevice", obj);
+//				session.insert("Device.createViewThreeMonthData", obj);
+//				session.insert("Device.createBJobData", obj);
+//				obj.setDatatablename("data" + obj.getId() + "_"+ obj.getDevice_group_table());
+//				obj.setView_tablename("View" + obj.getId() + "_"+ obj.getDevice_group_table());
+//				obj.setJob_tablename("BJob" + obj.getId() + "_"+ obj.getDevice_group_table());
+//				session.update("Device.updateTableDevice", obj);
+//				session.update("Device.updateFTPSite", obj);
+//			} else {
+//				throw new Exception();
+//			}
 
 			session.commit();
 			return obj;
@@ -352,65 +389,6 @@ public class DeviceService extends DB {
 	}
 	
 	/**
-	 * @description check low production
-	 * @author Hung.Bui
-	 * @since 2023-08-17
-	 */
-	public void checkLowProduction(DeviceEntity obj, List<DeviceEntity> devicesList) {
-		try {
-			int noProduction = (int) queryForObject("BatchJob.checkNoProductionAlertlExist", obj);
-			if (noProduction > 0) return;
-			obj.setError_code("1002");
-			Integer lowProduction = (Integer) queryForObject("Device.getErrorId", obj);
-			if (lowProduction == null) return;
-			List<HashMap<String, Object>> latest4HoursComparisonRatioDataList = new ArrayList<HashMap<String, Object>>(); 
-			List poaDevicesList = devicesList.stream().filter(item -> item.getId_device_type() == 4).collect(Collectors.toList());
-			if (!poaDevicesList.isEmpty()) {
-				obj.setGroupWeather(poaDevicesList);
-				latest4HoursComparisonRatioDataList = queryForList("Device.getComparisonRatioHavingPOA", obj);
-			} else {
-				List powerDevicesList = devicesList.stream().filter(item -> item.getId_device_type() == obj.getId_device_type()).collect(Collectors.toList());
-				if (powerDevicesList.size() <= 1) return;
-				obj.setGroupInverter(powerDevicesList);
-				latest4HoursComparisonRatioDataList = queryForList("Device.getComparisonRatioNoPOA", obj);
-			}
-			if (latest4HoursComparisonRatioDataList == null || latest4HoursComparisonRatioDataList.isEmpty()) return;
-			
-			/** 
-			 * low production alarm condition:
-			 *  - all comparison ratio in latest 4 hours are less than or equal 70%.
-			 *  - time difference between latest and oldest in latest 4 hours is larger or equal 4 hours (for case there are not enough data in latest 4 hours).
-			 */
-			LocalDateTime startTime = LocalDateTime.parse(latest4HoursComparisonRatioDataList.get(0).get("time_full").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-			LocalDateTime endTime = LocalDateTime.parse(latest4HoursComparisonRatioDataList.get(latest4HoursComparisonRatioDataList.size() - 1).get("time_full").toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-			long hours = ChronoUnit.HOURS.between(startTime, endTime);
-			boolean isComparisonRatioLessThanOrEqual70 = latest4HoursComparisonRatioDataList.stream().allMatch(item -> item.get("comparison_ratio") != null ? Double.parseDouble(item.get("comparison_ratio").toString()) <= 70 : false);
-			
-			AlertEntity alertDeviceItem = new AlertEntity();
-			alertDeviceItem.setId_device(obj.getId());
-			alertDeviceItem.setStart_date(obj.getLast_updated());
-			alertDeviceItem.setId_error(lowProduction);
-			
-			if (hours >= 4 && isComparisonRatioLessThanOrEqual70) {
-				boolean checkAlertExist = (int) queryForObject("BatchJob.checkAlertlExist", alertDeviceItem) > 0;
-				if (!checkAlertExist) {
-					insert("BatchJob.insertAlert", alertDeviceItem);
-				}
-			} else {
-				// Close alert
-				AlertEntity checkAlertExist = (AlertEntity) queryForObject("BatchJob.getAlertDetail", alertDeviceItem);
-				if (checkAlertExist != null && checkAlertExist.getId() > 0) {
-					alertDeviceItem.setEnd_date(obj.getLast_updated());
-					alertDeviceItem.setId(checkAlertExist.getId());
-					update("BatchJob.updateCloseAlert", alertDeviceItem);
-				}
-			}
-		} catch (Exception ex) {
-			log.error("Device.checkLowProduction", ex);
-		}
-	}
-	
-	/**
 	 * @description Get list device parameter
 	 * @author Hung.Bui
 	 * @since 2023-08-28
@@ -510,6 +488,41 @@ public class DeviceService extends DB {
 		return dataList;
 	}
 	
+	/**
+	 * @description get list scaled device parameters for multiple devices at once
+	 * @author Duc.pham
+	 * @since 2025-11-24
+	 * @param deviceIds - List of device IDs
+	 * @return Map<Integer, List<DeviceEntity>> - Map with device ID as key and list of scaled parameters as value
+	 */
+	public Map<Integer, List<DeviceEntity>> getListScaledDeviceParameter(List<Integer> deviceIds) {
+		Map<Integer, List<DeviceEntity>> resultMap = new HashMap<>();
+		try {
+			if (deviceIds == null || deviceIds.isEmpty()) {
+				return resultMap;
+			}
+
+			Map<String, Object> params = new HashMap<>();
+			params.put("deviceIds", deviceIds);
+
+			// Reuse existing query with deviceIds parameter
+			List<DeviceEntity> dataList = queryForList("Device.getListScaledDeviceParameter", params);
+
+			if (dataList != null && !dataList.isEmpty()) {
+				// Group by device ID
+				for (DeviceEntity entity : dataList) {
+					Integer deviceId = entity.getId();
+					if (!resultMap.containsKey(deviceId)) {
+						resultMap.put(deviceId, new ArrayList<>());
+					}
+					resultMap.get(deviceId).add(entity);
+				}
+			}
+		} catch (Exception ex) {
+			log.error("Device.getListScaledDeviceParameter batch", ex);
+		}
+		return resultMap;
+	}
 	/**
 	 * @description update device parameter scale
 	 * @author Hung.Bui

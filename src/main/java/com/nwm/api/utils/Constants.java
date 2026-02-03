@@ -133,6 +133,12 @@ public class Constants {
 	public static final String mailMeterLevelProductionIrradianceTempReportTitle = "mailMeterLevelProductionIrradianceTempReportTitle";
 	public static final String mailMeterLevelProductionIrradianceTempReportBody = "mailMeterLevelProductionIrradianceTempReportBody";
 	
+	public static final String mailPerformanceReportTitle = "mailPerformanceReportTitle";
+	public static final String mailPerformanceReportBody = "mailPerformanceReportBody";
+	
+	public static final String mailExpiredSiteTitle = "mailExpiredSiteTitle";
+	public static final String mailExpiredSiteBody = "mailExpiredSiteBody";
+	
 	public static final String mailOTPTitle = "mailOTPTitle";
 	public static final String mailOTPBody = "mailOTPBody";
 	
@@ -205,6 +211,36 @@ public class Constants {
      * {@link} https://www.veris.com/ASSETS/DOCUMENTS/ITEMS/EN/a8810_i.pdf
      * @see page: 25
      */
+    
+    public enum UploadingDataIntervals {
+    	_5_MINUTE(1, 5),
+    	_15_MINUTES(2, 15),
+    	_1_MINUTE(3, 1);
+
+    	private final int value;
+    	private final int interval;
+
+    	UploadingDataIntervals(int value, int interval) {
+    		this.value = value;
+    		this.interval = interval;
+    	}
+    	
+    	public int getValue() {
+            return this.value;
+        }
+    	
+    	public static UploadingDataIntervals fromValue(int value) {
+            for (UploadingDataIntervals interval : UploadingDataIntervals.values()) {
+                if (interval.getValue() == value) return interval;
+            }
+            
+            return UploadingDataIntervals._15_MINUTES;
+        }
+    	
+    	public int getInterval() {
+			return this.interval;
+		}
+    }
     
     public enum ModbusError {
     	NORMAL(0),
@@ -399,7 +435,8 @@ public class Constants {
     	LEVITON_BMO_CONSUMPTION_REPORT(3),
     	ASSET_MANAGEMENT_AND_OPERATION_PERFORMANCE_REPORT(4),
     	SANITY_CHECK_REPORT(5),
-    	METER_LEVEL_PRODUCTION_IRRADIANCE_TEMP_REPORT(6);
+    	METER_LEVEL_PRODUCTION_IRRADIANCE_TEMP_REPORT(6),
+    	PERFORMANCE_REPORT(7);
     	
     	private final int value;
     	
@@ -417,6 +454,46 @@ public class Constants {
     		}
     		
     		return ReportType.SOLAR_PRODUCTION_REPORT;
+    	}
+    }
+    
+    public enum DeviceType {
+    	PV_SYSTEM_INVERTER(1),
+    	SOLAR_TRACKER(2),
+    	PRODUCTION_METER(3),
+    	WEATHER_STATION(4),
+    	DATALOGGER(5),
+    	SENSOR(6),
+    	LOAD_METER(7),
+    	CLUSTER_CONTROLLER(8),
+    	CONSUMTION_METER(9),
+    	CELL_MODEM(10),
+    	SYSTEM(12),
+    	UPS(13),
+    	PULSE_MODULE(15),
+    	BREAKER(16),
+    	WATER_METER(17),
+    	PI_CAMERA_METER(18),
+    	CAMERA(19),
+    	GAS_METER(20),
+    	VIRTUAL_WEATHER_STATION(21);
+    	
+    	private final int value;
+    	
+    	DeviceType(int value) {
+    		this.value = value;
+    	}
+    	
+    	public int getValue() {
+    		return this.value;
+    	}
+    	
+    	public static DeviceType fromValue(int value) {
+    		for (DeviceType range : DeviceType.values()) {
+    			if (range.getValue() == value) return range;
+    		}
+    		
+    		return DeviceType.PV_SYSTEM_INVERTER;
     	}
     }
     
@@ -519,7 +596,7 @@ public class Constants {
     
     public static final String url_offres = "url_offres";
     public static final String url_conditions = "url_conditions";
-    
+    public static final String SWAGGER_API_URL = "https://open-api.nextwavemonitoring.com/api-server";
     
     
     /**
@@ -829,6 +906,12 @@ public class Constants {
         case 27:
             // Inform the customer that the admin has received the support email.
             return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailSupportTicketReplyCustomerBody);
+        case 28:
+			// performance report
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailPerformanceReportBody);
+        case 29:
+			// expired site
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailExpiredSiteBody);	
 		default:
 			return null;
 		}
@@ -911,6 +994,12 @@ public class Constants {
         case 27:
             // Inform the customer that the admin has received the support email.
             return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailSupportTicketReplyCustomer);
+        case 28:
+			// performance report
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailPerformanceReportTitle);
+        case 29:
+			// expired site
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailExpiredSiteTitle);
 		default:
 			return null;
 		}
@@ -978,5 +1067,36 @@ public class Constants {
 			return value;
 		}
 
+    }
+
+    public enum CUSTOM_ALERT_COMPARE_TYPE {
+        absolute(1),
+        percent_best_inverter(2);
+
+        private int value;
+
+        private CUSTOM_ALERT_COMPARE_TYPE(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return this.value;
+        }
+    }
+
+    public enum CUSTOM_ALERT_COMPARE_CONDITION {
+        less_than(1),
+        greater_than(2),
+        equal(3);
+
+        private int value;
+
+        private CUSTOM_ALERT_COMPARE_CONDITION(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return this.value;
+        }
     }
 }

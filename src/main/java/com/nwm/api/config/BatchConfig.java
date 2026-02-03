@@ -127,16 +127,16 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */5 * * * *")
-	public void startBatchJobMeteo() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.startBatchJobMeteo();
-		}
-		
-	}
+//	@Scheduled(cron = "0 */5 * * * *")
+//	public void startBatchJobMeteo() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.startBatchJobMeteo();
+//		}
+//		
+//	}
 	
 	
 	/**
@@ -146,17 +146,17 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */5 * * * *")
-	public void startBatchJobOpenMeteoWeather() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.startBatchJobOpenMeteoWeather();
-		}
-		
-	}
-	
+//	@Scheduled(cron = "0 */5 * * * *")
+//	public void startBatchJobOpenMeteoWeather() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.startBatchJobOpenMeteoWeather();
+//		}
+//		
+//	}
+//	
 	
 	 
 	
@@ -278,16 +278,16 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */5 * * * *")
-	public void startBatchJobBEMSLoadVitualMeter() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.startBatchJobBEMSLoadVitualMeter();
-		}
-		
-	}
+//	@Scheduled(cron = "0 */5 * * * *")
+//	public void startBatchJobBEMSLoadVitualMeter() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.startBatchJobBEMSLoadVitualMeter();
+//		}
+//		
+//	}
 	
 	/**
 	 * @description batch job generate data report
@@ -296,20 +296,20 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */20 * * * *")
+//	@Scheduled(cron = "0 */20 * * * *")
 	
 	// Start every day 2 PM.
 //	@Scheduled(cron = "0 0 0/20 ? * *")
-	public void startBatchJobGeneratePerformanceRatio() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.startBatchJobGeneratePerformanceRatio();
-		}
-		
-		
-	}
+//	public void startBatchJobGeneratePerformanceRatio() throws Exception {
+//		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//		if (env.equals("staging")) {
+//			BatchJob job =new BatchJob(); 
+//			job.startBatchJobGeneratePerformanceRatio();
+//		}
+//		
+//		
+//	}
 	
 	
 	/**
@@ -317,13 +317,13 @@ public class BatchConfig {
 	 * @author Hung.Bui
 	 * @since 2022-12-22
 	 */
-	@Bean
-    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
-		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-		taskScheduler.setRemoveOnCancelPolicy(true);
-		taskScheduler.setPoolSize(5);
-        return taskScheduler;
-    }
+//	@Bean
+//    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
+//		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+//		taskScheduler.setRemoveOnCancelPolicy(true);
+//		taskScheduler.setPoolSize(5);
+//        return taskScheduler;
+//    }
 	
 	/**
 	 * @description read folder from FTP account

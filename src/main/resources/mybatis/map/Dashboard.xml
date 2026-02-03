@@ -152,56 +152,24 @@
 	        
 	</select>
 	
-	
 	<select id="getListActualvsExpected" resultType="Map" parameterType="String" >
 		SELECT
 			s.id AS id_site,
 			<include refid="com.nwm.common.siteName"/> AS site_name,
 			SHA1(s.id) AS hash_id,
 			s.dc_capacity,
-			meter.power_today_meter,
-			inv.power_today_inverter,
-			ROUND(IF(meter.power_today_meter >= 0 ,meter.power_today_meter,inv.power_today_inverter), 1) AS power_today,
-			ep.expected,
-			h.is_hiding,
-			ROUND((IF(meter.power_today_meter >= 0 ,meter.power_today_meter,inv.power_today_inverter) / ep.expected)*100, 1)AS a_e 
+			ROUND(IFNULL(vir.activePower, IFNULL(meter.activePower, inv.activePower)), 1) AS power_today,
+			ROUND(IFNULL(vir.expected_power_virtual, IFNULL(wea.expected_power, ep.expected)), 1) AS expected,
+			ROUND(IFNULL(vir.activePower, IFNULL(meter.activePower, inv.activePower)) / IFNULL(vir.expected_power_virtual, IFNULL(wea.expected_power, ep.expected)) * 100, 1) AS a_e,
+			h.is_hiding
 		
 		FROM
 			`site` s
-			LEFT JOIN (
-				SELECT 
-					SUM(d.last_value) AS power_today_meter,
-					d.id_site
-				FROM
-					device d
-					LEFT JOIN site s ON s.id = d.id_site
-					LEFT JOIN time_zone t ON t.id = s.id_time_zone
-				WHERE
-					d.id_device_type IN (3,7,9)
-					AND d.is_excluded_meter = 0
-					AND d.`status` = 1 
-					AND d.`is_delete` = 0
-					<include refid="com.nwm.common.deviceByDomainCondition"/>
-					AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
-				GROUP BY d.id_site
-			)meter ON meter.id_site = s.id
-			
-			LEFT JOIN (
-				SELECT 
-					SUM(d.last_value) AS power_today_inverter,
-					d.id_site
-				FROM
-					device d
-					LEFT JOIN site s ON s.id = d.id_site
-					LEFT JOIN time_zone t ON t.id = s.id_time_zone
-				WHERE
-					d.id_device_type = 1
-					AND d.`status` = 1 
-					AND d.`is_delete` = 0
-					<include refid="com.nwm.common.deviceByDomainCondition"/>
-					AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
-				GROUP BY d.id_site
-			)inv ON inv.id_site = s.id
+			LEFT JOIN time_zone t ON t.id = s.id_time_zone
+			LEFT JOIN (<include refid="Portfolio.activeAndExpectedPowerByVirtualDeviceSubquery"/>) vir ON vir.id_site = s.id
+			LEFT JOIN (<include refid="Portfolio.activePowerByInverterSubquery"/>) inv ON inv.id_site = s.id 
+			LEFT JOIN (<include refid="Portfolio.activePowerByMeterSubquery"/>) meter ON meter.id_site = s.id
+			LEFT JOIN (<include refid="Portfolio.irradianceAndExpectedPowerByWSSubquery"/>) wea ON wea.id_site = s.id
 			
 			LEFT JOIN (
 				SELECT
@@ -240,14 +208,18 @@
 				GROUP BY id_site
 			) h ON h.id_site = s.id
 			
-			WHERE s.`status` = 1 AND s.is_delete = 0
-			<if test="id_sites != null and !id_sites.isEmpty()">
-				AND s.id IN  (
-					<foreach item="item" index="index" collection="id_sites" separator=" , ">
-						#{item.id}
-					</foreach>
-				)
-			</if>
+			WHERE
+				s.`status` = 1
+				AND s.is_delete = 0
+				AND (CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+				<if test="id_sites != null and !id_sites.isEmpty()">
+					AND s.id IN  (
+						<foreach item="item" index="index" collection="id_sites" separator=" , ">
+							#{item.id}
+						</foreach>
+					)
+				</if>
+				<include refid="com.nwm.common.siteByDomainCondition"/>
 			
 			GROUP BY s.id
 			
@@ -263,7 +235,7 @@
 	            </when>
 	            
 	            <when test="sort_column == 'expected'">
-	                ep.expected ${order_by}
+	                expected ${order_by}
 	            </when> 
 	            
 	            <when test="sort_column == 'a_e'">
@@ -281,11 +253,11 @@
 	<select id="getAlertSummary" resultType="com.nwm.api.entities.AlertEntity" parameterType="com.nwm.api.entities.AlertEntity">
 		SELECT (
 			<include refid="Alert.alertSummary" />
-			AND e.id_error_level = 13
+			<include refid="Alert.lowPriorityAlertCondition" />
 		) AS lowPriority,
 		(
 			<include refid="Alert.alertSummary" />
-			AND e.id_error_level = 11
+			<include refid="Alert.highPriorityAlertCondition" />
 		) AS highPriority,
 		(
 			<include refid="Alert.alertSummary" />
@@ -304,7 +276,7 @@
 			WHERE 
 				s.`status` = 1
 				AND s.`is_delete` = 0
-				AND (CONVERT_TZ(NOW(), '+00:00', t.offset) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
+				AND (CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
 				<if test="id_sites != null and !id_sites.isEmpty()">
 					AND s.id IN  (
 						<foreach item="item" index="index" collection="id_sites" separator=" , ">

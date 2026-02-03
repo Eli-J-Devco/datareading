@@ -1465,48 +1465,48 @@ public class BatchJob {
 	
 	
 	
-	public void startBatchJobBEMSLoadVitualMeter() {
-		try {
-			BatchJobService service = new BatchJobService();
-			DeviceEntity entity = new DeviceEntity();
-
-			// Get list site
-			List<?> listSites = service.getListSiteGenerationVirtualMeter(entity);
-
-			if (listSites.size() > 0) {
-				for (int s = 0; s < listSites.size(); s++) {
-					LoadVirtualMeterEntity objSite = (LoadVirtualMeterEntity) listSites.get(s);
-					if(objSite.getId_device_virtual() > 0) {
-						service.insertGenerationVirtualMeter(objSite);
-					}
-				}
-			}
-
-		} catch (Exception e) {
-			log.error(e);
-		}
-	}
+//	public void startBatchJobBEMSLoadVitualMeter() {
+//		try {
+//			BatchJobService service = new BatchJobService();
+//			DeviceEntity entity = new DeviceEntity();
+//
+//			// Get list site
+//			List<?> listSites = service.getListSiteGenerationVirtualMeter(entity);
+//
+//			if (listSites.size() > 0) {
+//				for (int s = 0; s < listSites.size(); s++) {
+//					LoadVirtualMeterEntity objSite = (LoadVirtualMeterEntity) listSites.get(s);
+//					if(objSite.getId_device_virtual() > 0) {
+//						service.insertGenerationVirtualMeter(objSite);
+//					}
+//				}
+//			}
+//
+//		} catch (Exception e) {
+//			log.error(e);
+//		}
+//	}
 	
 	
 	
-	public void startBatchJobGeneratePerformanceRatio() {
-		try {
-			BatchJobService service = new BatchJobService();
-			DeviceEntity entity = new DeviceEntity();
-
-			// Get list site
-			List<?> listSites = service.getListSiteCheckNoCom(entity);
-			if (listSites.size() > 0) {
-				for (int s = 0; s < listSites.size(); s++) {
-					SiteEntity objSite = (SiteEntity) listSites.get(s);
-					service.updateDataGeneratePerformanceRatio(objSite);
-				}
-			}
-
-		} catch (Exception e) {
-			log.error(e);
-		}
-	}
+//	public void startBatchJobGeneratePerformanceRatio() {
+//		try {
+//			BatchJobService service = new BatchJobService();
+//			DeviceEntity entity = new DeviceEntity();
+//
+//			// Get list site
+//			List<?> listSites = service.getListSiteCheckNoCom(entity);
+//			if (listSites.size() > 0) {
+//				for (int s = 0; s < listSites.size(); s++) {
+//					SiteEntity objSite = (SiteEntity) listSites.get(s);
+//					service.updateDataGeneratePerformanceRatio(objSite);
+//				}
+//			}
+//
+//		} catch (Exception e) {
+//			log.error(e);
+//		}
+//	}
 
 	public void sentMailReportOnSchedule(ViewReportEntity report) {
 		getReport(report, false);

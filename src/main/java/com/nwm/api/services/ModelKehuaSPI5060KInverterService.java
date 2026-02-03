@@ -12,7 +12,6 @@ import com.google.common.collect.Lists;
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.ModelKehuaSPI5060KInverterEntity;
-import com.nwm.api.entities.ModelSatconPvs357InverterEntity;
 import com.nwm.api.utils.Lib;
 import com.nwm.api.utils.LibErrorCode;
 
@@ -120,23 +119,24 @@ public class ModelKehuaSPI5060KInverterService extends DB{
 				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
 				obj.setTotalEnergy(dataObj.getNvmActiveEnergy());	
 			}
-						
-			 double measuredProduction = 0;
-			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
-				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
-			 }
-
 			 
-			 obj.setMeasuredProduction(measuredProduction);
-			 
-			 Object insertId = insert("ModelKehuaSPI5060KInverter.insertModelKehuaSPI5060KInverter", obj);
+			Object insertId = insert("ModelKehuaSPI5060KInverter.insertModelKehuaSPI5060KInverter", obj);
 	        if(insertId == null ) {
 	        	return false;
 	        }
 	        
-	        ZoneId zoneIdLosAngeles = ZoneId.of("America/Los_Angeles"); // "America/Los_Angeles"
-	        ZonedDateTime zdtNowLosAngeles = ZonedDateTime.now(zoneIdLosAngeles);
-	        int hours = zdtNowLosAngeles.getHour();
+	        // Update measuredProduction 
+ 			if (dataObj != null && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy() >= 0 ) {
+ 				ModelKehuaSPI5060KInverterEntity objUpdateMeasured = new ModelKehuaSPI5060KInverterEntity();
+ 				objUpdateMeasured.setDatatablename(obj.getDatatablename());
+ 				objUpdateMeasured.setTime(dataObj.getTime());
+ 				objUpdateMeasured.setMeasuredProduction(obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy());
+ 				update("Device.updateMeasuredProduction", objUpdateMeasured);
+ 			}
+	        
+	        ZoneId zoneId = ZoneId.of(obj.getTimezone_value());
+			ZonedDateTime zdtNow = ZonedDateTime.now(zoneId);
+			int hours = zdtNow.getHour();
 	        
 	        if (hours >= 9 && hours <= 17 && dataObj.getEnable_alert() >= 1) {
 	        	checkTriggerAlertModelKehuaSPI5060KInverter(obj);

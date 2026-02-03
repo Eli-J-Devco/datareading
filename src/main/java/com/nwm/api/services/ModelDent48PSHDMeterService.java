@@ -178,22 +178,24 @@ public class ModelDent48PSHDMeterService extends DB {
 				obj.setNvmActiveEnergy(dataObj.getNvmActiveEnergy());
 				obj.setImportedEnergySum(dataObj.getNvmActiveEnergy());
 			}
-						
-			 double measuredProduction = 0;
-			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
-				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();		 
-			 }
-
-			 obj.setMeasuredProduction(measuredProduction);
 			 
-			 Object insertId = insert("ModelDent48PSHDMeter.insertModelDent48PSHDMeter", obj);
+			Object insertId = insert("ModelDent48PSHDMeter.insertModelDent48PSHDMeter", obj);
 	        if(insertId == null ) {
 	        	return false;
 	        }
 	        
-	        ZoneId zoneIdLosAngeles = ZoneId.of("America/Los_Angeles"); // "America/Los_Angeles"
-	        ZonedDateTime zdtNowLosAngeles = ZonedDateTime.now(zoneIdLosAngeles);
-	        int hours = zdtNowLosAngeles.getHour();
+	        // Update measuredProduction 
+ 			if (dataObj != null && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy() >= 0 ) {
+ 				ModelDent48PSHDMeterEntity objUpdateMeasured = new ModelDent48PSHDMeterEntity();
+ 				objUpdateMeasured.setDatatablename(obj.getDatatablename());
+ 				objUpdateMeasured.setTime(dataObj.getTime());
+ 				objUpdateMeasured.setMeasuredProduction(obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy());
+ 				update("Device.updateMeasuredProduction", objUpdateMeasured);
+ 			}
+	        
+	        ZoneId zoneId = ZoneId.of(obj.getTimezone_value());
+			ZonedDateTime zdtNow = ZonedDateTime.now(zoneId);
+			int hours = zdtNow.getHour();
 	        
 	        if (hours >= 9 && hours <= 17 && dataObj.getEnable_alert() >= 1) {
 	        	checkTriggerAlertModelDent48PSHDMeter(obj);
@@ -227,7 +229,7 @@ public class ModelDent48PSHDMeterService extends DB {
 					double ApparentPFAvg = (double) item.get("ApparentPFAvg");
 					double LineFrequency = (double) item.get("LineFrequency");
 					
-					if(ApparentPFAvg < -0.7 || ApparentPFAvg > 0.7) { 
+					if(ApparentPFAvg > -0.7 && ApparentPFAvg < 0.7) { 
 						totalApparentPFAvg++;
 					}
 					
@@ -262,7 +264,7 @@ public class ModelDent48PSHDMeterService extends DB {
 		
 		 ModelDent48PSHDMeterEntity rowItem = (ModelDent48PSHDMeterEntity) checkAlertWriteCode(obj);
 		
-		if((obj.getApparentPFAvg() < -0.7 || obj.getApparentPFAvg() > 0.7) && rowItem.getTotalApparentPFAvg() >= 20) {
+		if((obj.getApparentPFAvg() > -0.7 && obj.getApparentPFAvg() < 0.7) && rowItem.getTotalApparentPFAvg() >= 20) {
 			try {
 				int errorId = LibErrorCode.GetAlertModelDent48PSHDMeter(1);	
 				if (errorId > 0) {

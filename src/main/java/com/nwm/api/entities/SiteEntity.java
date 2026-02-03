@@ -333,12 +333,19 @@ public class SiteEntity extends SortEntity {
 	private int ai_train_type;
 	private double temperature_2m_max;
 	private double temperature_2m_min;
-	private int is_subtract_pv;
 	private String id_filter;
 	private List meterType;
     private String bems_commissioning;
+    private String bems_overview_tab;
+    private String postgres_table;
 	
 	
+	public String getBems_overview_tab() {
+		return bems_overview_tab;
+	}
+	public void setBems_overview_tab(String bems_overview_tab) {
+		this.bems_overview_tab = bems_overview_tab;
+	}
 	public List getMeterType() {
 		return meterType;
 	}
@@ -351,12 +358,7 @@ public class SiteEntity extends SortEntity {
 	public void setId_filter(String id_filter) {
 		this.id_filter = id_filter;
 	}
-	public int getIs_subtract_pv() {
-		return is_subtract_pv;
-	}
-	public void setIs_subtract_pv(int is_subtract_pv) {
-		this.is_subtract_pv = is_subtract_pv;
-	}
+
 	public double getTemperature_2m_max() {
 		return temperature_2m_max;
 	}
@@ -2197,5 +2199,13 @@ public class SiteEntity extends SortEntity {
 
     public void setBems_commissioning(String bems_commissioning) {
         this.bems_commissioning = bems_commissioning;
+    }
+
+    public String getPostgres_table() {
+        return postgres_table;
+    }
+
+    public void setPostgres_table(String postgres_table) {
+        this.postgres_table = postgres_table;
     }
 }

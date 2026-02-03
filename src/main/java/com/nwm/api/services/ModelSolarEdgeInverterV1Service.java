@@ -6,7 +6,6 @@
 package com.nwm.api.services;
 
 
-import java.text.DecimalFormat;
 import java.util.List;
 
 import com.google.common.base.Splitter;
@@ -29,7 +28,6 @@ public class ModelSolarEdgeInverterV1Service extends DB {
 			if (words.size() > 0) {
 				ModelSolarEdgeInverterV1Entity dataModelSEI = new ModelSolarEdgeInverterV1Entity();
 				
-				DecimalFormat df = new DecimalFormat("#.0");
 				double power = !Lib.isBlank(words.get(19)) ? Double.parseDouble(words.get(19)) : 0.001;
 				
 				
@@ -82,7 +80,7 @@ public class ModelSolarEdgeInverterV1Service extends DB {
 				dataModelSEI.setI_Temp_SF(Double.parseDouble(!Lib.isBlank(words.get(38)) ? words.get(38) : "0.001"));
 				dataModelSEI.setI_Status(Double.parseDouble(!Lib.isBlank(words.get(39)) ? words.get(39) : "0.001"));
 				dataModelSEI.setI_Status_Vendor(Double.parseDouble(!Lib.isBlank(words.get(40)) ? words.get(40) : "0.001"));
-				dataModelSEI.setSerial_Number_Hex_4_Reg(Long.decode(!Lib.isBlank(words.get(41)) ? words.get(41) : "0.001"));
+				dataModelSEI.setSerial_Number_Hex_4_Reg(Long.decode(!Lib.isBlank(words.get(41)) ? words.get(41) : "0"));
 				
 				
 				// set custom field nvmActivePower and nvmActiveEnergy
@@ -119,17 +117,20 @@ public class ModelSolarEdgeInverterV1Service extends DB {
 				obj.setI_AC_Energy_WH(dataObj.getI_AC_Energy_WH());
 			}
 						
-			 double measuredProduction = 0;
-			 if(dataObj != null && dataObj.getId_device() > 0 && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() != 0.001 ) {
-				 measuredProduction = obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy();
-			 }
-
-			 obj.setMeasuredProduction(measuredProduction);
 			 
 			 Object insertId = insert("ModelSolarEdgeInverterV1.insertModelSolarEdgeInverterV1", obj);
 		        if(insertId == null ) {
 		        	return false;
 		        }
+		        
+		     // Update measuredProduction 
+			if (dataObj != null && dataObj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() > 0 && obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy() >= 0 ) {
+				ModelSolarEdgeInverterV1Entity objUpdateMeasured = new ModelSolarEdgeInverterV1Entity();
+				objUpdateMeasured.setDatatablename(obj.getDatatablename());
+				objUpdateMeasured.setTime(dataObj.getTime());
+				objUpdateMeasured.setMeasuredProduction(obj.getNvmActiveEnergy() - dataObj.getNvmActiveEnergy());
+				update("Device.updateMeasuredProduction", objUpdateMeasured);
+			}
 		        return true;
 		} catch (Exception ex) {
 			log.error("insert", ex);

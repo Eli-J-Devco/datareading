@@ -195,16 +195,22 @@ public class SitesDevicesEntity extends SortEntity {
 	private int id_error_type;
 	private int id_sort_by;
 	private int id_site_group;
-	private int is_subtract_pv;
     private String bems_commissioning;
+    private String bems_overview_tab;
+    private String site_logo;
 	
-	
-	
-	public int getIs_subtract_pv() {
-		return is_subtract_pv;
+    
+	public String getSite_logo() {
+		return site_logo;
 	}
-	public void setIs_subtract_pv(int is_subtract_pv) {
-		this.is_subtract_pv = is_subtract_pv;
+	public void setSite_logo(String site_logo) {
+		this.site_logo = site_logo;
+	}
+	public String getBems_overview_tab() {
+		return bems_overview_tab;
+	}
+	public void setBems_overview_tab(String bems_overview_tab) {
+		this.bems_overview_tab = bems_overview_tab;
 	}
 	public double getTemperature_2m_max() {
 		return temperature_2m_max;

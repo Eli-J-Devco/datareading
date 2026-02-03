@@ -7,6 +7,8 @@ package com.nwm.api.services;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -16,7 +18,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
+import com.nwm.api.utils.Constants;
+import com.nwm.api.utils.Lib;
 import org.apache.ibatis.session.SqlSession;
 
 import com.nwm.api.DBManagers.DB;
@@ -24,7 +30,9 @@ import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.BatchJobTableEntity;
 import com.nwm.api.entities.CameraImageEntity;
 import com.nwm.api.entities.ClientMonthlyDateEntity;
+import com.nwm.api.entities.CustomAlertEntity;
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.entities.EEREntity;
 import com.nwm.api.entities.ErrorEntity;
 import com.nwm.api.entities.LoadVirtualMeterEntity;
 import com.nwm.api.entities.ModelDataloggerEntity;
@@ -407,21 +415,6 @@ public class BatchJobService extends DB {
 		}
 		return dataList;
 	}
-	
-	
-	
-	public List getListSiteGenerationVirtualMeter(DeviceEntity obj) {
-		List dataList = new ArrayList();
-		try {
-			dataList = queryForList("BatchJob.getListSiteGenerationVirtualMeter", obj);
-			if (dataList == null)
-				return new ArrayList();
-		} catch (Exception ex) {
-			return new ArrayList();
-		}
-		return dataList;
-	}
-	
 	
 	/**
 	 * @description get data device energy lifetime
@@ -830,6 +823,21 @@ public class BatchJobService extends DB {
 	}
 	
 	/**
+	 * @description update time last_updated
+	 * @author long.pham
+	 * @since 2022-02-09
+	 * @param id, last_updated
+	 */
+	public boolean updateLastUpdated(DeviceEntity obj) {
+		try {
+			return update("Device.updateLastUpdated", obj) > 0;
+		} catch (Exception ex) {
+			log.error("Device.updateLastUpdated", ex);
+			return false;
+		}
+	}
+	
+	/**
 	 * @description update sunset sunrise from java
 	 * @author long.pham
 	 * @since 2021-05-18
@@ -1011,76 +1019,84 @@ public class BatchJobService extends DB {
 	
 	
 	/**
-	 * @description insert alert
-	 * @author long.pham
-	 * @since 2021-02-18
+	 * @description update PerformanceRatioYesterday
+	 * @author duy.phan
+	 * @since 2025-12-28
 	 * @param {}
 	 */
-	public SiteEntity updateDataGeneratePerformanceRatio(SiteEntity obj) 
+	public void updateDataGeneratePerformanceRatio() 
 	{
 		try
 	    {
-			List dataListWeather = queryForList("BatchJob.getListDeviceWeather", obj);
-			Double sytemSite = obj.getDc_capacity();
-			Double PVModuleTemperature = -0.0047;
-			Double globaSolarIrradiance = 1000.0;
-			Double STCTemperature = 25.0;
-			Double actualPower = 0.0;
-			Double POA = 0.0;
-			Double temperature = 0.0;
-			Double PerformanceRatioYesterday = 0.0;
+			// Get list site
+			List<SiteEntity> sites = getListSiteWeatherStationOrVirtual();
+			if (sites.size() == 0) return;
 			
-			if(dataListWeather.size() > 0 && sytemSite > 0) {
-				List dataListInverter = queryForList("BatchJob.getListDeviceInverterBySite", obj);
-				List dataListMeter = queryForList("BatchJob.getListDeviceMeterBySite", obj);
-				// get POA
-				obj.setWeatherStation(dataListWeather);
-				SiteEntity dataWeatherStatiton = new SiteEntity();
-				dataWeatherStatiton =  (SiteEntity) queryForObject("BatchJob.getDataIrradianceYesterday", obj);
-				if(dataWeatherStatiton != null) {
-					POA = dataWeatherStatiton.getNvm_irradiance();
-					temperature = dataWeatherStatiton.getNvm_temperature();
-				}
+			List<CompletableFuture<EEREntity>> futureList = new ArrayList<CompletableFuture<EEREntity>>();
+			for (int i = 0; i < sites.size(); i++) {
+				SiteEntity item = sites.get(i);
 				
-				
-				// get actual power
-				if(dataListMeter.size() > 0) {
-					SiteEntity dataMeter = new SiteEntity();
-					obj.setGroupMeter(dataListMeter);
-					dataMeter = (SiteEntity) queryForObject("BatchJob.getDataPowerMeterYesterday", obj);
-					if(dataMeter != null) {
-						actualPower = dataMeter.getActualPower();	
-					}
+				CompletableFuture<EEREntity> future = CompletableFuture.supplyAsync(() -> {
+					EEREntity data = getYesterdayGenerationBySite(item);
+					if (data.getId() > 0) return data;
 					
-				} else if(dataListInverter.size() > 0) {
-					obj.setGroupMeter(dataListInverter);
-					SiteEntity dataInverter = new SiteEntity();
-					dataInverter = (SiteEntity) queryForObject("BatchJob.getDataPowerInverterYesterday", obj);
-					if(dataInverter != null) {
-						actualPower = dataInverter.getAc_power();
-					}
-				}
-				
-				
-				if(POA != 0) {
-					PerformanceRatioYesterday = (actualPower / ((POA / globaSolarIrradiance) * sytemSite * (1 + PVModuleTemperature * (temperature - STCTemperature)))) * 100;
-				}
-				
+					data.setId(item.getId());
+					return data;
+				});
+				futureList.add(future);
 			}
 			
+			List<EEREntity> dataList = futureList.stream().map(future -> future.join()).collect(Collectors.toList());
 			
-			// Update Performance Ratio Yesterday
-			DecimalFormat df = new DecimalFormat("##.0");
-			obj.setPerformanceRatioYesterday(Double.parseDouble(df.format(PerformanceRatioYesterday)));
-			update("BatchJob.updatPerformanceRatioYesterday", obj);
-			return null;
+			Map<String, Object> map = new HashMap<String, Object>();
+			map.put("data", dataList);
+
+			
+			update("BatchJob.updatePerformanceRatioYesterdayAllSites", map);
 	    }
 	    catch(Exception ex)
 	    {
-	        log.error("insertDataGenerateReport", ex);
-	        return null;
+	        log.error("BatchJob.updatePerformanceRatioYesterdayAllSites", ex);
 	    }	
 	}
+	
+	/**
+	 * @description get ActualGeneration and EstimatedGeneration each site
+	 * @author duy.phan
+	 * @since 2025-12-28
+	 * @param {}
+	 */
+	public EEREntity getYesterdayGenerationBySite(SiteEntity obj) {
+		try {
+			EEREntity device = obj.getEnable_virtual_device() == 1 ?
+					(EEREntity) queryForObject("BatchJob.getVirtualYesterdayGenerationBySite", obj)
+					: (EEREntity) queryForObject("BatchJob.getYesterdayGenerationBySite", obj);
+			if (device == null) return new EEREntity();
+			
+			return device;
+		} catch (Exception ex) {
+			return new EEREntity();
+		}
+	}
+	
+	/**
+	 * @description get list site has weather station or virtual device
+	 * @author duy.phan
+	 * @since 2025-12-28
+	 * @param {}
+	 */
+	public List<SiteEntity> getListSiteWeatherStationOrVirtual() {
+		List<SiteEntity> dataList = new ArrayList();
+		try {
+			 dataList = queryForList("BatchJob.getListSiteWeatherStationOrVirtual", null);
+			if (dataList == null)
+				return new ArrayList<SiteEntity>();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+	
 	
 	
 	/**
@@ -1460,5 +1476,98 @@ public class BatchJobService extends DB {
 		}
 		return device;
 	}
-	
+
+    public void addCustomAlertToQueue() {
+        try{
+            List<CustomAlertEntity> dataList = queryForList("CustomAlert.getListForQueue", null);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+            LocalTime now = LocalTime.now();
+            for (CustomAlertEntity item : dataList) {
+                LocalTime timeFrom = LocalTime.parse(item.getTime_from(), formatter);
+                LocalTime timeTo = LocalTime.parse(item.getTime_to(), formatter);
+                boolean isInRange;
+                if (timeFrom.isBefore(timeTo)) {
+                    isInRange = !now.isBefore(timeFrom) && !now.isAfter(timeTo);
+                } else {
+                    isInRange = !now.isBefore(timeFrom) || !now.isAfter(timeTo);
+                }
+                if (!isInRange || Lib.isBlank(item.getField_data_name())) {
+                    continue;
+                }
+                Object alert = queryForObject("CustomAlert.checkForAddAlert", item);
+                if (alert == null) {
+                    continue;
+                }
+                if (item.getCompare_to() == Constants.CUSTOM_ALERT_COMPARE_TYPE.absolute.getValue()) {
+                    insertAlertQueue(item);
+                } else {
+                    compareBestInverter(item);
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void compareBestInverter(CustomAlertEntity obj) {
+        try{
+            List<DeviceEntity> deviceTypeList = queryForList("Device.getDeviceTypeBySiteAndGroup", obj);
+            double bestValue = 0;
+            for (DeviceEntity item : deviceTypeList) {
+                HashMap<String, Object> params = new HashMap<>();
+                params.put("id_device", item.getId());
+                params.put("time_from", obj.getTime_from());
+                params.put("time_to", obj.getTime_to());
+                params.put("time_zone_offset", obj.getTime_zone_offset());
+                params.put("datatablename", item.getDatatablename());
+                params.put("field", obj.getField_data_name());
+                Map<String, Object> data = (Map<String, Object>) queryForObject("CustomAlert.getInverterBestValue", params);
+                if (data == null) {
+                    continue;
+                }
+                double value = (double) data.get("value");
+                if (value > bestValue) {
+                    bestValue = value;
+                }
+
+            }
+            if (bestValue == 0) {
+                return;
+            }
+            Map<String, Object> data = (Map<String, Object>) queryForObject("CustomAlert.checkForAddAlert", obj);
+            if (data == null) {
+                return;
+            }
+            double inverterValue = (double) data.get("value");
+            double percentOfBest = inverterValue / bestValue * 100;
+            boolean needInsert = false;
+            if (obj.getCondition() == Constants.CUSTOM_ALERT_COMPARE_CONDITION.less_than.getValue() && percentOfBest < obj.getThreshold()) {
+                needInsert = true;
+            } else if (obj.getCondition() == Constants.CUSTOM_ALERT_COMPARE_CONDITION.greater_than.getValue() && percentOfBest > obj.getThreshold()) {
+                needInsert = true;
+            } else if (obj.getCondition() == Constants.CUSTOM_ALERT_COMPARE_CONDITION.equal.getValue() && obj.getThreshold() == percentOfBest) {
+                needInsert = true;
+            }
+            if (!needInsert) {
+                return;
+            }
+            insertAlertQueue(obj);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void insertAlertQueue(CustomAlertEntity item) {
+        try{
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("id_device", item.getId_device());
+            params.put("id_device_group", item.getId_device_group());
+            params.put("custom_alert_tag", item.getCustom_alert_tag());
+            params.put("open_send_mail", item.getNotify_email());
+            params.put("is_notification", item.getNotify_web());
+            insert("CustomAlert.insertAlertQueue", params);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
 }

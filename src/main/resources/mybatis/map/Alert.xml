@@ -100,7 +100,7 @@
 		</choose>
 	</sql>
 	
-	<select id="getList" resultType="Map" parameterType="String" >
+	<select id="getList" resultType="Map">
 		SELECT
 			l.id,
 			l.asset,
@@ -239,7 +239,7 @@
 	</select>
 	
 	
-	<select id="getTotal" resultMap="AlertMap" parameterType="String">
+	<select id="getTotal" resultMap="AlertMap">
 		SELECT
 			COUNT(l.id) as totalRecord
 			
@@ -646,7 +646,7 @@
   	</select>
   	
   	
-  	<select id="getListBySiteAdmin" resultType="Map" parameterType="String" >
+  	<select id="getListBySiteAdmin" resultType="Map">
 		SELECT
 			l.id,
 			l.asset,
@@ -908,14 +908,22 @@
 			<include refid="com.nwm.common.siteByDomainCondition"/>
 	</sql>
 	
+	<sql id="lowPriorityAlertCondition">
+		AND e.id_error_level NOT IN (11, 12, 32, 33)
+	</sql>
+	
+	<sql id="highPriorityAlertCondition">
+		AND e.id_error_level IN (11, 12, 32, 33)
+	</sql>
+	
 	<select id="getAlertSummary" resultType="com.nwm.api.entities.AlertEntity" parameterType="com.nwm.api.entities.AlertEntity">
 		SELECT (
 			<include refid="alertSummary" />
-			AND e.id_error_level NOT IN (11, 12, 32, 33)
+			<include refid="lowPriorityAlertCondition" />
 		) AS lowPriority,
 		(
 			<include refid="alertSummary" />
-			AND e.id_error_level IN (11, 12, 32, 33)
+			<include refid="highPriorityAlertCondition" />
 		) AS highPriority,
 		(
 			<include refid="alertSummary" />
@@ -1444,5 +1452,19 @@
 		ORDER BY
 			l.start_date
   	</select>
+  	
+  	<update id="closeAlertByDeviceAndErrors">
+  		UPDATE alert
+  		SET
+  			status = 0,
+  			end_date = #{end_date} 
+	    WHERE
+		    <foreach item="id" collection="id_errors" separator="," open="id_error IN (" close=")">
+		    	#{id}
+		    </foreach>
+	    	AND id_device = #{id_device}
+	    	AND status = 1
+	    	AND is_delete = 0
+  	</update>
 
 </mapper>

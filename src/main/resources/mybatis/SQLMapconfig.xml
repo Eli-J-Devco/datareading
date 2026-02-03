@@ -45,6 +45,7 @@
 		<mapper resource="mybatis/map/ModelRT1Class30000.xml" />
 		<mapper resource="mybatis/map/ModelIVTSolaronEXT.xml" />
 		<mapper resource="mybatis/map/Site.xml" />
+		<mapper resource="mybatis/map/FTP.xml" />
 		<mapper resource="mybatis/map/TimeZone.xml" />
 		<mapper resource="mybatis/map/Country.xml" />
 		<mapper resource="mybatis/map/State.xml" />
@@ -188,10 +189,18 @@
 		<mapper resource="mybatis/map/AdminSettingGroup.xml"/>
 		<mapper resource="mybatis/map/BuildingReport.xml"/>
 		<mapper resource="mybatis/map/ModelGinlongSolisInverterClass6007.xml"/>
+		<mapper resource="mybatis/map/ModelHiQInverter.xml"/>
+		<mapper resource="mybatis/map/ModelHiQGateway.xml"/>
 		<mapper resource="mybatis/map/ModelIMTSolarTvClass8004.xml"/>
 		<mapper resource="mybatis/map/ModelKehuaSPI5060KInverter.xml"/>
 		<mapper resource="mybatis/map/ModelHuksefluxHB500.xml"/>
-		
+		<mapper resource="mybatis/map/ModelSolaredgeMeterSunspec.xml"/>
+		<mapper resource="mybatis/map/ModelHuaweiSmartloggerMeter.xml"/>
+		<mapper resource="mybatis/map/ModelHuaweiSun2000V1.xml"/>
+		<mapper resource="mybatis/map/ModelHuaweiSun2000US10.xml"/>
+		<mapper resource="mybatis/map/ModelGameChangeTrackerMaster.xml"/>
+		<mapper resource="mybatis/map/ModelHuaweiSmartloggerWeather.xml"/>
+		<mapper resource="mybatis/map/ModelGCSTrackerNode.xml"/>		
 		
 		
 		<mapper resource="mybatis/map/Role.xml" />
@@ -262,14 +271,23 @@
 		<mapper resource="mybatis/map/ScadaCharting.xml"/>
 		
 		<mapper resource="mybatis/map/building/SitesOverviewGas.xml"/>
+		<mapper resource="mybatis/map/building/PortfolioBuilding.xml"/>
 		<mapper resource="mybatis/map/building/SitesOverviewHVAC.xml"/>
 		<mapper resource="mybatis/map/ImportOldDataBoViet.xml"/>
+		<mapper resource="mybatis/map/ModelHuaweiSun200028ktl_v2.xml"/>
+		
+		<mapper resource="mybatis/DynamicDataMapper.xml" />
+		<mapper resource="mybatis/map/BackFillData.xml" />
+        <mapper resource="mybatis/map/CustomAlertMetric.xml" />
+        <mapper resource="mybatis/map/CustomAlert.xml" />
+
+        <mapper resource="mybatis/map/Ticket.xml"/>
+        <mapper resource="mybatis/map/ModelMeanWellDrs48024.xml"/>
+
 		
 		
 		
-		
-		
+		<mapper resource="mybatis/map/Datalogger.xml"/>
 		
 	</mappers>
 </configuration>
-

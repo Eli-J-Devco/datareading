@@ -14,11 +14,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalDouble;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -53,7 +49,7 @@ public class SitesOverviewGasService extends DB {
 		
 		try {
 			DateTimeFormatter timefullFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:00");
-			DateTimeFormatter categoryTimeFormat = DateTimeFormatter.ofPattern("HH:00");
+			DateTimeFormatter categoryTimeFormat = DateTimeFormatter.ofPattern("hh:mm a");
 			ChronoUnit timeUnit = ChronoUnit.HOURS;
 		
 			switch (ChartingFilter.fromValue(obj.getId_filter())) {
@@ -61,27 +57,36 @@ public class SitesOverviewGasService extends DB {
 				default:
 					break;
 				case THIS_WEEK:
+                case LAST_WEEK:
+                    end = end.with(DayOfWeek.SUNDAY);
                     if (Lib.isBlank(obj.getTime_id_filter()) || ChartingTimeFilter.fromValue(obj.getTime_id_filter()).equals(ChartingTimeFilter.DAY)) {
-                        end = end.with(DayOfWeek.SUNDAY);
                         timefullFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-                        categoryTimeFormat = DateTimeFormatter.ofPattern("dd. LLL");
+                        categoryTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
                         timeUnit = ChronoUnit.DAYS;
+                    } else {
+                        categoryTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:00");
                     }
 					break;
 				case THIS_MONTH:
 				case LAST_MONTH:
 					end = end.with(TemporalAdjusters.lastDayOfMonth());
 					timefullFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-					categoryTimeFormat = DateTimeFormatter.ofPattern("dd. LLL");
+					categoryTimeFormat = DateTimeFormatter.ofPattern("MM-dd-yyyy");
 					timeUnit = ChronoUnit.DAYS;
 					break;
 				case THIS_YEAR:
 				case LAST_12_MONTHS:
 				case LIFETIME:
 					end = end.with(TemporalAdjusters.lastDayOfMonth());
-					timefullFormat = DateTimeFormatter.ofPattern("LLL. yyyy");
-					categoryTimeFormat = DateTimeFormatter.ofPattern("LLL. yyyy");
+					timefullFormat = DateTimeFormatter.ofPattern("MMM. yyyy");
+					categoryTimeFormat = DateTimeFormatter.ofPattern("MMM, yyyy");
 					timeUnit = ChronoUnit.MONTHS;
+                    if (!Lib.isBlank(obj.getTime_id_filter()) && ChartingTimeFilter.fromValue(obj.getTime_id_filter()).equals(ChartingTimeFilter.DAY)) {
+                        end = end.with(TemporalAdjusters.lastDayOfMonth());
+                        timefullFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                        categoryTimeFormat = DateTimeFormatter.ofPattern("dd. MMM");
+                        timeUnit = ChronoUnit.DAYS;
+                    }
 					break;
 			}
 			
@@ -167,9 +172,8 @@ public class SitesOverviewGasService extends DB {
 			Double monthBeforeLastMonth = dataList.get(2).getValue();
 			Double currentYear = dataList.get(3).getValue();
 			Double lastYear = dataList.get(4).getValue();
-			Double life_time = dataList.get(5).getValue();
-			Double sevenAvgDay = dataList.get(6).getValue();
-			Double befoSevenAvgDay = dataList.get(7).getValue();
+			Double sevenAvgDay = dataList.get(5).getValue();
+			Double befoSevenAvgDay = dataList.get(6).getValue();
 			
 			ZonedDateTime now = ZonedDateTime.now(ZoneId.of(obj.getTimezone_value()));
 			Double dailyUsage = currentMonth / now.getDayOfMonth();
@@ -178,9 +182,7 @@ public class SitesOverviewGasService extends DB {
 			map.put("last_month", new SitesOverviewGasSummaryEntity(lastMonth, monthBeforeLastMonth == 0 ? (lastMonth == 0 ? 0 : 100) : new BigDecimal((lastMonth - monthBeforeLastMonth) / monthBeforeLastMonth * 100).setScale(1, RoundingMode.HALF_UP).doubleValue()));
 			map.put("daily_usage", new SitesOverviewGasSummaryEntity(dailyUsage, lastDailyUsage == 0 ? (dailyUsage == 0 ? 0 : 100) : new BigDecimal((dailyUsage - lastDailyUsage) / lastDailyUsage * 100).setScale(1, RoundingMode.HALF_UP).doubleValue()));
 			map.put("yearly_usage", new SitesOverviewGasSummaryEntity(currentYear, lastYear == 0 ? (currentYear == 0 ? 0 : 100) : new BigDecimal((currentYear - lastYear) / lastYear * 100).setScale(1, RoundingMode.HALF_UP).doubleValue()));
-			map.put("lifetime", new SitesOverviewGasSummaryEntity(life_time, 0.0));
-			
-			map.put("7days_usage", new SitesOverviewGasSummaryEntity(sevenAvgDay, befoSevenAvgDay == 0 ? (sevenAvgDay == 0 ? 0 : 100) : new BigDecimal((sevenAvgDay - befoSevenAvgDay) / befoSevenAvgDay * 100).setScale(1, RoundingMode.HALF_UP).doubleValue()));
+			map.put("7days_usage", new SitesOverviewGasSummaryEntity(sevenAvgDay / 7, befoSevenAvgDay == 0 ? (sevenAvgDay == 0 ? 0 : 100) : new BigDecimal((sevenAvgDay - befoSevenAvgDay) / befoSevenAvgDay * 100).setScale(1, RoundingMode.HALF_UP).doubleValue()));
 			
 		} catch (Exception ex) {
 			log.error("SitesOverviewGas.getSummary", ex);

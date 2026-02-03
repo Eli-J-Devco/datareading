@@ -85,7 +85,7 @@ public class CustomerSupportController extends BaseController {
                 body = String.format(msgTemplate, obj.getWe_support(), obj.getSite_name(), obj.getIssue_name(), obj.getContact_person(), obj.getAccount_name(),obj.getPhone(), obj.getEmail(), obj.getSubject(), obj.getNote());
             }
             // for test
-            String mailTo = "yphu@nwemon.com"; //"cases@nwemon.com";
+            String mailTo = "cases@nwemon.com";
             String subject = Constants.getMailSubjectByState(22);
             if (!Lib.isBlank(subject)) {
                 subject = String.format(subject, obj.getSite_name(), obj.getIssue_name());
@@ -102,13 +102,13 @@ public class CustomerSupportController extends BaseController {
                 if (!Lib.isBlank(msgTemplate)) {
                     body = String.format(msgTemplate, obj.getContact_person());
                 }
-                // for test
-                mailTo = "yphu@nwemon.com"; // obj.getEmail();
+
+                mailTo = obj.getEmail();
                 subject = Constants.getMailSubjectByState(27);
                 if (!Lib.isBlank(subject)) {
                     subject = String.format(subject, obj.getAccount_name(), obj.getSite_name());
                 }
-                SendMail.SendGmailTLSAttachmentMultiFiles(mailFromContact, fromName, mailTo, subject, body, tags, files);
+                SendMail.SendGmailTLS(mailFromContact, fromName, mailTo, subject, body, tags);
             }
 
             return this.jsonResult(true, Constants.SAVE_SUCCESS_MSG, data, 1);
