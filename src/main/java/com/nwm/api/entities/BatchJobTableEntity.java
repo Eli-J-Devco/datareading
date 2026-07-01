@@ -15,6 +15,7 @@ public class BatchJobTableEntity{
 	private String datatablename;
 	private String view_tablename;
 	private String job_tablename;
+    private String start_date;
 	private String end_date;
 	private int status;
 	private int id;
@@ -29,10 +30,37 @@ public class BatchJobTableEntity{
 	private int id_device_group;
 	private int count_item;
 	private int count_is_comm;
+	private Integer is_no_comm;
+    private int duration;
+	private String serial_number;
+	
+	private String updated_by;
+	private Integer is_no_production;
+	private int id_site;
 	
 	
 	
 	
+	
+	
+	public int getId_site() {
+		return id_site;
+	}
+	public void setId_site(int id_site) {
+		this.id_site = id_site;
+	}
+	public Integer getIs_no_production() {
+		return is_no_production;
+	}
+	public void setIs_no_production(Integer is_no_production) {
+		this.is_no_production = is_no_production;
+	}
+	public String getSerial_number() {
+		return serial_number;
+	}
+	public void setSerial_number(String serial_number) {
+		this.serial_number = serial_number;
+	}
 	public int getCount_is_comm() {
 		return count_is_comm;
 	}
@@ -159,8 +187,36 @@ public class BatchJobTableEntity{
 	public void setId_device_group(int id_device_group) {
 		this.id_device_group = id_device_group;
 	}
-	
-	
 
-	
+    public String getStart_date() {
+        return start_date;
+    }
+
+    public void setStart_date(String start_date) {
+        this.start_date = start_date;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
+    public Integer getIs_no_comm() {
+        return is_no_comm;
+    }
+
+    public void setIs_no_comm(Integer is_no_comm) {
+        this.is_no_comm = is_no_comm;
+    }
+
+    public String getUpdated_by() {
+        return updated_by;
+    }
+
+    public void setUpdated_by(String updated_by) {
+        this.updated_by = updated_by;
+    }
 }

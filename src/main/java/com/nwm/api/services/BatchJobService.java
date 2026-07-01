@@ -5,23 +5,20 @@
 *********************************************************/
 package com.nwm.api.services;
 
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import com.nwm.api.utils.Constants;
+import com.nwm.api.utils.Constants.ChartingGranularity;
 import com.nwm.api.utils.Lib;
 import org.apache.ibatis.session.SqlSession;
 
@@ -29,19 +26,14 @@ import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.BatchJobTableEntity;
 import com.nwm.api.entities.CameraImageEntity;
-import com.nwm.api.entities.ClientMonthlyDateEntity;
 import com.nwm.api.entities.CustomAlertEntity;
 import com.nwm.api.entities.DeviceEntity;
 import com.nwm.api.entities.EEREntity;
 import com.nwm.api.entities.ErrorEntity;
 import com.nwm.api.entities.LoadVirtualMeterEntity;
-import com.nwm.api.entities.ModelDataloggerEntity;
 import com.nwm.api.entities.ModelOpenMeteoWeatherEntity;
-import com.nwm.api.entities.MonthlyDateEntity;
-import com.nwm.api.entities.ReportsEntity;
 import com.nwm.api.entities.SiteDataReportEntity;
 import com.nwm.api.entities.SiteEntity;
-import com.nwm.api.entities.TagEntity;
 import com.nwm.api.entities.UserEntity;
 import com.nwm.api.entities.ViewReportEntity;
 import com.nwm.api.entities.WeatherEntity;
@@ -964,25 +956,23 @@ public class BatchJobService extends DB {
 			List dataListMeterAndInverter = queryForList("BatchJob.getListDeviceMeterAndInverter", obj);
 			List dataListWeather = queryForList("BatchJob.getListDeviceWeather", obj);
 			
-			SimpleDateFormat startDateFormat = new SimpleDateFormat("yyyy-MM-dd 00:00:00");
-			SimpleDateFormat endDateFormat = new SimpleDateFormat("yyyy-MM-dd 23:59:59");
-			TimeZone.setDefault(TimeZone.getTimeZone(obj.getTime_zone_value()));
-			Date endDate = new Date();
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(endDate);
-			cal.add(Calendar.DATE, -2);
-			Date startDate = new Date(cal.getTimeInMillis());
+			DateTimeFormatter startDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00");
+			DateTimeFormatter endDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd 23:59:59");
+			ZoneId timeZone = ZoneId.of(obj.getTime_zone_value());
+			ZonedDateTime endDate = ZonedDateTime.now(timeZone);
+			ZonedDateTime startDate = endDate.minusDays(2);
 			
 			if(obj.getStart_date() != null && obj.getEnd_date() != null) {
-				endDate = endDateFormat.parse(obj.getEnd_date());
-				startDate = startDateFormat.parse(obj.getStart_date());
+				endDate = ZonedDateTime.parse(obj.getEnd_date(), endDateFormat).withZoneSameInstant(timeZone);
+				startDate = ZonedDateTime.parse(obj.getStart_date(), startDateFormat).withZoneSameInstant(timeZone);
 			}
 			
 			if(dataListMeterAndInverter.size() > 0) {
 				for (int k = 0; k < dataListMeterAndInverter.size(); k++) {
 					DeviceEntity deviceItem = (DeviceEntity) dataListMeterAndInverter.get(k);
-					deviceItem.setStart_date(startDateFormat.format(startDate));
-					deviceItem.setEnd_date(endDateFormat.format(endDate));
+					deviceItem.setStart_date(startDate.format(startDateFormat));
+					deviceItem.setEnd_date(endDate.format(endDateFormat));
+					deviceItem.setData_send_time(ChartingGranularity._1_DAY.getValue());
 					
 					List<SiteDataReportEntity> dataReport = queryForList("BatchJob.getSiteDataReportIIMW", deviceItem);
 					if (dataReport != null && dataReport.size() > 0) {

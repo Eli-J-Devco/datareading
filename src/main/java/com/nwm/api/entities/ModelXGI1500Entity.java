@@ -40,6 +40,9 @@ public class ModelXGI1500Entity extends ModelBaseEntity {
 	private double PowerFactorControlEnable;
 	private double ReactivePowerSetpointPercent;
 	private double ReactivePowerControlEnable;
+	private double nvmActivePower;
+	private double nvmActiveEnergy;
+	private double MeasuredProduction;
 	
 	private int totalFaultStatus;
 	private int totalFault1;
@@ -275,4 +278,23 @@ public class ModelXGI1500Entity extends ModelBaseEntity {
 	public void setReactivePowerControlEnable(double reactivePowerControlEnable) {
 		ReactivePowerControlEnable = reactivePowerControlEnable;
 	}
+	public double getNvmActivePower() {
+		return nvmActivePower;
+	}
+	public void setNvmActivePower(double nvmActivePower) {
+		this.nvmActivePower = nvmActivePower;
+	}
+	public double getNvmActiveEnergy() {
+		return nvmActiveEnergy;
+	}
+	public void setNvmActiveEnergy(double nvmActiveEnergy) {
+		this.nvmActiveEnergy = nvmActiveEnergy;
+	}
+	public double getMeasuredProduction() {
+		return MeasuredProduction;
+	}
+	public void setMeasuredProduction(double measuredProduction) {
+		MeasuredProduction = measuredProduction;
+	}
+	
 }

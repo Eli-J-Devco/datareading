@@ -44,6 +44,20 @@ public class CronJobAlertService extends DB {
 		}
 		return obj;
 	}
+
+    public List<DeviceEntity> getListDeviceDatalogger(int id_site) {
+        List<DeviceEntity> dataList = new ArrayList<>();
+        try {
+            dataList = (List<DeviceEntity>) queryForList("CronJobAlert.getListDeviceDatalogger", id_site);
+            if (dataList == null) {
+                return new ArrayList<>();
+            }
+            return dataList;
+        } catch (Exception ex) {
+            log.error("CronJobAlert.getDeviceDatalogger", ex);
+            return new ArrayList<>();
+        }
+    }
 	
 	
 	
@@ -161,6 +175,9 @@ public class CronJobAlertService extends DB {
 	public List getListAlertCloseBySiteToClients(SiteEntity obj) {
 		List dataList = new ArrayList();
 		try {
+            List errorLevel = queryForList("CronJobAlert.getListErrorLevel", obj);
+
+            obj.setErrorLevel(errorLevel);
 			dataList = queryForList("CronJobAlert.getListAlertCloseBySiteToClients", obj);
 			if (dataList == null)
 				return new ArrayList();
@@ -193,7 +210,7 @@ public class CronJobAlertService extends DB {
 	 */
 	public boolean updateOpenSentAlertToClients(AlertEntity obj){
 		try{
-			return update("CronJobAlert.updateOpenSentAlertToClients", obj)>0;
+			return update("CronJobAlert.updateOpenSentAlertToClientsMulti", obj)>0;
 		}catch (Exception ex) {
 			log.error("CronJobAlert.updateOpenSentAlertToClients", ex);
 			return false;
@@ -222,7 +239,7 @@ public class CronJobAlertService extends DB {
 	 */
 	public boolean updateCloseSentAlertToClients(AlertEntity obj){
 		try{
-			return update("CronJobAlert.updateCloseSentAlertToClients", obj)>0;
+			return update("CronJobAlert.updateCloseSentAlertToClientsMulti", obj)>0;
 		}catch (Exception ex) {
 			log.error("CronJobAlert.updateCloseSentAlertToClients", ex);
 			return false;
@@ -581,7 +598,18 @@ public class CronJobAlertService extends DB {
 		return rowItem;
 	}
 	
-	
+	public List<BatchJobTableEntity> checkDeviceNoComm(BatchJobTableEntity obj) {
+        try {
+            List<BatchJobTableEntity> dataList = queryForList("CronJobAlert.checkDeviceNoComm", obj);
+            if (dataList == null) {
+                return new ArrayList<>();
+            }
+            return dataList;
+        } catch (Exception ex) {
+            log.error("CronJobAlert.getLastRowItemCheckNoCommunication", ex);
+            return new ArrayList<>();
+        }
+    }
 
 	/**
 	 * @description get list employees hiding a site
@@ -822,5 +850,13 @@ public class CronJobAlertService extends DB {
 			return null;
 		}
 	}
-	
+
+    public boolean checkAlertQueueExist(AlertEntity dataE) {
+        try {
+            return (int) queryForObject("CronJobAlert.checkAlertQueueExist", dataE) > 0;
+        }catch (Exception e) {
+
+        }
+        return true;
+    }
 }

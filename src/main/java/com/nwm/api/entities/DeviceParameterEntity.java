@@ -49,13 +49,18 @@ public class DeviceParameterEntity{
 	private String filterBy;
 	private int writable;
 	private int rounding_decimals;
-	private int is_user_defined;
 	private Integer id_generic_parameter;
+	private String generic_parameter_name;
+	private Integer id_generic_parameter_type;
+	private Double min_value;
+	private Double max_value;
+	private boolean is_user_defined;
 	private boolean is_active_power;
 	private boolean is_energy;
 	private boolean is_irradiance;
 	private boolean is_temperature;
 	private boolean is_panel_temperature;
+	private String slug_accumulated_energy;
 	private String title_trans;
 	private int detail_metric_enable;
 	
@@ -329,12 +334,6 @@ public class DeviceParameterEntity{
 	public void setWritable(int writable) {
 		this.writable = writable;
 	}
-	public int getIs_user_defined() {
-		return is_user_defined;
-	}
-	public void setIs_user_defined(int is_user_defined) {
-		this.is_user_defined = is_user_defined;
-	}
 	public Integer getId_generic_parameter() {
 		return id_generic_parameter;
 	}
@@ -371,6 +370,95 @@ public class DeviceParameterEntity{
 	public void setIs_panel_temperature(boolean is_panel_temperature) {
 		this.is_panel_temperature = is_panel_temperature;
 	}
-	
+	public boolean isIs_user_defined() {
+		return is_user_defined;
+	}
+	public void setIs_user_defined(boolean is_user_defined) {
+		this.is_user_defined = is_user_defined;
+	}
+	public String getGeneric_parameter_name() {
+		return generic_parameter_name;
+	}
+	public void setGeneric_parameter_name(String generic_parameter_name) {
+		this.generic_parameter_name = generic_parameter_name;
+	}
+	public Integer getId_generic_parameter_type() {
+		return id_generic_parameter_type;
+	}
+	public void setId_generic_parameter_type(Integer id_generic_parameter_type) {
+		this.id_generic_parameter_type = id_generic_parameter_type;
+	}
+	public Double getMin_value() {
+		return min_value;
+	}
+	public void setMin_value(Double min_value) {
+		this.min_value = min_value;
+	}
+	public Double getMax_value() {
+		return max_value;
+	}
+	public void setMax_value(Double max_value) {
+		this.max_value = max_value;
+	}
+	public String getSlug_accumulated_energy() {
+		return slug_accumulated_energy;
+	}
+	public void setSlug_accumulated_energy(String slug_accumulated_energy) {
+		this.slug_accumulated_energy = slug_accumulated_energy;
+	}
 
+	@Override
+	public String toString() {
+		return "DeviceParameterEntity{" +
+				"id=" + id +
+				", id_device_group=" + id_device_group +
+				", name='" + name + '\'' +
+				", description='" + description + '\'' +
+				", unit='" + unit + '\'' +
+				", is_filter=" + is_filter +
+				", status=" + status +
+				", is_delete=" + is_delete +
+				", created_date='" + created_date + '\'' +
+				", created_by='" + created_by + '\'' +
+				", updated_date='" + updated_date + '\'' +
+				", updated_by='" + updated_by + '\'' +
+				", text='" + text + '\'' +
+				", slug='" + slug + '\'' +
+				", id_device=" + id_device +
+				", register='" + register + '\'' +
+				", hide='" + hide + '\'' +
+				", standard_alert_message='" + standard_alert_message + '\'' +
+				", address='" + address + '\'' +
+				", value='" + value + '\'' +
+				", id_devices=" + id_devices +
+				", value_chart_tool='" + value_chart_tool + '\'' +
+				", is_checked=" + is_checked +
+				", menu_order=" + menu_order +
+				", is_calculation=" + is_calculation +
+				", is_common=" + is_common +
+				", standard_name='" + standard_name + '\'' +
+				", limit=" + limit +
+				", offset=" + offset +
+				", totalRecord=" + totalRecord +
+				", screen_mode=" + screen_mode +
+				", keyword='" + keyword + '\'' +
+				", order_by='" + order_by + '\'' +
+				", sort_column='" + sort_column + '\'' +
+				", id_categorize_data=" + id_categorize_data +
+				", scale='" + scale + '\'' +
+				", deviceType=" + deviceType +
+				", filterBy='" + filterBy + '\'' +
+				", writable=" + writable +
+				", rounding_decimals=" + rounding_decimals +
+				", is_user_defined=" + is_user_defined +
+				", id_generic_parameter=" + id_generic_parameter +
+				", is_active_power=" + is_active_power +
+				", is_energy=" + is_energy +
+				", is_irradiance=" + is_irradiance +
+				", is_temperature=" + is_temperature +
+				", is_panel_temperature=" + is_panel_temperature +
+				", title_trans='" + title_trans + '\'' +
+				", detail_metric_enable=" + detail_metric_enable +
+				'}';
+	}
 }

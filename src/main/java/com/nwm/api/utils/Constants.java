@@ -78,6 +78,9 @@ public class Constants {
 	public static final String mailResetPassword = "mailResetPassword";
 	public static final String mailSetPassword = "mailSetPassword";
 	public static final String mailSentPassword = "mailSentPassword";
+	public static final String mailResetPasswordBEMS = "mailResetPasswordBEMS";
+	public static final String mailSetPasswordBEMS = "mailSetPasswordBEMS";
+	public static final String mailSentPasswordBEMS = "mailSentPasswordBEMS";
 	public static final String mailModify = "mailModify";
 	public static final String mailEnable = "mailEnable";
 	public static final String mailAlert = "mailAlert";
@@ -135,6 +138,9 @@ public class Constants {
 	
 	public static final String mailPerformanceReportTitle = "mailPerformanceReportTitle";
 	public static final String mailPerformanceReportBody = "mailPerformanceReportBody";
+	
+	public static final String mailCitiCoreDailyReportTitle = "mailCitiCoreDailyReportTitle";
+	public static final String mailCitiCoreDailyReportBody = "mailCitiCoreDailyReportBody";
 	
 	public static final String mailExpiredSiteTitle = "mailExpiredSiteTitle";
 	public static final String mailExpiredSiteBody = "mailExpiredSiteBody";
@@ -206,14 +212,8 @@ public class Constants {
     public static final int NO_PRODUCTION =  1000; // "nvm_1000";
     public static final int TOTAL_CONSECUTIVE_ALARMS =  20;
     
-    
-    /**
-     * {@link} https://www.veris.com/ASSETS/DOCUMENTS/ITEMS/EN/a8810_i.pdf
-     * @see page: 25
-     */
-    
     public enum UploadingDataIntervals {
-    	_5_MINUTE(1, 5),
+    	_5_MINUTES(1, 5),
     	_15_MINUTES(2, 15),
     	_1_MINUTE(3, 1);
 
@@ -242,6 +242,10 @@ public class Constants {
 		}
     }
     
+    /**
+     * {@link} https://www.veris.com/ASSETS/DOCUMENTS/ITEMS/EN/a8810_i.pdf
+     * @see page: 25
+     */
     public enum ModbusError {
     	NORMAL(0),
     	DEVICE_FAILED_TO_RESPOND(139);
@@ -348,6 +352,7 @@ public class Constants {
     }
     
     public enum ReportIntervals {
+    	_1_MINUTE(9),
     	_5_MINUTE(1),
     	_15_MINUTES(2),
     	_30_MINUTES(8),
@@ -436,7 +441,8 @@ public class Constants {
     	ASSET_MANAGEMENT_AND_OPERATION_PERFORMANCE_REPORT(4),
     	SANITY_CHECK_REPORT(5),
     	METER_LEVEL_PRODUCTION_IRRADIANCE_TEMP_REPORT(6),
-    	PERFORMANCE_REPORT(7);
+    	PERFORMANCE_REPORT(7),
+    	CITI_CORE_PH_DAILY(8);
     	
     	private final int value;
     	
@@ -596,8 +602,9 @@ public class Constants {
     
     public static final String url_offres = "url_offres";
     public static final String url_conditions = "url_conditions";
-    public static final String SWAGGER_API_URL = "https://open-api.nextwavemonitoring.com/api-server";
-    
+    public static final String API_BASE_URL = "https://api.nextwavemonitoring.com/";
+    public static final String SWAGGER_API_URL = API_BASE_URL + "api-server";
+    public static final int SWAGGER_ROW_PER_PAGE = 100;
     
     /**
      * deifne review state
@@ -911,7 +918,10 @@ public class Constants {
 			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailPerformanceReportBody);
         case 29:
 			// expired site
-			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailExpiredSiteBody);	
+			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailExpiredSiteBody);
+        case 30:
+        	// citicore daily report
+        	return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailCitiCoreDailyReportBody);
 		default:
 			return null;
 		}
@@ -1000,6 +1010,9 @@ public class Constants {
         case 29:
 			// expired site
 			return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailExpiredSiteTitle);
+        case 30:
+        	// citicore daily report
+        	return Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailCitiCoreDailyReportTitle);
 		default:
 			return null;
 		}

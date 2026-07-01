@@ -19,7 +19,7 @@
 				AND s.site_domain_type IN(1,2,4)
 			</when>
 			
-			<when test="domain == 'staging.nextwavemonitoring.com' || domain =='demo.nextwavemonitoring.com'">
+			<when test="domain == 'staging.nextwavemonitoring.com' || domain =='demo.nextwavemonitoring.com' || domain =='dev.nextwavemonitoring.com'">
 				AND s.site_domain_type IN(1,3,4)
 			</when>
 			
@@ -47,7 +47,7 @@
                 AND d.show_on_domain IN(1,2,4)
             </when>
              
-            <when test="domain == 'staging.nextwavemonitoring.com' || domain =='demo.nextwavemonitoring.com'">
+            <when test="domain == 'staging.nextwavemonitoring.com' || domain =='demo.nextwavemonitoring.com' || domain =='dev.nextwavemonitoring.com'">
                 AND d.show_on_domain IN(1,3,4,7,5)
             </when>
             
@@ -65,12 +65,19 @@
         </choose>
 	</sql>
 	
+	<sql id="isCurrentValidCondition">
+		(
+			d.last_value IS NOT NULL
+			AND d.last_value > -2000 <!-- temporarily filter active power that doesn't make sense -->
+			AND TIMESTAMPDIFF(MINUTE, d.last_updated, UTC_TIMESTAMP()) <![CDATA[ <= ]]> 30 <!-- if time difference is more than 30 minutes from last updated until now and value still exist mean that the device is not sending any data from last updated, so pretending its current value as null -->
+		)
+	</sql>
+	
 	<sql id="keyIndicatorField">
 		CASE
 			WHEN d.last_updated IS NULL THEN "Never"
 			
-			<!-- if time difference is more than 30 minutes from last updated until now and value still exist mean that the device is not sending any data from last updated, so pretending its current value as null -->
-			WHEN d.field_value1 IS NOT NULL AND TIMESTAMPDIFF(MINUTE, d.last_updated, UTC_TIMESTAMP()) > 30 THEN "-"
+			WHEN NOT <include refid="com.nwm.common.isCurrentValidCondition"/> THEN "-"
 			
 			WHEN dg.table_name = 'model_power_measurement_ion_7650' AND d.field_value_default = 'kWTot' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 			
@@ -308,7 +315,7 @@
 			
 			WHEN dg.table_name = 'model_pi_camera_water_meter' AND d.field_value_default = 'reading_value' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "gal" )))
 			
-			WHEN dg.table_name = 'model_QUINT4_UPS' AND d.field_value_default = 'BatteryModeTime' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1/3600, 2), "hrs" )))
+			WHEN dg.table_name = 'model_QUINT4_UPS' AND d.field_value_default = 'StateofChargeRemainingTime' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1/3600, 2), "hrs" )))
 			
 			WHEN dg.table_name = 'model_SEL651R' AND d.field_value_default = 'BreakerStatus' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", IF(d.field_value1 = 1, "Closed", "Opened"))))
 			
@@ -331,6 +338,8 @@
 			WHEN dg.table_name = 'model_abb_emax_cb_ekip' AND d.field_value_default = 'ActivePower3PhaseTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 			
 			WHEN dg.table_name = 'model_pextron_urp6000' AND d.field_value_default = 'ActivePowerPhaseA' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+			WHEN dg.table_name = 'model_pextron_urp6000' AND d.field_value_default = 'TotalActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+			
 			
 			WHEN dg.table_name = 'model_siemens_7sr11' AND d.field_value_default = 'ActivePower3PhaseTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 			
@@ -340,7 +349,7 @@
 			
 			WHEN dg.table_name = 'model_imtsolar_tv_class8004' AND d.field_value_default = 'irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "W/m²" )))
 			
-			WHEN dg.table_name = 'model_Kehua_SPI50_60K_inverter' AND d.field_value_default = 'Ongridactivepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+			WHEN dg.table_name = 'model_Kehua_SPI50_60K_inverter' AND d.field_value_default = 'Gridconnectedtotalactivepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
 			
 			WHEN dg.table_name = 'model_Hukseflux_HB500' AND d.field_value_default = 'poa' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "W/m²" )))
 			
@@ -367,6 +376,66 @@
             WHEN dg.table_name = 'model_meanwell_drs48024' AND d.field_value_default = 'Read_Vin' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "V" )))
             
             WHEN dg.table_name = 'model_virtual_meter_or_inverter' AND d.field_value_default = 'nvmActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+            
+            WHEN dg.table_name = 'model_sungrow_sh6250hv_mv' AND d.field_value_default = 'active_power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_sungrow_pv_24h_scb' AND d.field_value_default = 'dc_power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_protection_relay' AND d.field_value_default = 'P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_protection_relay_v1' AND d.field_value_default = 'AI_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_SMP4_DP' AND d.field_value_default = 'AI_5XF01ARTHI_WIND_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_SMP4_DPV1' AND d.field_value_default = 'AI_HI_WINDING_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_IDEC_PLC' AND d.field_value_default = 'LOCAL_AI_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_InaccessPPC' AND d.field_value_default = 'ANALOG_INPUT_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ",FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            
+            
+            WHEN dg.table_name = 'model_SUN2000330KTLH1' AND d.field_value_default = 'Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_protection_relay_v2' AND d.field_value_default = 'Metering_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_InaccessPPCV1' AND d.field_value_default = 'ANALOG_INPUT_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_IDEC_PLCV1' AND d.field_value_default = 'POA_IRRADIANCE' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_OrionMX_Automation_Platform' AND d.field_value_default = 'AI_FEED_1_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_MVPS_HUAWEI' AND d.field_value_default = 'AI_LV_Panel_A_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Huawei_Smartlogger_V1' AND d.field_value_default = 'Total_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_SMA_SUNNY_CENTRAL_SC1000CP10' AND d.field_value_default = 'AC_Active_Power_W' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_SMA_STRING_COMBINER' AND d.field_value_default = 'DC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_GE_Hi_Winding' AND d.field_value_default = 'P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Schneider_Hi_Winding' AND d.field_value_default = 'P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_IDEC_PLCV2' AND d.field_value_default = 'Cmd_Open_SST' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_Main_Weather_Station' AND d.field_value_default = 'Main_Pyra_Inclined_Irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            WHEN dg.table_name = 'model_IDEC_PLCV3' AND d.field_value_default = 'B_RELAY_Stat_1' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            
+            
+            WHEN dg.table_name = 'model_weather_station_custom' AND d.field_value_default = 'INCLINED_IRRADIANCE' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            WHEN dg.table_name = 'model_SUNGROW_SG6250HV_MV_V1' AND d.field_value_default = 'AC_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_GE_Multilin_EPM_6000' AND d.field_value_default = 'HI_WIND_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_InaccessPPCV2' AND d.field_value_default = 'AI_Power_Factor_Feedback' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            
+            WHEN dg.table_name = 'model_PVH_Master' AND d.field_value_default = 'Globalsuntrackingsetpoint' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees" )))
+            WHEN dg.table_name = 'model_Atonometrics_MT2_BOM_Sensor' AND d.field_value_default = 'ModuleTemperature' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees" )))
+            WHEN dg.table_name = 'model_PVH_Tbox' AND d.field_value_default = 'OperationMode' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_ATI_Tracker_Motor' AND d.field_value_default = 'SetpointPosition' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees " )))
+            WHEN dg.table_name = 'model_ADAM6050_Transformer_Specific' AND d.field_value_default = 'Vacuum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            
+            WHEN dg.table_name = 'model_LevitonS4100KPowerMeter' AND d.field_value_default = 'TotalNetInstantaneousRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Solis_Smartlog_INV' AND d.field_value_default = 'Activepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_Kipp_Zonen_CMP214Point' AND d.field_value_default = 'TemperatureCompensatedIrradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            WHEN dg.table_name = 'model_Metter_Schneider_PM2200' AND d.field_value_default = 'Activepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_Kipp_Zonen_WS50' AND d.field_value_default = 'AirTemperature' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees C" )))
+            WHEN dg.table_name = 'model_Atonometrics_RC22M' AND d.field_value_default = 'Irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            WHEN dg.table_name = 'model_Kipp_Zonen_SMP12' AND d.field_value_default = 'RawIrradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            
+            WHEN dg.table_name = 'model_ABB_Central_Inverter_PVS800570630kWB' AND d.field_value_default = 'ActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Meter_Satec_PM175' AND d.field_value_default = 'RealPowerImportAccumulatedDemand' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            
 
 			ELSE "-"
 		END AS key_indicator
@@ -572,7 +641,7 @@
 			
 			WHEN dg.table_name = 'model_pi_camera_water_meter' AND d.field_value_default = 'reading_value' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "gal"))
 			
-			WHEN dg.table_name = 'model_QUINT4_UPS' AND d.field_value_default = 'BatteryModeTime' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "hrs"))
+			WHEN dg.table_name = 'model_QUINT4_UPS' AND d.field_value_default = 'StateofChargeRemainingTime' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "hrs"))
 			
 			WHEN dg.table_name = 'model_SEL651R' AND d.field_value_default = 'BreakerStatus' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", ""))
 
@@ -595,6 +664,8 @@
 			WHEN dg.table_name = 'model_abb_emax_cb_ekip' AND d.field_value_default = 'ActivePower3PhaseTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
 			
 			WHEN dg.table_name = 'model_pextron_urp6000' AND d.field_value_default = 'ActivePowerPhaseA' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
+			WHEN dg.table_name = 'model_pextron_urp6000' AND d.field_value_default = 'TotalActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
+			
 			
 			WHEN dg.table_name = 'model_siemens_7sr11' AND d.field_value_default = 'ActivePower3PhaseTotal' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
 			
@@ -606,7 +677,7 @@
 			
 			WHEN dg.table_name = 'model_imtsolar_tv_class8004' AND d.field_value_default = 'irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "W/m²"))
 			
-			WHEN dg.table_name = 'model_Kehua_SPI50_60K_inverter' AND d.field_value_default = 'Ongridactivepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
+			WHEN dg.table_name = 'model_Kehua_SPI50_60K_inverter' AND d.field_value_default = 'Gridconnectedtotalactivepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "kW"))
 			
 			WHEN dg.table_name = 'model_Hukseflux_HB500' AND d.field_value_default = 'poa' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "Z", "W/m²"))
 						
@@ -633,6 +704,64 @@
             WHEN dg.table_name = 'model_meanwell_drs48024' AND d.field_value_default = 'Read_Vin' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL,  "Z", "V"))
             
             WHEN dg.table_name = 'model_virtual_meter_or_inverter' AND d.field_value_default = 'nvmActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", ROUND(d.field_value1, 2), "kW" )))
+            
+           WHEN dg.table_name = 'model_sungrow_sh6250hv_mv' AND d.field_value_default = 'active_power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_sungrow_pv_24h_scb' AND d.field_value_default = 'dc_power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_protection_relay' AND d.field_value_default = 'P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_protection_relay_v1' AND d.field_value_default = 'AI_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_SMP4_DP' AND d.field_value_default = 'AI_5XF01ARTHI_WIND_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_SMP4_DPV1' AND d.field_value_default = 'AI_HI_WINDING_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_IDEC_PLC' AND d.field_value_default = 'LOCAL_AI_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_InaccessPPC' AND d.field_value_default = 'ANALOG_INPUT_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ",FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            
+            
+            WHEN dg.table_name = 'model_SUN2000330KTLH1' AND d.field_value_default = 'Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_protection_relay_v2' AND d.field_value_default = 'Metering_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_InaccessPPCV1' AND d.field_value_default = 'ANALOG_INPUT_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_IDEC_PLCV1' AND d.field_value_default = 'POA_IRRADIANCE' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_OrionMX_Automation_Platform' AND d.field_value_default = 'AI_FEED_1_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_MVPS_HUAWEI' AND d.field_value_default = 'AI_LV_Panel_A_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Huawei_Smartlogger_V1' AND d.field_value_default = 'Total_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_SMA_SUNNY_CENTRAL_SC1000CP10' AND d.field_value_default = 'AC_Active_Power_W' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_SMA_STRING_COMBINER' AND d.field_value_default = 'DC_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_GE_Hi_Winding' AND d.field_value_default = 'P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Schneider_Hi_Winding' AND d.field_value_default = 'P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_IDEC_PLCV2' AND d.field_value_default = 'Cmd_Open_SST' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_Main_Weather_Station' AND d.field_value_default = 'Main_Pyra_Inclined_Irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            WHEN dg.table_name = 'model_IDEC_PLCV3' AND d.field_value_default = 'B_RELAY_Stat_1' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            
+            
+            WHEN dg.table_name = 'model_weather_station_custom' AND d.field_value_default = 'INCLINED_IRRADIANCE' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            WHEN dg.table_name = 'model_SUNGROW_SG6250HV_MV_V1' AND d.field_value_default = 'AC_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_GE_Multilin_EPM_6000' AND d.field_value_default = 'HI_WIND_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_InaccessPPCV2' AND d.field_value_default = 'AI_Power_Factor_Feedback' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            
+            WHEN dg.table_name = 'model_PVH_Master' AND d.field_value_default = 'Globalsuntrackingsetpoint' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees" )))
+            WHEN dg.table_name = 'model_Atonometrics_MT2_BOM_Sensor' AND d.field_value_default = 'ModuleTemperature' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees" )))
+            WHEN dg.table_name = 'model_PVH_Tbox' AND d.field_value_default = 'OperationMode' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_ATI_Tracker_Motor' AND d.field_value_default = 'SetpointPosition' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees " )))
+            WHEN dg.table_name = 'model_ADAM6050_Transformer_Specific' AND d.field_value_default = 'Vacuum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            
+            WHEN dg.table_name = 'model_LevitonS4100KPowerMeter' AND d.field_value_default = 'TotalNetInstantaneousRealPower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Solis_Smartlog_INV' AND d.field_value_default = 'Activepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_Kipp_Zonen_CMP214Point' AND d.field_value_default = 'TemperatureCompensatedIrradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            WHEN dg.table_name = 'model_Metter_Schneider_PM2200' AND d.field_value_default = 'Activepower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            
+            WHEN dg.table_name = 'model_Kipp_Zonen_WS50' AND d.field_value_default = 'AirTemperature' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "Degrees C" )))
+            WHEN dg.table_name = 'model_Atonometrics_RC22M' AND d.field_value_default = 'Irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            WHEN dg.table_name = 'model_Kipp_Zonen_SMP12' AND d.field_value_default = 'RawIrradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            WHEN dg.table_name = 'model_ABB_Central_Inverter_PVS800570630kWB' AND d.field_value_default = 'ActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_Meter_Satec_PM175' AND d.field_value_default = 'RealPowerImportAccumulatedDemand' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
 
 			ELSE "Z"
 			
@@ -686,6 +815,10 @@
         </choose>
 	</sql>
 	
+	<sql id="deviceParameterName">
+		IF(gp.name IS NULL OR gp.name = '', IF(dp.standard_name IS NULL OR dp.standard_name = '', dp.name, dp.standard_name), gp.name)
+	</sql>
+	
 	<sql id="expectedPowerByPvModel">
 		CASE s.pv_model
 			WHEN 1 THEN
@@ -705,4 +838,267 @@
 			ELSE NULL
 		END
 	</sql>
+	
+	<sql id="uploadingDataIntervalCondition">
+		(
+			CASE s.data_send_time
+				WHEN 3 THEN 60
+				WHEN 1 THEN 300
+				WHEN 2 THEN 900
+				ELSE 1
+			END
+		)
+	</sql>
+	
+	<sql id="timeGroupBy">
+		<choose>
+			<when test="${interval} == 8">
+				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 60  )* 60, '%Y-%m-%d %H:%i' )
+			</when>
+			<when test="${interval} == 1">
+				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 300  )* 300, '%Y-%m-%d %H:%i' )
+			</when>
+			<when test="${interval} == 2">
+				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 900  )* 900, '%Y-%m-%d %H:%i' )
+			</when>
+			<when test="${interval} == 3">
+				DATE_FORMAT( ${time}, '%Y-%m-%d %H:00' )
+			</when>
+			<when test="${interval} == 4">
+				DATE_FORMAT( ${time}, '%Y-%m-%d')
+			</when>
+			<when test="${interval} == 5">
+				DATE_FORMAT( DATE_SUB(${time}, INTERVAL (MOD(DATEDIFF(${time}, #{start_date}), 7 )) DAY), '%Y-%m-%d' )
+			</when>
+			<when test="${interval} == 6">
+				DATE_FORMAT( ${time}, '%m/%Y' )
+			</when>
+			<when test="${interval} == 7">
+				DATE_FORMAT( ${time}, '%Y' )
+			</when>
+			<otherwise>
+				"all"
+			</otherwise>
+		</choose>
+	</sql>
+	
+	<sql id="currentTimeValidCondition">
+		(
+			<choose>
+				<when test="${interval} == 8">
+					1
+				</when>
+				<when test="${interval} == 1">
+					MINUTE(FROM_UNIXTIME(( UNIX_TIMESTAMP( MIN(${time}) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' )) IN (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55)
+				</when>
+				<when test="${interval} == 2">
+					MINUTE(FROM_UNIXTIME(( UNIX_TIMESTAMP( MIN(${time}) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' )) IN (0, 15, 30, 45)
+				</when>
+				<when test="${interval} == 3">
+					MINUTE(FROM_UNIXTIME(( UNIX_TIMESTAMP( MIN(${time}) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' )) = 0
+				</when>
+				<when test="${interval} == 4">
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( MIN(${time}) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<when test="${interval} == 5">
+					DATE_FORMAT(MIN(${time}), '%Y-%m-%d') = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="MIN(${time})" /></include> AND
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( MIN(${time}) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<when test="${interval} == 6">
+					DAYOFMONTH(MIN(${time})) = 1 AND
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( MIN(${time}) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<when test="${interval} == 7">
+					DAYOFYEAR(MIN(${time})) = 1 AND
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( MIN(${time}) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<otherwise>
+					1
+				</otherwise>
+			</choose>
+		)
+	</sql>
+	
+	<sql id="leadTimeValidCondition">
+		(
+			<choose>
+				<when test="${interval} == 8">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL  1 MINUTE)"  /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include>
+				</when>
+				<when test="${interval} == 1">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL  5 MINUTE)"  /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					MINUTE(FROM_UNIXTIME(( UNIX_TIMESTAMP( LEAD(MIN(${time}), 1) OVER (ORDER BY time) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' )) IN (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55)
+				</when>
+				<when test="${interval} == 2">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL 15 MINUTE)"  /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					MINUTE(FROM_UNIXTIME(( UNIX_TIMESTAMP( LEAD(MIN(${time}), 1) OVER (ORDER BY time) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' )) IN (0, 15, 30, 45)
+				</when>
+				<when test="${interval} == 3">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL 1 HOUR)"  /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					MINUTE(FROM_UNIXTIME(( UNIX_TIMESTAMP( LEAD(MIN(${time}), 1) OVER (ORDER BY time) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' )) = 0
+				</when>
+				<when test="${interval} == 4">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL 1 DAY)"   /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( LEAD(MIN(${time}), 1) OVER (ORDER BY time) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<when test="${interval} == 5">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL 7 DAY)"   /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					DATE_FORMAT(LEAD(MIN(${time}), 1) OVER (ORDER BY time), '%Y-%m-%d') = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( LEAD(MIN(${time}), 1) OVER (ORDER BY time) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<when test="${interval} == 6">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL 1 MONTH)" /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					DAYOFMONTH(LEAD(MIN(${time}), 1) OVER (ORDER BY time)) = 1 AND
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( LEAD(MIN(${time}), 1) OVER (ORDER BY time) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<when test="${interval} == 7">
+					<include refid="com.nwm.common.timeGroupBy"><property name="time" value="DATE_ADD(MIN(${time}), INTERVAL 1 YEAR)"  /></include> = <include refid="com.nwm.common.timeGroupBy"><property name="time" value="LEAD(MIN(${time}), 1) OVER (ORDER BY time)" /></include> AND
+					DAYOFYEAR(LEAD(MIN(${time}), 1) OVER (ORDER BY time)) = 1 AND
+					FROM_UNIXTIME(( UNIX_TIMESTAMP( LEAD(MIN(${time}), 1) OVER (ORDER BY time) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> )* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%H:%i:%s' ) = '00:00:00'
+				</when>
+				<otherwise>
+					1
+				</otherwise>
+			</choose> AND
+			<include refid="com.nwm.common.currentTimeValidCondition"/>
+		)
+	</sql>
+	
+	<sql id="calculationByInterval">
+		<choose>
+            <when test="${interval} == 8">
+            	CASE '${interval}'
+					WHEN 'data_send_time' THEN 1 / 60 <!-- charting -->
+					WHEN 'data_intervals' THEN 1 / 2  <!-- report -->
+					ELSE NULL
+				END
+            </when>
+            <when test="${interval} == 1">
+                1 / 12
+            </when>
+            <when test="${interval} == 2">
+                1 / 4
+            </when>
+            <when test="${interval} == 3">
+            	1
+            </when>
+            <when test="${interval} == 4">
+            	24
+            </when>
+            <when test="${interval} == 5">
+            	24 * 
+            	IF(
+					${datetime} <![CDATA[ <= ]]> DATE_SUB(#{end_date}, INTERVAL (1 + DATEDIFF(#{end_date}, #{start_date}) MOD 7) DAY),
+					7,
+					1 + DATEDIFF(#{end_date}, #{start_date}) MOD 7
+				)
+            </when>
+            <when test="${interval} == 6">
+            	24 *
+            	IF(
+					DATE_FORMAT(#{end_date}, '%Y-%m') = DATE_FORMAT(#{start_date}, '%Y-%m'),
+					(1 + DATEDIFF(#{end_date}, #{start_date})),
+					IF(
+						${datetime} BETWEEN #{start_date} AND LAST_DAY(#{start_date}),
+						(1 + DATEDIFF(LAST_DAY(#{start_date}), #{start_date})),
+						IF(
+							${datetime} BETWEEN DATE_FORMAT(#{end_date}, '%Y-%m-01') AND #{end_date},
+							(1 + DATEDIFF(#{end_date}, DATE_FORMAT(#{end_date}, '%Y-%m-01'))),
+							DAYOFMONTH(LAST_DAY(${datetime}))
+						)
+					)
+				)
+            </when>
+            <when test="${interval} == 7">
+            	24 *
+            	IF(
+					YEAR(#{end_date}) = YEAR(#{start_date}),
+					(1 + DATEDIFF(#{end_date}, #{start_date})),
+					IF(
+						${datetime} BETWEEN #{start_date} AND DATE_FORMAT(#{start_date}, '%Y-12-31'),
+						(1 + DATEDIFF(DATE_FORMAT(#{start_date}, '%Y-12-31'), #{start_date})),
+						IF(
+							${datetime} BETWEEN DATE_FORMAT(#{end_date}, '%Y-01-01') AND #{end_date},
+							(1 + DATEDIFF(#{end_date}, DATE_FORMAT(#{end_date}, '%Y-01-01'))),
+							DAYOFYEAR(DATE_FORMAT(${datetime}, '%Y-12-31'))
+						)
+					)
+				)
+            </when>
+            <otherwise>
+            	1
+            </otherwise>
+        </choose>
+	</sql>
+	
+	<sql id="intervalEnergyCalculation">
+		IF(
+			(<include refid="com.nwm.common.intervalEnergy"/> >= minimum_energy_value AND <include refid="com.nwm.common.intervalEnergy"/> <![CDATA[ <= ]]> dc_capacity * (1 + (interval_energy_threshold / 100)) * <include refid="com.nwm.common.calculationByInterval"/>) OR dc_capacity = 0,
+			<include refid="com.nwm.common.intervalEnergy"/>,
+			<choose>
+				<when test="${interval} == 8 or ${interval} == 1 or ${interval} == 2">
+					NULL
+				</when>
+				<otherwise>
+					(
+						SELECT
+							SUM(IF(
+								(energy >= minimum_energy_value AND energy <![CDATA[ <= ]]> dc_capacity * (1 + (interval_energy_threshold / 100)) * (<include refid="com.nwm.common.uploadingDataIntervalCondition"/> / 60 / 60)) OR dc_capacity = 0,
+								energy,
+								NULL
+							))
+						FROM (
+							SELECT
+								<include refid="com.nwm.common.intervalEnergy"/> AS energy
+							FROM
+								${table} dv
+								JOIN (
+									SELECT
+										CASE s.data_send_time
+											WHEN 3 THEN
+												<include refid="com.nwm.common.leadTimeValidCondition">
+													<property name="time" value="CONVERT_TZ( dv.time, 'UTC', t.value )" />
+													<property name="interval" value="8" />
+												</include>
+											WHEN 1 THEN
+												<include refid="com.nwm.common.leadTimeValidCondition">
+													<property name="time" value="CONVERT_TZ( dv.time, 'UTC', t.value )" />
+													<property name="interval" value="1" />
+												</include>
+											WHEN 2 THEN
+												<include refid="com.nwm.common.leadTimeValidCondition">
+													<property name="time" value="CONVERT_TZ( dv.time, 'UTC', t.value )" />
+													<property name="interval" value="2" />
+												</include>
+											ELSE
+												NULL
+										END AS leadTimeValid,
+										MIN(dv.time) AS minTime
+									FROM
+										${table} dv
+									WHERE
+										dv.id_device = ${id}
+										AND dv.time BETWEEN m.minTime AND m.maxTime
+									GROUP BY
+										FROM_UNIXTIME(( UNIX_TIMESTAMP( CONVERT_TZ( dv.time, 'UTC', t.value ) ) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/> ) * <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%Y-%m-%d %H:%i' )
+								) t ON t.minTime = dv.time AND dv.id_device = ${id}
+						) t
+					)
+				</otherwise>
+			</choose>
+		)
+	</sql>
+	
+	<sql id="intervalEnergyCalculationByVirtualDevice">
+		IF(
+			(SUM(nvmActiveEnergy) >= minimum_energy_value AND SUM(nvmActiveEnergy) <![CDATA[ <= ]]> dc_capacity * (1 + (interval_energy_threshold / 100)) * <include refid="com.nwm.common.calculationByInterval"/>) OR dc_capacity = 0,
+			SUM(nvmActiveEnergy),
+			NULL
+		)
+	</sql>
+	
+	<sql id="intervalEnergy">
+		IF(leadTimeValid, LEAD(${accumulatedEnergySlug}, 1) OVER (ORDER BY dv.time) - ${accumulatedEnergySlug}, NULL)
+	</sql>
+	
 </mapper>

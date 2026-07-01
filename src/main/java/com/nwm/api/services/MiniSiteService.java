@@ -9,14 +9,19 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.KioskViewTodayEntity;
+import com.nwm.api.entities.MiniSiteRequest;
 import com.nwm.api.entities.SiteEntity;
 import com.nwm.api.utils.Lib;
 import com.nwm.api.utils.Constants.ChartingFilter;
+import com.nwm.api.utils.Constants.ChartingGranularity;
 
 public class MiniSiteService extends DB {
 
@@ -29,17 +34,14 @@ public class MiniSiteService extends DB {
 	 * @return Object
 	 */
 
-	public Object getMiniSiteInfo(SiteEntity obj) {
-		Object dataObj = null;
-		try {
-			dataObj = queryForObject("MiniSite.getMiniSiteInfo", obj);
-			
-			if (dataObj == null)
-				return new SiteEntity();
-		} catch (Exception ex) {
-			return new SiteEntity();
-		}
-		return dataObj;
+	public Object getMiniSiteInfo(MiniSiteRequest obj) {
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+		SiteEntity siteEntity = mapper.convertValue(obj, SiteEntity.class);
+//		siteEntity.setKiosk_view(1);
+		
+		CustomerViewService customerViewService = new CustomerViewService();
+		return customerViewService.getCustomerViewInfo(siteEntity);
 	}
 	
 	/**
@@ -49,7 +51,7 @@ public class MiniSiteService extends DB {
 	 * @param id_site, date_from, data_to
 	 */
 
-	public Object getChartPerformance(SiteEntity obj) {
+	public Object getChartPerformance(MiniSiteRequest obj) {
 		try {
 			// ----- Create DateTime List ----- Begin
 			DateTimeFormatter inputFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -63,6 +65,7 @@ public class MiniSiteService extends DB {
 				case TODAY:
 					timeUnit = ChronoUnit.HOURS;
             		categoriesTimeFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:00");
+            		obj.setData_send_time(ChartingGranularity._1_HOUR.getValue());
             		break;
 				case THIS_MONTH:
 				case LAST_MONTH:
@@ -70,16 +73,19 @@ public class MiniSiteService extends DB {
 					end = end.with(TemporalAdjusters.lastDayOfMonth());
 					timeUnit = ChronoUnit.DAYS;
 					categoriesTimeFormat = DateTimeFormatter.ofPattern("MM/dd");
+					obj.setData_send_time(ChartingGranularity._1_DAY.getValue());
 					break;
 				case LAST_12_MONTHS:
 					start = start.withDayOfMonth(1);
 					timeUnit = ChronoUnit.MONTHS;
             		categoriesTimeFormat = DateTimeFormatter.ofPattern("MMM-yyyy");
+            		obj.setData_send_time(ChartingGranularity._1_MONTH.getValue());
 					break;
 				case LIFETIME:
-					end = end.with(TemporalAdjusters.lastDayOfYear());
+					start = start.withDayOfYear(1);
 					timeUnit = ChronoUnit.YEARS;
             		categoriesTimeFormat = DateTimeFormatter.ofPattern("yyyy");
+            		obj.setData_send_time(ChartingGranularity._1_YEAR.getValue());
 					break;
 				default:
 					break;
@@ -109,6 +115,7 @@ public class MiniSiteService extends DB {
 						item.put("start_date", obj.getStart_date());
 						item.put("end_date", obj.getEnd_date());
 						item.put("filterBy", obj.getFilterBy());
+						item.put("data_send_time", obj.getData_send_time());
 						List<KioskViewTodayEntity> dataDevice = queryForList("MiniSite.getDataByDevice", item);
 						List<KioskViewTodayEntity> fulfilledData = Lib.fulfillData(categories, dataDevice, "categories_time");
 						if(dataDevice.size() > 0) {
@@ -124,8 +131,8 @@ public class MiniSiteService extends DB {
 			} else {
 				List dataListDeviceIrr = queryForList("MiniSite.getListDeviceTypeIrradiance", obj);
 				if (dataListDeviceIrr != null && dataListDeviceIrr.size() > 0) obj.setHave_poa(true);
-				if (obj.getEnable_virtual_device() == 0 && ChartingFilter.fromValue(obj.getFilterBy()) == ChartingFilter.TODAY) {
-					List dataListDeviceMeter = queryForList("MiniSite.getListDeviceTypeMeter", obj);
+				if (obj.getEnable_virtual_device() == 0) {
+					List dataListDeviceMeter = queryForList("MiniSite.getListDeviceTypeMeter", obj);			
 					List dataListDevicePower = dataListDeviceMeter.size() > 0 ? dataListDeviceMeter : queryForList("MiniSite.getListDeviceTypeInverter", obj);
 					if (dataListDevicePower.size() > 0) {
 						if (dataListDeviceIrr != null && dataListDeviceIrr.size() > 0) dataListDevicePower.addAll(dataListDeviceIrr);
@@ -146,6 +153,24 @@ public class MiniSiteService extends DB {
 		}
 	}
 
-	
+	public List<SiteEntity> getListSiteAutoChange(SiteEntity obj) {
+        try {
+            List<Integer> companyUseAutoChange = Arrays.asList(2, 3, 146, 147);
+            SiteEntity entity = (SiteEntity) queryForObject("MiniSite.getCompanyBySiteHash", obj);
+            if (entity == null) {
+                return new ArrayList<>();
+            }
+            if (companyUseAutoChange.stream().anyMatch(x -> x == entity.getId_company())) {
+                List<SiteEntity> dataList = queryForList("MiniSite.getListSiteAutoChange", entity);
+                if (dataList == null) {
+                    return new ArrayList<>();
+                }
+                return dataList;
+            }
+        } catch (Exception e) {
+            log.error("MiniSiteService.getListSiteAutoChange", e);
+        }
+        return new ArrayList<>();
+    }
 	
 }

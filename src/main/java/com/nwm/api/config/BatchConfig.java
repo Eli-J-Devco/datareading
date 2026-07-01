@@ -156,7 +156,7 @@ public class BatchConfig {
 //		}
 //		
 //	}
-//	
+	
 	
 	 
 	
@@ -260,34 +260,16 @@ public class BatchConfig {
 	 */
 //	@Scheduled(cron = "* * * * * *")
 //	@Scheduled(cron = "0 */1 * * * *")
-	@Scheduled(cron = "0 */10 * * * *")
-	public void startBatchJobGenerateDataReport() throws Exception {
-		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
-		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
-		if (env.equals("staging")) {
-			BatchJob job =new BatchJob(); 
-			job.runCronJobGenerateDataReport();
-		}
-	}
-	
-	
-	/**
-	 * @description batch job get data meteo
-	 * @author long.pham
-	 * @since 2025-02-15
-	 */
-//	@Scheduled(cron = "* * * * * *")
-//	@Scheduled(cron = "0 */1 * * * *")
-//	@Scheduled(cron = "0 */5 * * * *")
-//	public void startBatchJobBEMSLoadVitualMeter() throws Exception {
+//	@Scheduled(cron = "0 */10 * * * *")
+//	public void startBatchJobGenerateDataReport() throws Exception {
 //		ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
 //		String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
 //		if (env.equals("staging")) {
 //			BatchJob job =new BatchJob(); 
-//			job.startBatchJobBEMSLoadVitualMeter();
+//			job.runCronJobGenerateDataReport();
 //		}
-//		
 //	}
+	
 	
 	/**
 	 * @description batch job generate data report
@@ -312,6 +294,17 @@ public class BatchConfig {
 //	}
 	
 	
+//    @Scheduled(cron = "0 */15 * * * *")
+//    public void startBatchJobCustomAlert() {
+//        ResourceBundle resourceAppBundle = ResourceBundle.getBundle(Constants.appConfigFileName);
+//        String env = readProperty(resourceAppBundle, "spring.profiles.active", "dev");
+//        if (env.equals("dev")) {
+//            BatchJob job = new BatchJob();
+//            job.startBatchJobCustomAlert();
+//        }
+//    }
+
+
 	/**
 	 * @description sent mail report on schedule
 	 * @author Hung.Bui
@@ -349,13 +342,13 @@ public class BatchConfig {
 //	}
 	
 	
-	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
-		String value = defaultValue;
-		try {
-			value = resourceBundle.getString(key);
-		} catch (Exception e) {}
-		return value;
-	}
+//	private static String readProperty(ResourceBundle resourceBundle, String key, String defaultValue) {
+//		String value = defaultValue;
+//		try {
+//			value = resourceBundle.getString(key);
+//		} catch (Exception e) {}
+//		return value;
+//	}
 	
 	/**
 	 * @description SMA read folder from FTP account
@@ -463,5 +456,4 @@ public class BatchConfig {
 ////		}
 //		
 //	}
-
 }

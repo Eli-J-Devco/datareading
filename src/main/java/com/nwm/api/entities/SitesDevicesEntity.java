@@ -198,8 +198,34 @@ public class SitesDevicesEntity extends SortEntity {
     private String bems_commissioning;
     private String bems_overview_tab;
     private String site_logo;
+    private Double interval_energy_threshold;
+    private Double minimum_energy_value;
+    private int total_tracker;
+	private String country_name;
+	private int site_map;
 	
     
+	public int getTotal_tracker() {
+		return total_tracker;
+	}
+	public void setTotal_tracker(int total_tracker) {
+		this.total_tracker = total_tracker;
+	}
+	public String getCountry_name() {
+		return country_name;
+	}
+	public void setCountry_name(String country_name) {
+		this.country_name = country_name;
+	}
+
+	public int getSite_map() {
+		return site_map;
+	}
+
+	public void setSite_map(int site_map) {
+		this.site_map = site_map;
+	}
+
 	public String getSite_logo() {
 		return site_logo;
 	}
@@ -1296,4 +1322,16 @@ public class SitesDevicesEntity extends SortEntity {
     public void setBems_commissioning(String bems_commissioning) {
         this.bems_commissioning = bems_commissioning;
     }
+	public Double getInterval_energy_threshold() {
+		return interval_energy_threshold;
+	}
+	public void setInterval_energy_threshold(Double interval_energy_threshold) {
+		this.interval_energy_threshold = interval_energy_threshold;
+	}
+	public Double getMinimum_energy_value() {
+		return minimum_energy_value;
+	}
+	public void setMinimum_energy_value(Double minimum_energy_value) {
+		this.minimum_energy_value = minimum_energy_value;
+	}
 }

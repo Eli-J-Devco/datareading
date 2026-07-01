@@ -75,6 +75,7 @@ public class DocumentHelper {
 	public static final String noDecimalDataFormat = "###,##0";
 	public static final String oneDecimalPlaceDataFormat = "###,##0.0";
 	public static final String twoDecimalPlaceDataFormat = "###,##0.00";
+	public static final String threeDecimalPlaceDataFormat = "###,##0.000";
 	public static final String fourDecimalPlaceDataFormat = "###,##0.0000";
 	public static final String noDecimalPlaceWithPercentageDataFormat = "###,##0%";
 	public static final String oneDecimalPlaceWithPercentageDataFormat = "###,##0.0%";
@@ -82,6 +83,8 @@ public class DocumentHelper {
 	public static final Color BLUE_COLOR = new Color(49, 119, 168);
 	public static final Color LIGHT_BLUE_COLOR = new Color(109, 189, 246);
 	public static final Color ORANGE_COLOR = new Color(255, 129, 39);
+	
+	public static final int MAX_SHEET_COLUMN = 16384;
 	
 	private static String uploadRootPath() {
 		return Lib.getReourcePropValue(Constants.appConfigFileName, Constants.uploadRootPathConfigKey);

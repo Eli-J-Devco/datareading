@@ -224,6 +224,9 @@ public class DeviceService extends DB {
 			int create_total_device = obj.getCreate_total_device();
 			String modbusnumber = obj.getModbusdevicenumber();
 			String devicename = obj.getDevicename();
+			if (obj.isIs_tracker_master()) {
+				session.update("Device.updateAllTrackerIsNotMaster", obj);
+			}
 			if (create_total_device > 0) {
 				for (int i = 0; i < create_total_device; i++) {
 					if(create_total_device > 1) { 
@@ -242,6 +245,8 @@ public class DeviceService extends DB {
 						obj.setJob_tablename("BJob" + obj.getId() + "_"+ obj.getDevice_group_table());
 						session.update("Device.updateTableDevice", obj);
 						session.update("Device.updateFTPSite", obj);
+						if (obj.getList_parameters() != null && obj.getList_parameters().size() > 0)
+							session.insert("SiteMap.insertParameterByDevice", obj);
 					} else {
 						throw new Exception();
 					}
@@ -284,8 +289,14 @@ public class DeviceService extends DB {
 	public boolean updateDevice(DeviceEntity obj){
 		SqlSession session = this.beginTransaction();
 		try {
+			if (obj.isIs_tracker_master()) {
+				session.update("Device.updateAllTrackerIsNotMaster", obj);
+			}
 			session.update("Device.updateDevice", obj);
 			session.update("Device.updateFTPSite", obj);
+			session.delete("SiteMap.deleteParameterByDevice", obj);
+			if (obj.getList_parameters() != null && obj.getList_parameters().size() > 0)
+				session.insert("SiteMap.insertParameterByDevice", obj);
 			session.commit();
 			return true;
 		} catch (Exception ex) {
@@ -577,5 +588,70 @@ public class DeviceService extends DB {
 			return false;
 		}
 	}
+/**
+	 * @description Get all devices for external API
+	 * @author duc.pham
+	 * @since 2026-02-09
+	 * @param obj - contains id_customer, limit, offset
+	 * @return List of devices with Site, Name, Make, Model, Serial Number
+	 */
+	public List getAllDevicesForExternalAPI(DeviceEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("Device.getAllDevicesForExternalAPI", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			log.error("Device.getAllDevicesForExternalAPI", ex);
+			return new ArrayList();
+		}
+		return dataList;
+	}
 
+	/**
+	 * @description Get total count of devices for external API
+	 * @author duc.pham
+	 * @since 2026-02-09
+	 */
+	public int getAllDevicesForExternalAPICount(DeviceEntity obj) {
+		try {
+			return (int) queryForObject("Device.getAllDevicesForExternalAPICount", obj);
+		} catch (Exception ex) {
+			log.error("Device.getAllDevicesForExternalAPICount", ex);
+			return 0;
+		}
+	}
+	/**
+	 * @description get all devices with Site, Name, Make, Model, Serial Number
+	 * @author duc.pham
+	 * @since 2026-02-09
+	 * @param obj - DeviceEntity with optional filters
+	 * @return List of devices with required fields
+	 */
+	public List getAllDevices(DeviceEntity obj) {
+		List dataList = new ArrayList();
+		try {
+			dataList = queryForList("Device.getAllDevices", obj);
+			if (dataList == null)
+				return new ArrayList();
+		} catch (Exception ex) {
+			return new ArrayList();
+		}
+		return dataList;
+	}
+
+	/**
+	 * @description get total count of all devices
+	 * @author duc.pham
+	 * @since 2026-02-09
+	 * @param obj - DeviceEntity with optional filters
+	 * @return total count
+	 */
+	public int getAllDevicesTotal(DeviceEntity obj) {
+		try {
+			return (int) queryForObject("Device.getAllDevicesTotal", obj);
+		} catch (Exception ex) {
+			return 0;
+		}
+	}
 }

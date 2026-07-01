@@ -173,7 +173,10 @@
 			GROUP BY s.id
 	</select>
 	
-	
+
+
+
+
 	<select id="getRowItemAlert" resultType="com.nwm.api.entities.BatchJobTableEntity">
     	SELECT
     	u.id,
@@ -190,6 +193,9 @@
 		SET
 			status = 0,
 			end_date = #{end_date}
+            <if test="updated_by != null and updated_by != ''">
+                ,updated_by = #{updated_by}
+            </if>
 		WHERE
 			`id` = #{id} AND `id_device` = #{id_device}
 	</update>
@@ -224,7 +230,7 @@
 			#{end_date},
 			#{asset},
 			#{capacity}
-		);
+		) ON DUPLICATE KEY UPDATE start_date = #{start_date}, is_queue = 0;
 		<selectKey keyProperty="id" resultType="int">
 	        SELECT 
 	        LAST_INSERT_ID() as id
@@ -356,6 +362,52 @@
 				ORDER BY u.time DESC LIMIT 10
 		)t
   	</select>
+
+    <select id="checkDeviceNoComm" resultType="com.nwm.api.entities.BatchJobTableEntity">
+        SELECT
+            MIN(time) AS start_date,
+            MAX(time) AS end_date,
+            TIMESTAMPDIFF(MINUTE, MIN(time), MAX(time)) AS duration,
+            is_no_comm,
+            id_device,
+            id
+        FROM (
+            SELECT
+                time,
+                id,
+                devicename,
+                id_device,
+                nvmActivePower,
+                nvmActiveEnergy,
+                is_no_comm,
+                SUM(is_new_group) OVER (ORDER BY time) AS grp
+            FROM (
+                SELECT
+                    u.time,
+                    d.id,
+                    d.devicename,
+                    u.id_device,
+                    nvmActivePower,
+                    u.nvmActiveEnergy,
+                    IF(u.nvmActivePower IS NULL, 1, 0) as is_no_comm,
+                    CASE
+                        WHEN LAG(
+                            IF(u.nvmActivePower IS NULL, 1, 0)) OVER (ORDER BY u.time) = IF(u.nvmActivePower IS NULL, 1, 0)
+                            THEN 0
+                        ELSE 1
+                    END AS is_new_group
+                FROM ${datatablename} u
+                LEFT JOIN device d ON u.id_device = d.id
+                WHERE
+                    u.id_device = #{id_device}
+                    AND u.time <![CDATA[>=]]> DATE_ADD(NOW(), INTERVAL -2 HOUR)
+                    ORDER BY u.time
+            ) t1
+        ) t2
+        GROUP BY grp
+<!--        HAVING duration <![CDATA[>=]]> 120-->
+        ORDER BY end_date DESC
+    </select>
   	
 	
 	<select id="getListAllDevice" resultType="com.nwm.api.entities.DeviceEntity">
@@ -535,6 +587,19 @@
 		WHERE
 			`id` = #{id} AND `id_device` = #{id_device}
 	</update>
+
+    <update id="updateOpenSentAlertToClientsMulti">
+        UPDATE `alert`
+        SET open_send_mail_client = 1
+        WHERE `id` IN
+        <foreach collection="id_sites"
+                 item="id"
+                 open="("
+                 separator=","
+                 close=")">
+            #{id}
+        </foreach>
+    </update>
 	
 	<select id="getListAlertCloseBySite" resultType="Map" >
 		SELECT
@@ -584,7 +649,15 @@
 			d.`status` = 1 
 			AND d.id_site  = #{id}
 			AND a.close_send_mail_client = 0 AND a.`status` = 0
-			AND e.client = 1
+<!--			AND e.client = 1-->
+            AND (
+                e.client = 1
+                <if test="errorLevel != null and !errorLevel.isEmpty()">
+                    OR e.id_error_level IN (
+                        SELECT id_error_level FROM error_level_site_map m WHERE m.id_site = #{id} GROUP BY m.id_error_level
+                    )
+                </if>
+            )
 			ORDER BY a.`status` DESC
 	</select>
 	
@@ -603,6 +676,20 @@
 		WHERE
 			`id` = #{id} AND `id_device` = #{id_device}
 	</update>
+
+    <update id="updateCloseSentAlertToClientsMulti">
+        UPDATE `alert`
+        SET close_send_mail_client = 1, open_send_mail_client = 1
+        WHERE
+        `id` IN
+        <foreach collection="id_sites"
+                 item="id"
+                 open="("
+                 separator=","
+                 close=")">
+            #{id}
+        </foreach>
+    </update>
 	
 	<select id="getLastRowItemResetLastValue" resultType="com.nwm.api.entities.BatchJobTableEntity">
     	SELECT
@@ -679,6 +766,7 @@
 					AND d.hidden = 0
 					AND d.id_device_type = 4
 					AND d.reverse_poa = 0
+					AND d.is_weather_to_calculate_expected = 1
 				GROUP BY
 					d.id_site
 			) t ON t.id_site = s.id
@@ -811,41 +899,46 @@
 	
 	<select id="getVirtualMonthGenerationBySite" parameterType="com.nwm.api.entities.SiteEntity" resultType="com.nwm.api.entities.EEREntity">
 		SELECT
-			d.id_site AS id,
-			SUM(vir.nvmActiveEnergy) AS ActualGeneration,
-			CASE t.data_send_time
-				WHEN 1 THEN SUM(vir.expected_power_ac / 12)
-				WHEN 2 THEN SUM(vir.expected_power_ac / 4)
-				ELSE 		SUM(vir.expected_power_ac / 60)
-			END AS EstimatedGeneration
-		FROM
-			${table_data_virtual} vir
-			JOIN device d ON d.id = vir.id_device
-			JOIN (
-				SELECT
-					s.id,
-					t.value,
-					s.data_send_time,
-					<choose>
-						<when test="filterBy == 'this_month'">CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value)</when>
-						<when test="filterBy == 'last_month'">DATE_SUB(CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value), INTERVAL 1 MONTH)</when>
-						<otherwise>CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value)</otherwise>
-					</choose> AS current
-				FROM
-					site s
-					JOIN time_zone t ON t.id = s.id_time_zone
-				WHERE
-					s.id = #{id}
-			) t ON t.id = d.id_site
-		WHERE
-			d.id_site = #{id}
-			AND d.id_device_type = 12
-			AND d.`status` = 1
-			AND d.is_delete = 0
-			AND (d.meter_type = 3 OR d.meter_type IS NULL)
-			AND vir.time BETWEEN CONVERT_TZ(DATE_FORMAT(DATE_SUB(DATE_ADD(LAST_DAY(t.current), INTERVAL 1 DAY), INTERVAL 1 MONTH), '%Y-%m-%d 00:00:00'), t.value, 'UTC') AND CONVERT_TZ(DATE_FORMAT(LAST_DAY(t.current), '%Y-%m-%d 23:59:59'), t.value, 'UTC')
-		GROUP BY
-			d.id_site
+			t.id,
+			SUM(t.ActualGeneration) AS ActualGeneration,
+			ROUND(AVG(t.expected_power) * 24 * COUNT(*), 1) AS EstimatedGeneration
+		FROM 
+		 (
+			SELECT
+				d.id_site AS id,
+				SUM(vir.nvmActiveEnergy) AS ActualGeneration,
+				DATE_FORMAT( CONVERT_TZ( vir.time, 'UTC', t.value ), '%Y-%m-%d' ) AS group_by_time,
+				DATE_FORMAT( CONVERT_TZ( vir.time, 'UTC', t.value ), '%m/%Y' ) AS time_full,
+				AVG(vir.expected_power_ac) AS expected_power
+			FROM
+				${table_data_virtual} vir
+				JOIN device d ON d.id = vir.id_device
+				JOIN (
+					SELECT
+						s.id,
+						t.value,
+						s.data_send_time,
+						<choose>
+							<when test="filterBy == 'this_month'">CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value)</when>
+							<when test="filterBy == 'last_month'">DATE_SUB(CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value), INTERVAL 1 MONTH)</when>
+							<otherwise>CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value)</otherwise>
+						</choose> AS current
+					FROM
+						site s
+						JOIN time_zone t ON t.id = s.id_time_zone
+					WHERE
+						s.id = #{id}
+				) t ON t.id = d.id_site
+			WHERE
+				d.id_site = #{id}
+				AND d.id_device_type = 12
+				AND d.`status` = 1
+				AND d.is_delete = 0
+				AND (d.meter_type = 3 OR d.meter_type IS NULL)
+				AND vir.time BETWEEN CONVERT_TZ(DATE_FORMAT(DATE_SUB(DATE_ADD(LAST_DAY(t.current), INTERVAL 1 DAY), INTERVAL 1 MONTH), '%Y-%m-%d 00:00:00'), t.value, 'UTC') AND CONVERT_TZ(DATE_FORMAT(LAST_DAY(t.current), '%Y-%m-%d 23:59:59'), t.value, 'UTC')
+			GROUP BY group_by_time
+		) t
+		GROUP BY time_full
 	</select>
 	
 	<update id="updateEERAllSites">
@@ -1028,4 +1121,14 @@
 			LEFT JOIN site_employee_map sm ON e.id = sm.id_employee
 		WHERE e.is_delete = 0 AND e.`status` = 1  AND sm.id_site = #{id}
   	</select>
+
+    <select id="getListDeviceDatalogger" resultMap="CronJobAlertMap" parameterType="Integer">
+        SELECT
+            *
+        FROM device d
+        WHERE
+            d.`status` = 1
+            AND d.id_site = #{id_site}
+            AND d.id_device_group = 19
+    </select>
 </mapper>

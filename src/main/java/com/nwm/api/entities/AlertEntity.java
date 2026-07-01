@@ -78,6 +78,7 @@ public class AlertEntity extends SortEntity {
 	private int is_read;
 	private int is_notification;
 	private String view_notification;
+	private String security_key; // For API key validation in external API
 	private List alerts;
 	private List id_device_type;
 	
@@ -95,8 +96,16 @@ public class AlertEntity extends SortEntity {
 	private int id_error_type;
 	private int id_site_group;
 	private int id_device_type_int;
+    private int alert_type;
+	private String alert_name; // For filtering by error level name in external API
+
 	
-	
+	public String getAlert_name() {
+		return alert_name;
+	}
+	public void setAlert_name(String alert_name) {
+		this.alert_name = alert_name;
+	}
 	public int getId_device_type_int() {
 		return id_device_type_int;
 	}
@@ -201,6 +210,12 @@ public class AlertEntity extends SortEntity {
 	}
 	public void setView_notification(String view_notification) {
 		this.view_notification = view_notification;
+	}
+	public String getSecurity_key() {
+		return security_key;
+	}
+	public void setSecurity_key(String security_key) {
+		this.security_key = security_key;
 	}
 	public String getDatatablename() {
 		return datatablename;
@@ -610,7 +625,12 @@ public class AlertEntity extends SortEntity {
 	public void setIs_supper_admin(int is_supper_admin) {
 		this.is_supper_admin = is_supper_admin;
 	}
-	
-	
-	
+
+    public int getAlert_type() {
+        return alert_type;
+    }
+
+    public void setAlert_type(int alert_type) {
+        this.alert_type = alert_type;
+    }
 }

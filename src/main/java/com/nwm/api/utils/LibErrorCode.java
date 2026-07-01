@@ -3341,6 +3341,8 @@ LibErrorCode {
 		return errorCode;
 	}
 	
+	
+	 
 	/*
 	 * get PVMStatusCodes from table xantrex gt 500e
 	 * 
@@ -6780,5 +6782,227 @@ LibErrorCode {
     		return ModelHiQInverterString2Status.NOT_AVAILABLE;
     	}
     }
+
+    /**
+     * get error code from table model_huawei_sun_2000v1
+     *
+     * @return
+     */
+    public static int GetErrorCodeModelHuaweiSun2000V1(int bitLevel, int alarmLevel) {
+        int errorCode = 0;
+        switch (alarmLevel) {
+            case 1:
+                switch (bitLevel) {
+                    case 0: errorCode = 2001; break; // 1
+                    case 1: errorCode = 2002; break; // 2
+                    case 2: errorCode = 2011; break; // 3
+                    case 3: errorCode = 2012; break; // 4
+                    case 4: errorCode = 2013; break; // 5
+                    case 5: errorCode = 2021; break; // 6
+                    case 6: errorCode = 2031; break; // 7
+                    case 7: errorCode = 2032; break; // 8
+                    case 8: errorCode = 2033; break; // 9
+                    case 9: errorCode = 2034; break; // 10
+                    case 10: errorCode = 2035; break; // 11
+                    case 11: errorCode = 2036; break; // 12
+                    case 12: errorCode = 2037; break; // 13
+                    case 13: errorCode = 2038; break; // 14
+                    case 14: errorCode = 2039; break; // 15
+                    case 15: errorCode = 2040; break; // 16
+                }
+                break;
+
+            case 2:
+                switch (bitLevel) {
+                    case 0: errorCode = 2051; break; // 17
+                    case 1: errorCode = 2061; break; // 18
+                    case 2: errorCode = 2062; break; // 19
+                    case 3: errorCode = 2063; break; // 20
+                    case 4: errorCode = 2064; break; // 21
+                    case 5: errorCode = 2065; break; // 22
+                    case 6: errorCode = 2066; break; // 23
+                    case 7: errorCode = 61440; break; // 24
+                    case 8: errorCode = 2067; break; // 25
+                    case 10: errorCode = 2070; break; // 26
+                    case 11: errorCode = 2071; break; // 27
+                    case 12: errorCode = 2072; break; // 28
+                    case 13: errorCode = 2075; break; // 29
+                    case 14: errorCode = 2077; break; // 30
+                    case 15: errorCode = 2080; break; // 31
+                }
+                break;
+            case 3:
+                switch (bitLevel) {
+                    case 0: errorCode = 2081; break; // 32
+                    case 1: errorCode = 2085; break; // 33
+                    case 2: errorCode = 2014; break; // 34
+                    case 3: errorCode = 2086; break; // 35
+                    case 5: errorCode = 2082; break; // 36
+                    case 6: errorCode = 2015; break; // 37
+                    case 7: errorCode = 2087; break; // 38
+                    case 8: errorCode = 2088; break; // 39
+                    case 9: errorCode = 2089; break; // 40
+                    case 10: errorCode = 2090; break; // 41
+                    case 11: errorCode = 2091; break; // 42
+                    case 12: errorCode = 2092; break; // 43
+                    case 13: errorCode = 2003; break; // 44
+                    case 14: errorCode = 2093; break; // 45
+                }
+                break;
+        }
+
+        return errorCode;
+    }
+    
+    
+    /* get alert ModelADAM6050TransformerSpecific
+	 * 
+	 * @return
+	 */
+	public static int GetAlertModelADAM6050TransformerSpecific(int faultCode,int alarmLevel) {
+		
+		int errorCode = 0;
+        
+		if(alarmLevel == 1 && faultCode > 0) {
+			errorCode = 2512;
+		} else if(alarmLevel == 2  && faultCode > 0) {
+			errorCode = 2517;
+		} else if(alarmLevel == 3 && faultCode > 0) {
+			errorCode = 2518;
+		} else if(alarmLevel == 4 && faultCode > 0) {
+			errorCode = 2519;
+		} else if(alarmLevel == 5 && faultCode > 0) {
+			errorCode = 2520;
+		}
+
+		return errorCode;
+	}
+	
+	
+	/**
+     * get error code from table 
+     *
+     * @return
+     */
+    public static int GetAlertModelPVHMaster(int faultCode, int alarmLevel) {
+        int errorCode = 0;
+        
+		if(alarmLevel == 1 && faultCode > 0) {
+			errorCode = 2513;
+		} else if(alarmLevel == 2  && faultCode > 0) {
+			errorCode = 2514;
+		} else if(alarmLevel == 3 && faultCode > 0) {
+			errorCode = 2515;
+		} else if(alarmLevel == 4 && faultCode > 0) {
+			errorCode = 2516;
+		}
+
+        return errorCode;
+    }
+    
+    
+    /**
+	 * get warning codes from table model_advanced_energy_solaron
+	 * 
+	 * @return
+	 */
+	public static int GeAlarmPVHTbox(int bitLevel) {
+		int errorCode = 0;
+		switch (bitLevel) {
+		case 0:
+			// Emergency Stop
+			errorCode = 2521;
+			break;
+		case 1:
+			// Charger Fault
+			errorCode = 2522;
+			break;
+		case 2:
+			// Inclinometer Fault
+			errorCode = 2523;
+			break;
+		case 3:
+			// Wrong direction movement
+			errorCode = 2524;
+			break;
+		case 4:
+			// Overcurrent Fault
+			errorCode = 2525;
+			break;
+		case 5:
+			// Slow motor movement
+			errorCode = 2526;
+			break;
+		case 6:
+			// High power consumption
+			errorCode = 2527;
+			break;
+		case 7:
+			// Static inclinometer read
+			errorCode = 2528;
+			break;
+			
+		case 8:
+			//Out of boundaries 
+			errorCode = 2529;
+			break;
+		case 9:
+			// Low battery
+			errorCode = 2530;
+			break;
+		case 10:
+			// Low temperature
+			errorCode = 2531;
+			break;
+		case 11:
+			// High temperature
+			errorCode = 2532;
+			break;
+		case 12:
+			// PV panel fault
+			errorCode = 2533;
+			break;
+		case 13:
+			// Wrong firmware Fault
+			errorCode = 2534;
+			break;
+		case 14:
+			// Angle Step Fault
+			errorCode = 2535;
+			break;
+		case 15:
+			//  Maximum movement time
+			errorCode = 2536;
+			break;
+			
+		}
+
+		return errorCode;
+	}
+
+    public static int GetAlarmCodeModelATITrackerMotor(int bitLevel) {
+        int errorCode = 0;
+        switch (bitLevel) {
+            case 0:
+                errorCode = 2548;
+                break;
+            case 1:
+                errorCode = 2549;
+                break;
+            case 2:
+                errorCode = 2550;
+                break;
+            case 3:
+                errorCode = 2551;
+                break;
+            case 4:
+                errorCode = 2552;
+                break;
+        }
+
+        return errorCode;
+    }
+	
+	
 	
 }

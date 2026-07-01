@@ -200,7 +200,63 @@
 		<mapper resource="mybatis/map/ModelHuaweiSun2000US10.xml"/>
 		<mapper resource="mybatis/map/ModelGameChangeTrackerMaster.xml"/>
 		<mapper resource="mybatis/map/ModelHuaweiSmartloggerWeather.xml"/>
-		<mapper resource="mybatis/map/ModelGCSTrackerNode.xml"/>		
+		<mapper resource="mybatis/map/ModelGCSTrackerNode.xml"/>
+		<mapper resource="mybatis/map/ModelSungrowSh6250hvMv.xml"/>		
+		<mapper resource="mybatis/map/ModelSungrowPv24hScb.xml"/>
+		
+		<mapper resource="mybatis/map/ModelProtectionRelay.xml"/>
+		<mapper resource="mybatis/map/ModelSMP4DP.xml"/>
+		<mapper resource="mybatis/map/ModelIDECPLC.xml"/>
+		<mapper resource="mybatis/map/ModelInaccessPPC.xml"/>
+		<mapper resource="mybatis/map/ModelProtectionRelayV1.xml"/>
+		<mapper resource="mybatis/map/ModelSMP4DPV1.xml"/>
+		
+		<mapper resource="mybatis/map/ModelPVHMaster.xml"/>
+		<mapper resource="mybatis/map/ModelAtonometricsMT2BOMSensor.xml"/>
+		<mapper resource="mybatis/map/ModelPVHTbox.xml"/>
+		<mapper resource="mybatis/map/ModelATITrackerMotor.xml"/>
+		<mapper resource="mybatis/map/ModelADAM6050TransformerSpecific.xml"/>
+		
+		
+		<mapper resource="mybatis/map/ModelSUN2000330KTLH1.xml"/>
+		<mapper resource="mybatis/map/ModelProtectionRelayv2.xml"/>
+		<mapper resource="mybatis/map/ModelInaccessPPCV1.xml"/>
+		<mapper resource="mybatis/map/ModelIDECPLCV1.xml"/>
+		<mapper resource="mybatis/map/ModelOrionMXAutomationPlatform.xml"/>
+		<mapper resource="mybatis/map/ModelMVPSHUAWEI.xml"/>
+		<mapper resource="mybatis/map/ModelHuaweiSmartloggerV1.xml"/>
+		
+		<mapper resource="mybatis/map/ModelSMASUNNYCENTRALSC1000CP10.xml"/>
+		<mapper resource="mybatis/map/ModelSMASTRINGCOMBINER.xml"/>
+		<mapper resource="mybatis/map/ModelGEHiWinding.xml"/>
+		<mapper resource="mybatis/map/ModelSchneiderHiWinding.xml"/>
+		<mapper resource="mybatis/map/ModelIDECPLCV2.xml"/>
+		<mapper resource="mybatis/map/ModelMainWeatherStation.xml"/>
+		<mapper resource="mybatis/map/ModelIDECPLCV3.xml"/>
+		<mapper resource="mybatis/map/ModelWeatherStationCustom.xml"/>
+		
+		<mapper resource="mybatis/map/ModelSUNGROWSG6250HVMVV1.xml"/>
+		<mapper resource="mybatis/map/ModelGEMultilinEPM6000.xml"/>
+		<mapper resource="mybatis/map/ModelInaccessPPCV2.xml"/>
+		<mapper resource="mybatis/map/ModelLevitonS4100KPowerMeter.xml"/>
+		<mapper resource="mybatis/map/ModelSolisSmartlogINV.xml"/>
+		
+		<mapper resource="mybatis/map/ModelKippZonenCMP214Point.xml"/>
+		<mapper resource="mybatis/map/ModelMetterSchneiderPM2200.xml"/>
+		
+		<mapper resource="mybatis/map/ModelKippZonenSMP12.xml"/>
+		<mapper resource="mybatis/map/ModelAtonometricsRC22M.xml"/>
+		<mapper resource="mybatis/map/ModelKippZonenWS50.xml"/>
+		
+		<mapper resource="mybatis/map/ModelPhoenixContactSCKM8S20A.xml"/>
+		<mapper resource="mybatis/map/ModelABBCentralInverterPVS800570630kWB.xml"/>
+		<mapper resource="mybatis/map/ModelMeterSatecPM175.xml"/>
+		
+		
+		
+		
+		
+		
 		
 		
 		<mapper resource="mybatis/map/Role.xml" />
@@ -227,6 +283,7 @@
 		<mapper resource="mybatis/map/SitesAnalytics.xml" />
 		<mapper resource="mybatis/map/SitesReports.xml" />
 		<mapper resource="mybatis/map/SitesDashboard.xml" />
+		<mapper resource="mybatis/map/SitesTrackers.xml" />
 		<mapper resource="mybatis/map/Company.xml" />
 		 <mapper resource="mybatis/map/Dashboard.xml" />
 		 <mapper resource="mybatis/map/EmployeeFilterFavorites.xml" />
@@ -248,10 +305,14 @@
 		 <mapper resource="mybatis/map/BuiltInReport.xml"/>
 		 <mapper resource="mybatis/map/FileImportDataOld.xml"/>
 		 <mapper resource="mybatis/map/CronJobAlert.xml" />
+		 <mapper resource="mybatis/map/CronJobAlertNoComm.xml" />
+		 <mapper resource="mybatis/map/CronJobAlertField.xml" />
+		 <mapper resource="mybatis/map/CronJobAlertNoProduction.xml" />
 		 <mapper resource="mybatis/map/CategorizeData.xml"/>
 		 <mapper resource="mybatis/map/WidgetGroup.xml"/>
 		 
 		 <mapper resource="mybatis/map/ThirdPartyAPI.xml"/>
+		 <mapper resource="mybatis/map/SiteExternalAPI.xml"/>
 		 <mapper resource="mybatis/map/UploadJSON.xml"/>
 		 <mapper resource="mybatis/map/LevitonReports.xml" />
 		 <mapper resource="mybatis/map/CronFindLogAlert.xml" />
@@ -262,6 +323,7 @@
 		  <mapper resource="mybatis/map/ModelSmaCore.xml"/>
 		  <mapper resource="mybatis/map/ModelEatonNova6Recloser.xml"/>
 		 <mapper resource="mybatis/map/EmailSubscribers.xml"/>
+		 <mapper resource="mybatis/map/GenerationEnergy.xml"/>
 		 
 		 
 		<mapper resource="mybatis/map/ScadaDevice.xml"/>
@@ -283,10 +345,16 @@
 
         <mapper resource="mybatis/map/Ticket.xml"/>
         <mapper resource="mybatis/map/ModelMeanWellDrs48024.xml"/>
+        <mapper resource="mybatis/map/ApiAccess.xml"/>
+        <mapper resource="mybatis/map/ApiEndPoint.xml"/>
 
-		
-		
-		
+		<mapper resource="mybatis/map/SiteMap.xml"/>
+		<mapper resource="mybatis/map/SolarEdge.xml"/>
+
+		<mapper resource="mybatis/map/ModelSolarEdgeAPIInverter.xml"/>
+		<mapper resource="mybatis/map/ModelSolarEdgeAPIMeter.xml"/>
+		<mapper resource="mybatis/map/ModelSolarEdgeAPIWeather.xml"/>
+
 		<mapper resource="mybatis/map/Datalogger.xml"/>
 		
 	</mappers>

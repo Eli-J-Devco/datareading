@@ -8,10 +8,7 @@ package com.nwm.api.entities;
 import java.util.Date;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-
 public class DeviceEntity {
-	
 	private int id;
 	private int id_site;
 	private int id_vendor;
@@ -19,12 +16,14 @@ public class DeviceEntity {
 	private String serialnumber;
 	private String modbusdevicenumber;
 	private String devicename;
+	private String name;
 	private String devicetype;
 	private int deviceclass;
 	private String configuration;
 	private String configurationchangetime;
 	private String configurationchecksum;
 	private String datatablename;
+	private String table_data_virtual;
 	private int id_device_type;
 	private int id_device_group;
 	private int id_customer;
@@ -48,6 +47,7 @@ public class DeviceEntity {
 	private String last_attempt;
 	private String last_communication;
 	private String device_type_name;
+	private String security_key; // For API key validation in external API
 	private String image;
 	private String hash_id;
 	private String site_name;
@@ -72,7 +72,8 @@ public class DeviceEntity {
 	private String timezone;
 	private String hash_id_site;
 	private int total_error;
-	
+	private int total_tracker;
+	private List hidden_data_list;
 	private List groupMeter;
 	private List groupInverter;
 	private List groupWeather;
@@ -103,7 +104,7 @@ public class DeviceEntity {
 	private String job_tablename;
 	private int ssh_status;
 	private String ssh_last_connect;
-	private int hidden = 0;
+	private boolean hidden;
 	private String virtual_device_type = null;
 	private String ip_address;
 	
@@ -168,17 +169,70 @@ public class DeviceEntity {
 	private boolean isUserNW;
 	private List dataParameters;
 	private boolean is_excluded_in_report;
-	private List parameters;
+	private boolean is_excluded_irradiance_in_report;
+	private boolean is_excluded_temp_in_report;
+	private List<DeviceParameterEntity> parameters;
+	private int order;
 	private int ai_train_type;
 	private List listDataMaps;
 	private List datas;
 	private List deviceIds;
     private List<Integer> siteIds;
+    private boolean is_tracker_master;
+    private boolean is_weather_to_calculate_expected;
 	
     private int create_total_device = 1;
+    private int id_device;
+    
+    private int limit_row;
+    
+    private String manufacture;
+    private Integer communication_method;
     
 
 	
+	public boolean isIs_weather_to_calculate_expected() {
+		return is_weather_to_calculate_expected;
+	}
+	public void setIs_weather_to_calculate_expected(boolean is_weather_to_calculate_expected) {
+		this.is_weather_to_calculate_expected = is_weather_to_calculate_expected;
+	}
+	public int getLimit_row() {
+		return limit_row;
+	}
+	public void setLimit_row(int limit_row) {
+		this.limit_row = limit_row;
+	}
+	public int getId_device() {
+		return id_device;
+	}
+	public void setId_device(int id_device) {
+		this.id_device = id_device;
+	}
+	public boolean isIs_excluded_irradiance_in_report() {
+		return is_excluded_irradiance_in_report;
+	}
+	public void setIs_excluded_irradiance_in_report(boolean is_excluded_irradiance_in_report) {
+		this.is_excluded_irradiance_in_report = is_excluded_irradiance_in_report;
+	}
+	public boolean isIs_excluded_temp_in_report() {
+		return is_excluded_temp_in_report;
+	}
+	public void setIs_excluded_temp_in_report(boolean is_excluded_temp_in_report) {
+		this.is_excluded_temp_in_report = is_excluded_temp_in_report;
+	}
+	public int getTotal_tracker() {
+		return total_tracker;
+	}
+	public void setTotal_tracker(int total_tracker) {
+		this.total_tracker = total_tracker;
+	}
+	public boolean isIs_tracker_master() {
+		return is_tracker_master;
+	}
+	public void setIs_tracker_master(boolean is_tracker_master) {
+		this.is_tracker_master = is_tracker_master;
+	}
 	public int getCreate_total_device() {
 		return create_total_device;
 	}
@@ -203,10 +257,10 @@ public class DeviceEntity {
 	public void setListDataMaps(List listDataMaps) {
 		this.listDataMaps = listDataMaps;
 	}
-	public List getParameters() {
+	public List<DeviceParameterEntity> getParameters() {
 		return parameters;
 	}
-	public void setParameters(List parameters) {
+	public void setParameters(List<DeviceParameterEntity> parameters) {
 		this.parameters = parameters;
 	}
 	public int getAi_train_type() {
@@ -681,6 +735,12 @@ public class DeviceEntity {
 	public void setDevice_type_name(String device_type_name) {
 		this.device_type_name = device_type_name;
 	}
+	public String getSecurity_key() {
+		return security_key;
+	}
+	public void setSecurity_key(String security_key) {
+		this.security_key = security_key;
+	}
 	public String getImage() {
 		return image;
 	}
@@ -921,12 +981,6 @@ public class DeviceEntity {
 	public void setCheckAll(int checkAll) {
 		this.checkAll = checkAll;
 	}
-	public int getHidden() {
-		return hidden;
-	}
-	public void setHidden(int hidden) {
-		this.hidden = hidden;
-	}
 	public String getDate_from() {
 		return date_from;
 	}
@@ -1150,4 +1204,50 @@ public class DeviceEntity {
         DeviceEntity d = new DeviceEntity();
         return d;
     }
+
+    public String getManufacture() {
+        return manufacture;
+    }
+
+    public void setManufacture(String manufacture) {
+        this.manufacture = manufacture;
+    }
+
+    public Integer getCommunication_method() {
+        return communication_method;
+    }
+
+    public void setCommunication_method(Integer communication_method) {
+        this.communication_method = communication_method;
+    }
+	public List getHidden_data_list() {
+		return hidden_data_list;
+	}
+	public void setHidden_data_list(List hidden_data_list) {
+		this.hidden_data_list = hidden_data_list;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public boolean isHidden() {
+		return hidden;
+	}
+	public void setHidden(boolean hidden) {
+		this.hidden = hidden;
+	}
+	public String getTable_data_virtual() {
+		return table_data_virtual;
+	}
+	public void setTable_data_virtual(String table_data_virtual) {
+		this.table_data_virtual = table_data_virtual;
+	}
+	public int getOrder() {
+		return order;
+	}
+	public void setOrder(int order) {
+		this.order = order;
+	}
 }

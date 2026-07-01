@@ -9,6 +9,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,7 +30,6 @@ import springfox.documentation.annotations.ApiIgnore;
 @ApiIgnore
 @RequestMapping("/user")
 public class UserController extends BaseController {
-
 	@PostMapping("/forgotpassword")
 	public Object ForgotPassword(@RequestBody UserEntity obj) {
 		try {
@@ -49,6 +49,9 @@ public class UserController extends BaseController {
 				Date now = cal.getTime();
 				String strExpired = Lib.DateToString(now);
 				String link = Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailResetPassword);
+				String domain = obj.getDomain();
+				if(domain.contains("buildings") || domain.contains("bems"))
+					link = Lib.getReourcePropValue(Constants.mailConfigFileName, Constants.mailResetPasswordBEMS);
 				String mailFromContact = Lib.getReourcePropValue(Constants.mailConfigFileName,
 						Constants.mailFromContact);
 

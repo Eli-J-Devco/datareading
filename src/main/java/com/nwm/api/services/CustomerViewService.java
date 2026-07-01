@@ -5,6 +5,8 @@
 *********************************************************/
 package com.nwm.api.services;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -12,16 +14,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.AlertEntity;
 import com.nwm.api.entities.ClientMonthlyDateEntity;
 import com.nwm.api.entities.DeviceEntity;
 import com.nwm.api.entities.DevicesByTypeEntity;
+import com.nwm.api.entities.ExpectedBySiteDTO;
 import com.nwm.api.entities.PerformanceDataChartItemEntity;
 import com.nwm.api.entities.SiteEntity;
-import com.nwm.api.utils.Constants.ChartingGranularity;
 import com.nwm.api.utils.Lib;
 import com.nwm.api.utils.SecretCards;
 
@@ -79,7 +85,7 @@ public class CustomerViewService extends DB {
 	public <T> DevicesByTypeEntity getDevicesBySite(T obj) {
 		try {
 			List<DeviceEntity> devices = queryForList("CustomerView.getDevicesBySite", obj);
-			List<DeviceEntity> meterDevices = devices.stream().filter(item -> (item.getId_device_type() == 3 || item.getId_device_type() == 7 || item.getId_device_type() == 9) && !item.isIs_excluded_meter()).collect(Collectors.toList());
+			List<DeviceEntity> meterDevices = devices.stream().filter(item -> (item.getId_device_type() == 3 || item.getId_device_type() == 7 || item.getId_device_type() == 9) && !item.isIs_excluded_meter()).collect(Collectors.toList());			
 			List<DeviceEntity> inverterDevices = devices.stream().filter(item -> (item.getId_device_type() == 1)).collect(Collectors.toList());
 			List<DeviceEntity> irradianceDevices = devices.stream().filter(item -> (item.getId_device_type() == 4 || item.getId_device_type() == 21) && item.getReverse_poa() == 0).collect(Collectors.toList());
 			
@@ -115,23 +121,33 @@ public class CustomerViewService extends DB {
 			obj.setHidden_data_list(hiddenDataList);
 			
 			boolean isPower = ChronoUnit.DAYS.between(start, end) < 5;
-			boolean isGranularityLessThan1Day = new ArrayList<ChartingGranularity>(Arrays.asList(ChartingGranularity._1_MINUTE, ChartingGranularity._5_MINUTES, ChartingGranularity._15_MINUTES, ChartingGranularity._1_HOUR)).stream().anyMatch(item -> item == ChartingGranularity.fromValue(obj.getData_send_time()));
 			
 			// Show each meter
 			if (meterDevices.size() > 1 && obj.getIs_show_each_meter() == 1) {
-				obj.setGroupMeter(meterDevices);
-				List<ClientMonthlyDateEntity> dataList = isGranularityLessThan1Day ? getEnergyByDevice(obj) : getDataBySiteDataReport(obj);
+				List<List<ClientMonthlyDateEntity>> dataByDevices = getEnergyByDevice(obj, meterDevices);
 				
-				for (int i = 0; i < meterDevices.size(); i++) {
-					DeviceEntity device = meterDevices.get(i);
-					List<ClientMonthlyDateEntity> dataItem = dataList.stream().filter(item -> item.getId() == device.getId()).collect(Collectors.toList());
-					List<ClientMonthlyDateEntity> fulfilledData = convertDateTimeFormat(obj, Lib.fulfillData(getDateTimeList(obj, start, end), dataItem, "time_full"), start, end);
+				dataByDevices.stream().forEach(dataByDevice -> {
+					String deviceName = meterDevices.stream()
+							.filter(device -> device.getId() == (
+									dataByDevice.stream()
+									.filter(item -> Objects.nonNull(item.getId()))
+									.findFirst()
+									.map(ClientMonthlyDateEntity::getId)
+									.orElse(null)
+									.intValue()
+								)
+							)
+							.findFirst()
+							.map(DeviceEntity::getDevicename)
+							.orElse("");
 					
-					if (fulfilledData.size() > 0) {
-						PerformanceDataChartItemEntity deviceItem = new PerformanceDataChartItemEntity(fulfilledData, "chart_energy_kwh", isPower ? "kW" : "kWh", device.getDevicename(), true);
-						dataEnergy.add(deviceItem);
-					}
-				}
+					dataByDevice.forEach(item -> {
+						if (Objects.nonNull(item.getChart_energy_kwh())) item.setChart_energy_kwh(BigDecimal.valueOf(item.getChart_energy_kwh()).setScale(1, RoundingMode.HALF_UP).doubleValue());
+					});
+					
+					PerformanceDataChartItemEntity deviceItem = new PerformanceDataChartItemEntity(dataByDevice, "chart_energy_kwh", isPower ? "kW" : "kWh", deviceName, true);
+					dataEnergy.add(deviceItem);
+				});
 			}
 			
 			obj.setIs_show_each_meter(0);
@@ -141,17 +157,36 @@ public class CustomerViewService extends DB {
 				if (data.size() > 0) separateDataByType(dataEnergy, obj, data, irradianceDevices, isPower);
 			} else {
 				if (powerDevices.size() > 0) {
-					obj.setGroupMeter(powerDevices);
-					obj.setTotalMeter(meterDevices.size());
-					List<ClientMonthlyDateEntity> data = isGranularityLessThan1Day ? getEnergyByDevice(obj) : getDataBySiteDataReport(obj);
+					List<List<ClientMonthlyDateEntity>> dataByDevices = getEnergyByDevice(obj, powerDevices);
+					List<ClientMonthlyDateEntity> data = new ArrayList<>();
 					
-					if (data.size() > 0) {
+					if (dataByDevices.size() > 0) {
+						List<ClientMonthlyDateEntity> dateTime = dataByDevices.stream().findFirst().filter(item -> item.size() > 0).orElse(new ArrayList<>());
+						
+						for (int i = 0; i < dateTime.size(); i++) {
+							int k = i;
+							ClientMonthlyDateEntity item = new ClientMonthlyDateEntity();
+							item.setCategories_time(dateTime.get(i).getCategories_time());
+							item.setTime_full(dateTime.get(i).getTime_full());
+							Double value = dataByDevices.stream().map(dataByDevice -> dataByDevice.get(k).getChart_energy_kwh()).filter(Objects::nonNull).reduce(Double::sum).orElse(null);
+							if (Objects.nonNull(value)) item.setChart_energy_kwh(BigDecimal.valueOf(value).setScale(1, RoundingMode.HALF_UP).doubleValue());
+							
+							data.add(item);
+						}
+						
 						PerformanceDataChartItemEntity energyData = new PerformanceDataChartItemEntity(data, "chart_energy_kwh", isPower ? "kW" : "kWh", isPower ? "Power" : "Energy Output");
 						dataEnergy.add(energyData);
 					}
 				}
 				
 				if (irradianceDevices.size() > 0) {
+					// get expected when the site has multiple POAs
+					if (irradianceDevices.size() > 1) {
+						List<ClientMonthlyDateEntity> data = getExpectedBySelectedPOA(obj, irradianceDevices);
+						PerformanceDataChartItemEntity expectedData = new PerformanceDataChartItemEntity(data, isPower ? "expected_power" : "expected_energy", isPower ? "kW" : "kWh", (isPower ? "Expected Power" : "Expected Energy") + (obj.getPv_model() == 3 ? " NREL 8760" : ""));
+						dataEnergy.add(expectedData);
+					}
+					
 					for (int i = 0; i < irradianceDevices.size(); i++) {
 						DeviceEntity item = irradianceDevices.get(i);
 						obj.setDatatablename(item.getDatatablename());
@@ -159,7 +194,7 @@ public class CustomerViewService extends DB {
 						List<ClientMonthlyDateEntity> data = getIrradianceByDevice(obj);
 						
 						if (data.size() > 0) {
-							if (i == 0) {
+							if (irradianceDevices.size() == 1)  {
 								PerformanceDataChartItemEntity expectedData = new PerformanceDataChartItemEntity(data, isPower ? "expected_power" : "expected_energy", isPower ? "kW" : "kWh", (isPower ? "Expected Power" : "Expected Energy") + (obj.getPv_model() == 3 ? " NREL 8760" : ""));
 								dataEnergy.add(expectedData);
 							}
@@ -178,7 +213,7 @@ public class CustomerViewService extends DB {
 
 	}
 	
-	public List<ClientMonthlyDateEntity> getDataByVirtualDevice(SiteEntity obj) {
+	private List<ClientMonthlyDateEntity> getDataByVirtualDevice(SiteEntity obj) {
 		try {
 			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -190,36 +225,96 @@ public class CustomerViewService extends DB {
 		}
 	}
 	
-	public List<ClientMonthlyDateEntity> getDataBySiteDataReport(SiteEntity obj) {
+//	private List<ClientMonthlyDateEntity> getDataBySiteDataReport(SiteEntity obj) {
+//		try {
+//			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+//			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+//			
+//			List<ClientMonthlyDateEntity> dataList = queryForList("CustomerView.getDataSiteDataReport", obj);
+//			return obj.getIs_show_each_meter() == 1 ? dataList : convertDateTimeFormat(obj, Lib.fulfillData(getDateTimeList(obj, start, end), dataList, "time_full"), start, end);
+//		} catch (Exception e) {
+//			return new ArrayList<>();
+//		}
+//	}
+	
+	private List<List<ClientMonthlyDateEntity>> getEnergyByDevice(SiteEntity obj, List<DeviceEntity> devices) {
 		try {
+			if (devices.size() == 0) return new ArrayList<>();
+			
 			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 			
-			List<ClientMonthlyDateEntity> dataList = queryForList("CustomerView.getDataSiteDataReport", obj);
-			return obj.getIs_show_each_meter() == 1 ? dataList : convertDateTimeFormat(obj, Lib.fulfillData(getDateTimeList(obj, start, end), dataList, "time_full"), start, end);
+			List<CompletableFuture<List<ClientMonthlyDateEntity>>> futures = devices.stream().map(device -> CompletableFuture.supplyAsync(() -> {
+				try {
+					device.setStart_date(obj.getStart_date());
+					device.setEnd_date(obj.getEnd_date());
+					device.setData_send_time(obj.getData_send_time());
+					device.setFilterBy(obj.getFilterBy());
+					device.setHidden_data_list(((List<Map<String, String>>) obj.getHidden_data_list()).stream().filter(item -> Integer.parseInt(item.get("id_device").toString()) == device.getId()).collect(Collectors.toList()));
+					
+					List<ClientMonthlyDateEntity> dataList = queryForList("CustomerView.getDataEnergy", device);
+					if (Objects.isNull(dataList)) return new ArrayList<ClientMonthlyDateEntity>();
+					
+					return convertDateTimeFormat(obj, Lib.fulfillData(getDateTimeList(obj, start, end), dataList, "time_full"), start, end);
+				} catch (Exception e) {
+					return new ArrayList<ClientMonthlyDateEntity>();
+				}
+			})).collect(Collectors.toList());
+			
+			return futures.stream().map(future -> future.join()).filter(item -> !item.isEmpty()).collect(Collectors.toList());
 		} catch (Exception e) {
 			return new ArrayList<>();
 		}
 	}
 	
-	public List<ClientMonthlyDateEntity> getEnergyByDevice(SiteEntity obj) {
-		try {
-			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-			
-			List<ClientMonthlyDateEntity> dataList = queryForList("CustomerView.getDataEnergy", obj);
-			return obj.getIs_show_each_meter() == 1 ? dataList : convertDateTimeFormat(obj, Lib.fulfillData(getDateTimeList(obj, start, end), dataList, "time_full"), start, end);
-		} catch (Exception e) {
-			return new ArrayList<>();
-		}
-	}
-	
-	public List<ClientMonthlyDateEntity> getIrradianceByDevice(SiteEntity obj) {
+	private List<ClientMonthlyDateEntity> getIrradianceByDevice(SiteEntity obj) {
 		try {
 			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 			
 			List<ClientMonthlyDateEntity> dataList = queryForList("CustomerView.getDataIrradiance", obj);
+			return convertDateTimeFormat(obj, Lib.fulfillData(getDateTimeList(obj, start, end), dataList, "time_full"), start, end);
+		} catch (Exception e) {
+			return new ArrayList<>();
+		}
+	}
+	
+	/**
+	 * @description get expected by selected POA
+	 * @author Hung Bui
+	 * @since 2026-05-27
+	 * @param SiteEntity
+	 * @return List<ClientMonthlyDateEntity>
+	 */
+	private List<ClientMonthlyDateEntity> getExpectedBySelectedPOA(SiteEntity obj, List<DeviceEntity> irradiances) {
+		try {
+			if (Objects.isNull(obj) || obj.getId_site() == 0 || Objects.isNull(irradiances) || irradiances.size() == 0) return new ArrayList<>();
+			ExpectedBySiteDTO siteEntity = (ExpectedBySiteDTO) queryForObject("CustomerView.getSelectedPOABySite", obj);
+			if (Objects.isNull(siteEntity)) return new ArrayList<>();
+			
+			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+			
+			siteEntity.setData_send_time(obj.getData_send_time());
+			siteEntity.setFilterBy(obj.getFilterBy());
+			siteEntity.setStart_date(obj.getStart_date());
+			siteEntity.setEnd_date(obj.getEnd_date());
+			
+			String panelTemps = siteEntity.getIds_device_panel_temp();
+			if (StringUtils.isNotBlank(panelTemps)) {
+				List<Integer> ids = Arrays.asList(panelTemps.split(",")).stream().map(item -> Integer.parseInt(item)).collect(Collectors.toList());
+				siteEntity.setPanelTemps(irradiances.stream().filter(item -> ids.contains(item.getId())).collect(Collectors.toList()));
+			}
+			
+			String poas = siteEntity.getIds_device_poa();
+			if (StringUtils.isNotBlank(poas)) {
+				List<Integer> ids = Arrays.asList(poas.split(",")).stream().map(item -> Integer.parseInt(item)).collect(Collectors.toList());
+				siteEntity.setPOAs(irradiances.stream().filter(item -> ids.contains(item.getId())).collect(Collectors.toList()));
+			}
+			
+			if (siteEntity.getPanelTemps().size() == 0 && siteEntity.getPOAs().size() == 0) return new ArrayList<>();
+			List<ClientMonthlyDateEntity> dataList = queryForList("CustomerView.getExpectedBySelectedPOA", siteEntity);
+			
 			return convertDateTimeFormat(obj, Lib.fulfillData(getDateTimeList(obj, start, end), dataList, "time_full"), start, end);
 		} catch (Exception e) {
 			return new ArrayList<>();
@@ -296,8 +391,11 @@ public class CustomerViewService extends DB {
 		try {
 			DevicesByTypeEntity devices = getDevicesBySite(obj);
 			List<DeviceEntity> meterDevices = devices.getMeter();
-			obj.setMeter_type(meterDevices.size() > 0 ? 1 : 0);
-			
+			List<DeviceEntity> inverterDevices = devices.getInverter();
+			List<DeviceEntity> powerDevices = meterDevices.size() > 0 ? meterDevices : inverterDevices;
+			obj.setGroupMeter(powerDevices);
+			obj.setTotalMeter(meterDevices.size());
+	
 			return queryForObject("CustomerView.getCustomerViewInfo", obj);
 		} catch (Exception ex) {
 			return null;

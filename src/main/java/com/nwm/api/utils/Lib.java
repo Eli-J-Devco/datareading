@@ -1,5 +1,6 @@
 package com.nwm.api.utils;
 
+import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -21,6 +22,10 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -42,11 +47,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
@@ -68,6 +75,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.gson.Gson;
 import com.nwm.api.entities.DateTimeReportDataEntity;
+import com.nwm.api.utils.Constants.ChartingGranularity;
+import com.nwm.api.utils.Constants.UploadingDataIntervals;
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 /**
@@ -3008,6 +3017,12 @@ Lib {
 			return null;
 		}
 	}
+
+    public static String getUserName(String authz) {
+        Map<String, Object> claims = getClaimsFromToken(authz);
+        if (claims == null) return "";
+        return (String) claims.get("user_name");
+    }
 	
 	public static int getUserId(String authz) {
 		Map<String, Object> claims = getClaimsFromToken(authz);
@@ -3111,4 +3126,71 @@ Lib {
 			return new ArrayList<>();
 		}
 	}
+	
+	
+	/** 
+     *@desciption Get private IP
+     * @author Long Pham
+     * @date 12-03-2026
+     */
+	
+	public static String getPrivateIP() {
+        try {
+            List<String> candidateIps = new ArrayList<>();
+
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface ni = interfaces.nextElement();
+
+                String name = ni.getName();
+
+                if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) {
+                    continue;
+                }
+
+                // skip container / virtual networks
+                if (name.startsWith("docker") || name.startsWith("veth") || name.startsWith("cni")) {
+                    continue;
+                }
+
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+
+                    if (addr instanceof Inet4Address && addr.isSiteLocalAddress()) {
+
+                        String ip = addr.getHostAddress();
+
+                        // ưu tiên interface chính
+                        if (name.startsWith("eth") || name.startsWith("ens") || name.startsWith("enp")) {
+                            return ip;
+                        }
+
+                        candidateIps.add(ip);
+                    }
+                }
+            }
+
+            // fallback
+            if (!candidateIps.isEmpty()) {
+                return candidateIps.get(0);
+            }
+
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+	
+	public static boolean isIntervalSmallest(int siteUploadingInterval, int chartInterval) {
+		if (siteUploadingInterval == 0 || chartInterval == 0) return false;
+		return (
+			(UploadingDataIntervals.fromValue(siteUploadingInterval) == UploadingDataIntervals._1_MINUTE   && ChartingGranularity.fromValue(chartInterval) == ChartingGranularity._1_MINUTE) ||
+			(UploadingDataIntervals.fromValue(siteUploadingInterval) == UploadingDataIntervals._5_MINUTES  && ChartingGranularity.fromValue(chartInterval) == ChartingGranularity._5_MINUTES) ||
+			(UploadingDataIntervals.fromValue(siteUploadingInterval) == UploadingDataIntervals._15_MINUTES && ChartingGranularity.fromValue(chartInterval) == ChartingGranularity._15_MINUTES)
+		);
+	}
+	
 }

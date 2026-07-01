@@ -4,24 +4,40 @@
 * 
 *********************************************************/
 package com.nwm.api.controllers;
+import java.util.ArrayList;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
+
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.services.ApiAccessService;
 import com.nwm.api.services.DeviceService;
+import com.nwm.api.services.ThirdPartyAPIService;
 import com.nwm.api.utils.Constants;
+import com.nwm.api.utils.Lib;
 
 import net.objecthunter.exp4j.ExpressionBuilder;
 import net.objecthunter.exp4j.ValidationResult;
+import io.swagger.annotations.ApiParam;
 import springfox.documentation.annotations.ApiIgnore;
-
 @RestController
 @ApiIgnore
 @RequestMapping("/device")
+@Tag(name = "Devices")
 public class DeviceController extends BaseController {
 
 	/**
@@ -130,6 +146,11 @@ public class DeviceController extends BaseController {
 	public Object saveDevice(@Valid @RequestBody DeviceEntity obj) {
 		try {
 			DeviceService service = new DeviceService();
+			if (obj.getList_parameters().size() > 5)
+			{
+				return this.jsonResult(false, Constants.SAVE_ERROR_MSG, null, 0);
+			}
+
 			if (obj.getScreen_mode() == 1) {
 
 				DeviceEntity data = service.insertDevice(obj);
@@ -363,6 +384,115 @@ public class DeviceController extends BaseController {
 		} catch (Exception e) {
 			// log error
 			return this.jsonResult(false, Constants.GET_ERROR_MSG, e, 0);
+		}
+	}
+	/**
+	 * @description Get all devices with basic information for external API
+	 * @author duc.pham
+	 * @since 2026-02-09
+	 * @param device_id, site_id, site_name, device_name, make, model, serial_number
+	 * @return data with device_id, site_id, site_name, device_name, make, model, serial_number
+	 */
+	@GetMapping("/external/get-all-devices")
+	public Object getAllDevicesExternal(
+	
+			@Parameter(description = "Filter by Site ID (optional)")
+			@RequestParam(required = false) Integer site_id,
+
+			@Parameter(description = "Filter by Site Name (optional)")
+			@RequestParam(required = false) String site_name,
+
+			@Parameter(description = "Filter by Make/Vendor (optional)")
+			@RequestParam(required = false) String make,
+
+			@Parameter(description = "Filter by Model (optional)")
+			@RequestParam(required = false) String model,
+
+			@Parameter(description = "Filter by Serial Number (optional)")
+			@RequestParam(required = false) String serial_number,
+
+            @Parameter(description = "Offset for pagination (default is 0)")
+            @RequestParam(required = false) @Min(0) Integer offset,
+
+			@RequestHeader(name = "X-NWM-API-KEY", required = true) String apiKey,
+			HttpServletRequest request) {
+		try {
+//			// Validate API key - same pattern as ThirdPartyAPIController
+//            ThirdPartyAPIService thirdPartyAPIService = new ThirdPartyAPIService();
+//            String errMsg = thirdPartyAPIService.checkKey(apiKey, request);
+//            if (!Lib.isBlank(errMsg)) {
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(this.thirdPartyJsonResult(false, errMsg, null, 0));
+//            }
+
+			// Validate filter parameters
+			StringBuilder filterInfo = new StringBuilder();
+			boolean hasFilters = false;
+
+
+			// Build entity from params with all filters
+			DeviceEntity obj = new DeviceEntity();
+			obj.setSecurity_key(apiKey);
+
+            final int realOffset = (offset != null && offset >= 0) ? offset : 0;
+            obj.setLimit(Constants.SWAGGER_ROW_PER_PAGE);
+            obj.setOffset(realOffset);
+
+			if (site_id != null) {
+				if (site_id <= 0) {
+					return this.thirdPartyJsonResult(false, "Invalid site_id. Must be a positive number.", null, 0);
+				}
+				obj.setId_site(site_id);
+				filterInfo.append("site_id=").append(site_id).append(", ");
+				hasFilters = true;
+			}
+			if (!Lib.isBlank(site_name)) {
+				obj.setSite_name(site_name);
+				filterInfo.append("site_name='").append(site_name).append("', ");
+				hasFilters = true;
+			}
+
+			if (!Lib.isBlank(make)) {
+				obj.setKeyword(make);
+				filterInfo.append("make='").append(make).append("', ");
+				hasFilters = true;
+			}
+			if (!Lib.isBlank(model)) {
+				obj.setDevice_type_name(model);
+				filterInfo.append("model='").append(model).append("', ");
+				hasFilters = true;
+			}
+			if (!Lib.isBlank(serial_number)) {
+				obj.setSerial_number(serial_number);
+				filterInfo.append("serial_number='").append(serial_number).append("', ");
+				hasFilters = true;
+			}
+
+			// Get data
+			DeviceService service = new DeviceService();
+			int totalRecord = service.getAllDevicesForExternalAPICount(obj);
+            if (realOffset >= totalRecord) {
+                return this.thirdPartyJsonResult(false, "No data at offset " + realOffset + " max offset is " + (totalRecord - 1), new ArrayList(), totalRecord);
+            }
+            List data = service.getAllDevicesForExternalAPI(obj);
+
+			if (data != null && !data.isEmpty()) {
+				return this.thirdPartyJsonResult(true, Constants.GET_SUCCESS_MSG, data, totalRecord);
+			}
+            // No data found - provide helpful message
+            String message;
+            if (hasFilters) {
+                String filters = filterInfo.toString();
+                if (filters.endsWith(", ")) {
+                    filters = filters.substring(0, filters.length() - 2);
+                }
+                message = "No devices found matching your filters: [" + filters + "]. Please check your filter values or try different search criteria.";
+            } else {
+                message = "No devices found. You may not have access to any devices with this API key.";
+            }
+            return this.thirdPartyJsonResult(false, message, new ArrayList<>(), 0);
+		} catch (Exception e) {
+			log.error("Error in getAllDevicesExternal: " + e.getMessage(), e);
+			return this.thirdPartyJsonResult(false, "Internal server error: " + e.getMessage(), null, 0);
 		}
 	}
 }

@@ -37,7 +37,12 @@
 				
 		<choose>
 			<when test="view_history == 'active'">
-				AND ${alertTable}.`status` = 1
+                <if test="alert_type == 3">
+                    AND ${alertTable}.`status` = 0
+                </if>
+                <if test="alert_type != 3">
+                    AND ${alertTable}.`status` = 1
+                </if>
 				AND ${alertTable}.resolved = 0
 			</when>
 			
@@ -213,7 +218,11 @@
 			<include refid="viewHistoryCondition">
 				<property name="alertTable" value="l"/>
 			</include>
-			
+			<if test="alert_type == 2">
+                AND EXISTS (
+                    SELECT 1 from custom_alert where id_device = l.id_device limit 1
+                )
+            </if>
 		ORDER BY
 			<choose>
 			    <when test="sort_column == 'times_ago' or sort_column == 'start_date'">
@@ -280,7 +289,11 @@
 			<include refid="viewHistoryCondition">
 				<property name="alertTable" value="l"/>
 			</include>
-			
+            <if test="alert_type == 2">
+                AND EXISTS (
+                    SELECT 1 from custom_alert where id_device = l.id_device limit 1
+                )
+            </if>
 			<if test="view_notification == 'active'">
 				AND l.is_notification = 0
 			</if>
@@ -862,6 +875,9 @@
 			`resolved` = #{resolved},
 			`status` = #{status},
 			`note` = #{note}
+            <if test="updated_by != null and updated_by != ''">
+                ,updated_by = #{updated_by}
+            </if>
 		WHERE
 			`id` = #{id}
 	</update>
@@ -1426,7 +1442,7 @@
 		WHERE
 			e.`status` = 1
 			AND e.is_delete = 0
-			
+			AND l.is_delete = 0
 			AND CONVERT_TZ(l.start_date, 'UTC', t.value) BETWEEN #{date_from} AND #{date_to}
 			
 			AND s.status = 1
@@ -1466,5 +1482,140 @@
 	    	AND status = 1
 	    	AND is_delete = 0
   	</update>
+	<!-- External API Queries -->
+  	<select id="getAllAlertsForExternalAPI" resultType="Map">
+  		SELECT
+  			l.id AS alert_id,
+  			COALESCE(el.name, '') AS alert_name,
+  			CONCAT(s.name, ' - ', d.devicename) AS source,
+  			e.message,
+  			e.error_code AS code,
+  			IF(l.`status` = 1, 'Open', 'Closed') AS status,
+  			l.alert_acknowledged AS acknowledgment,
+  			l.start_date AS created_date
+  		FROM
+  			`alert` l
+  			STRAIGHT_JOIN error e ON e.id = l.id_error
+  			LEFT JOIN error_level el ON el.id = e.id_error_level
+  			JOIN device d ON d.id = l.id_device
+  			JOIN site s ON s.id = d.id_site
+  			<if test="security_key != null and security_key != ''">
+  				JOIN api_access_site_map asm ON asm.id_site = s.id AND asm.status = 1
+  				JOIN api_access aa ON aa.id = asm.id_api_access
+  					AND aa.security_key = #{security_key}
+  					AND aa.status = 1
+  				JOIN time_zone t ON t.id = s.id_time_zone
+  			</if>
+  		WHERE
+  			e.`status` = 1
+  			AND e.is_delete = 0
+  			AND d.`status` = 1
+  			AND d.is_delete = 0
+  			AND l.is_delete = 0
+  			AND s.status = 1
+  			AND s.is_delete = 0
+  			AND s.enable_alert = 1
+            AND d.show_on_domain != 6
+            <if test="isUserNW != 1">
+                AND el.id != 14
+            </if>
+  			<if test="id != null and id > 0">
+  				AND l.id = #{id}
+  			</if>
+            <if test="start_date != null and start_date != ''">
+                AND l.start_date <![CDATA[>=]]> CONVERT_TZ(#{start_date}, t.value, 'UTC')
+            </if>
+            <if test="end_date != null and end_date != ''">
+                AND l.start_date <![CDATA[<]]> CONVERT_TZ(DATE_ADD(#{end_date}, INTERVAL 1 DAY), t.value, 'UTC')
+            </if>
+  		    <if test="status != null and status >= 0">
+  				AND l.`status` = #{status}
+  			</if>
+  			<if test="alert_acknowledged != null and alert_acknowledged >= 0">
+  				AND l.alert_acknowledged = #{alert_acknowledged}
+  			</if>
+  			<if test="error_code != null and error_code != ''">
+  				AND e.error_code LIKE CONCAT('%', #{error_code}, '%')
+  			</if>
+  			<if test="message != null and message != ''">
+  				AND e.message LIKE CONCAT('%', #{message}, '%')
+  			</if>
+  			<if test="devicename != null and devicename != ''">
+  				AND d.devicename LIKE CONCAT('%', #{devicename}, '%')
+  			</if>
+  			<if test="alert_name != null and alert_name != ''">
+  				AND el.name LIKE CONCAT('%', #{alert_name}, '%')
+  			</if>
+  			<if test="security_key != null and security_key != ''">
+  				AND (CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value) <![CDATA[<]]> s.expiration OR s.expiration IS NULL)
+  			</if>
+  		ORDER BY l.start_date DESC, l.id DESC
+  		<if test="limit != null and limit > 0">
+  			LIMIT ${limit}
+  			<if test="offset != null and offset > 0">
+  				OFFSET ${offset}
+  			</if>
+  		</if>
+  	</select>
 
+  	<select id="getAllAlertsForExternalAPICount" resultType="int">
+  		SELECT
+  			COUNT(l.id) AS totalRecord
+  		FROM
+  			`alert` l
+  			STRAIGHT_JOIN error e ON e.id = l.id_error
+  			LEFT JOIN error_level el ON el.id = e.id_error_level
+  			JOIN device d ON d.id = l.id_device
+  			JOIN site s ON s.id = d.id_site
+  			<if test="security_key != null and security_key != ''">
+  				JOIN api_access_site_map asm ON asm.id_site = s.id AND asm.status = 1
+  				JOIN api_access aa ON aa.id = asm.id_api_access
+  					AND aa.security_key = #{security_key}
+  					AND aa.status = 1
+  				JOIN time_zone t ON t.id = s.id_time_zone
+  			</if>
+  		WHERE
+  			e.`status` = 1
+  			AND e.is_delete = 0
+  			AND d.`status` = 1
+  			AND d.is_delete = 0
+  			AND l.is_delete = 0
+  			AND s.status = 1
+  			AND s.is_delete = 0
+  			AND s.enable_alert = 1
+            AND d.show_on_domain != 6
+            <if test="isUserNW != 1">
+                AND el.id != 14
+            </if>
+  			<if test="id != null and id > 0">
+  				AND l.id = #{id}
+  			</if>
+            <if test="start_date != null and start_date != ''">
+                AND l.start_date <![CDATA[>=]]> CONVERT_TZ(#{start_date}, t.value, 'UTC')
+            </if>
+            <if test="end_date != null and end_date != ''">
+                AND l.start_date <![CDATA[<]]> CONVERT_TZ(DATE_ADD(#{end_date}, INTERVAL 1 DAY), t.value, 'UTC')
+            </if>
+  			<if test="status != null and status >= 0">
+  				AND l.`status` = #{status}
+  			</if>
+  			<if test="alert_acknowledged != null and alert_acknowledged >= 0">
+  				AND l.alert_acknowledged = #{alert_acknowledged}
+  			</if>
+  			<if test="error_code != null and error_code != ''">
+  				AND e.error_code LIKE CONCAT('%', #{error_code}, '%')
+  			</if>
+  			<if test="message != null and message != ''">
+  				AND e.message LIKE CONCAT('%', #{message}, '%')
+  			</if>
+  			<if test="devicename != null and devicename != ''">
+  				AND d.devicename LIKE CONCAT('%', #{devicename}, '%')
+  			</if>
+  			<if test="alert_name != null and alert_name != ''">
+  				AND el.name LIKE CONCAT('%', #{alert_name}, '%')
+  			</if>
+  			<if test="security_key != null and security_key != ''">
+  				AND (CONVERT_TZ(UTC_TIMESTAMP(), 'UTC', t.value) <![CDATA[<]]> s.expiration OR s.expiration IS NULL)
+  			</if>
+  	</select>
 </mapper>

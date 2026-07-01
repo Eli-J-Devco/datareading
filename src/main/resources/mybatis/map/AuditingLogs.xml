@@ -120,9 +120,8 @@
 		LEFT JOIN employee e ON e.id = al.id_employee
 		WHERE 
 		<if test="keyword != null">
-			  e.first_name LIKE CONCAT("%",#{keyword}, "%")
-			  OR e.last_name LIKE CONCAT("%",#{keyword}, "%")
-		</if>
+        	CONCAT(e.first_name, ' ', e.last_name) LIKE CONCAT('%', #{keyword}, '%')
+    	</if>
 		ORDER BY
         <choose>  
 			<when test="sort_column != null and sort_column != ''">
@@ -145,9 +144,8 @@
 		LEFT JOIN employee e ON e.id = al.id_employee
 		WHERE 
 		<if test="keyword != null">
-			  e.first_name LIKE CONCAT("%",#{keyword}, "%")
-			  OR e.last_name LIKE CONCAT("%",#{keyword}, "%")
-		</if>
+        	CONCAT(e.first_name, ' ', e.last_name) LIKE CONCAT('%', #{keyword}, '%')
+    	</if>
   	</select>
 	
 </mapper>

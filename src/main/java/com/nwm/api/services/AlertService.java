@@ -11,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.session.SqlSession;
 
@@ -663,19 +664,33 @@ public class AlertService extends DB {
 
     public CustomAlertEntity saveCustomAlert(CustomAlertEntity obj) {
         try {
+            if (obj.getId() > 0) {
+                update("CustomAlert.deleteCustomAlert", obj);
+            }
             for (int i = 0; i < obj.getIds_site().size(); i++) {
                 CustomAlertEntity entity = getCustomAlertParam(obj.getIds_site().get(i), obj);
                 if (entity == null) {
                     continue;
                 }
                 List<Integer> ids_device = obj.getIds_device();
-                if (!ids_device.isEmpty()) {
+                if (ids_device == null || ids_device.isEmpty()) {
+                    HashMap<String, Object> params = new HashMap<>();
+                    params.put("id_site", obj.getIds_site().get(i));
+                    params.put("id_device_group", obj.getId_device_group());
+                    List<Map<String, Object>> result = queryForList("CustomAlert.getDeviceBySiteAndGroup", params);
+                    ids_device = new ArrayList<>();
+                    for (Map<String, Object> row : result) {
+                        Object id = row.get("id");
+                        if (id != null) {
+                            ids_device.add(((Number) id).intValue());
+                        }
+                    }
+                }
+                if (ids_device != null && !ids_device.isEmpty()) {
                     for (Integer id : ids_device) {
                         entity.setId_device(id);
                         insert("CustomAlert.insertCustomAlert", entity);
                     }
-                } else {
-                    insert("CustomAlert.insertCustomAlert", entity);
                 }
             }
             return obj;
@@ -683,5 +698,89 @@ public class AlertService extends DB {
             log.error("saveCustomAlert", ex);
         }
         return null;
+    }
+
+    public List getListCustomize(CustomAlertEntity obj) {
+        try {
+            List<Map<String, Object>> rs = queryForList("CustomAlert.getList", obj);
+            if (rs == null) {
+                return new ArrayList<>();
+            }
+            return rs;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    public int getListCustomizeTotalCount(CustomAlertEntity obj) {
+        try {
+            AlertEntity totalRecord = (AlertEntity) queryForObject("CustomAlert.getTotal", obj);
+            return totalRecord.getTotalRecord();
+        } catch (Exception ex) {
+            return 0;
+        }
+    }
+
+    public boolean deleteCustomAlert(CustomAlertEntity obj) {
+        try {
+            update("CustomAlert.deleteCustomAlert", obj);
+            return true;
+        } catch (Exception ex) {
+            log.error("deleteCustomAlert", ex);
+            return false;
+        }
+    }
+
+    public boolean disableCustomAlert(CustomAlertEntity obj) {
+        try {
+            update("CustomAlert.disableCustomAlert", obj);
+            return true;
+        } catch (Exception ex) {
+            log.error("disableCustomAlert", ex);
+            return false;
+        }
+    }
+
+	/**
+	 * @description Get all alerts for external API
+	 * @author duc.pham
+	 * @since 2026-02-09
+	 * @param obj - contains id_customer, start_date, end_date, limit, offset
+	 * @return List of alerts with Alert Name, Source, Message, Code, Status, Acknowledgment
+	 */
+	public List getAllAlertsForExternalAPI(Map<String, Object> obj) {
+		try {
+			List rs = queryForList("Alert.getAllAlertsForExternalAPI", obj);
+			if (rs == null) {
+				return new ArrayList<>();
+			}
+			return rs;
+		} catch (Exception ex) {
+			log.error("Alert.getAllAlertsForExternalAPI", ex);
+			return new ArrayList<>();
+		}
+	}
+
+	/**
+	 * @description Get total count of alerts for external API
+	 * @author duc.pham
+	 * @since 2026-02-09
+	 */
+	public int getAllAlertsForExternalAPICount(Map<String, Object> obj) {
+		try {
+			return (int) queryForObject("Alert.getAllAlertsForExternalAPICount", obj);
+		} catch (Exception ex) {
+			log.error("Alert.getAllAlertsForExternalAPICount", ex);
+			return 0;
+		}
+	}
+
+    public boolean isUserNW(Map<String, Object> obj) {
+        try {
+            return (int) queryForObject("ApiAccess.checkUserNW", obj) > 0;
+        } catch (Exception ex) {
+            log.error("Alert.isUserNW", ex);
+            return false;
+        }
     }
 }

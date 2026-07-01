@@ -12,6 +12,7 @@ public class ViewReportEntity {
 	private int id;
 	private int id_site;
 	private int id_employee;
+	private String hash_id;
 	private String site_name;
 	private String report_date;
 	private String date_from;
@@ -67,13 +68,160 @@ public class ViewReportEntity {
 	private String table_data_virtual;
 	private boolean enable_virtual_device;
 	private String datatablename;
+	private int data_send_time;
+	private String datatablename_weather;
+	private List dataMeters;
+	private List dataInverters;
+	private boolean mWh = false; // change energy and power to MWh
+	private String remarks;
 	
+	private double peak_energy;
+	private String peak_time;
+	private String synchronization_time;
+	private String de_synchronization_time;
+	private String nominal_operating_hours;
+	private double highest_recorded;
+	private String highestRecordedTime;
+	private String external_grid;
+	private String curtailment;
+	private String preventive_maintenance;
+	private String external_onshore;
+	private String epc_scheduled_shutdown;
+	private String o_m;
+	private String internal_force_downtime;
+	private String logo;
+	private String company_name;
+	
+	
+	public String getRemarks() {
+		return remarks;
+	}
+	public void setRemarks(String remarks) {
+		this.remarks = remarks;
+	}
+	public String getCompany_name() {
+		return company_name;
+	}
+	public void setCompany_name(String company_name) {
+		this.company_name = company_name;
+	}
+	public String getLogo() {
+		return logo;
+	}
+	public void setLogo(String logo) {
+		this.logo = logo;
+	}
+	public double getPeak_energy() {
+		return peak_energy;
+	}
+	public void setPeak_energy(double peak_energy) {
+		this.peak_energy = peak_energy;
+	}
+	public String getPeak_time() {
+		return peak_time;
+	}
+	public void setPeak_time(String peak_time) {
+		this.peak_time = peak_time;
+	}
+	public String getSynchronization_time() {
+		return synchronization_time;
+	}
+	public void setSynchronization_time(String synchronization_time) {
+		this.synchronization_time = synchronization_time;
+	}
+	public String getDe_synchronization_time() {
+		return de_synchronization_time;
+	}
+	public void setDe_synchronization_time(String de_synchronization_time) {
+		this.de_synchronization_time = de_synchronization_time;
+	}
+	public String getNominal_operating_hours() {
+		return nominal_operating_hours;
+	}
+	public void setNominal_operating_hours(String nominal_operating_hours) {
+		this.nominal_operating_hours = nominal_operating_hours;
+	}
+	public double getHighest_recorded() {
+		return highest_recorded;
+	}
+	public void setHighest_recorded(double highest_recorded) {
+		this.highest_recorded = highest_recorded;
+	}
+	public String getHighestRecordedTime() {
+		return highestRecordedTime;
+	}
+	public void setHighestRecordedTime(String highestRecordedTime) {
+		this.highestRecordedTime = highestRecordedTime;
+	}
+	public String getExternal_grid() {
+		return external_grid;
+	}
+	public void setExternal_grid(String external_grid) {
+		this.external_grid = external_grid;
+	}
+	public String getCurtailment() {
+		return curtailment;
+	}
+	public void setCurtailment(String curtailment) {
+		this.curtailment = curtailment;
+	}
+	public String getPreventive_maintenance() {
+		return preventive_maintenance;
+	}
+	public void setPreventive_maintenance(String preventive_maintenance) {
+		this.preventive_maintenance = preventive_maintenance;
+	}
+	public String getExternal_onshore() {
+		return external_onshore;
+	}
+	public void setExternal_onshore(String external_onshore) {
+		this.external_onshore = external_onshore;
+	}
+	public String getEpc_scheduled_shutdown() {
+		return epc_scheduled_shutdown;
+	}
+	public void setEpc_scheduled_shutdown(String epc_scheduled_shutdown) {
+		this.epc_scheduled_shutdown = epc_scheduled_shutdown;
+	}
+	public String getO_m() {
+		return o_m;
+	}
+	public void setO_m(String o_m) {
+		this.o_m = o_m;
+	}
+	public String getInternal_force_downtime() {
+		return internal_force_downtime;
+	}
+	public void setInternal_force_downtime(String internal_force_downtime) {
+		this.internal_force_downtime = internal_force_downtime;
+	}
+	public boolean isIs_rec_report() {
+		return is_rec_report;
+	}
+	public boolean ismWh() {
+		return mWh;
+	}
+	public void setmWh(boolean mWh) {
+		this.mWh = mWh;
+	}
+	public List getDataMeters() {
+		return dataMeters;
+	}
+	public void setDataMeters(List dataMeters) {
+		this.dataMeters = dataMeters;
+	}
+	public List getDataInverters() {
+		return dataInverters;
+	}
+	public void setDataInverters(List dataInverters) {
+		this.dataInverters = dataInverters;
+	}
 	private List<Map<String, Object>> dataFields;
 	private boolean transposed;
-	private boolean showTotal;
+	private boolean showTotal = true;
 	private int sort_by;
 	private String domain;
-private String domain_role;
+	private String domain_role;
 	
 	
 	public String getDomain_role() {
@@ -85,6 +233,19 @@ private String domain_role;
 	
 	
 
+	public String getDatatablename_weather() {
+		return datatablename_weather;
+	}
+	public void setDatatablename_weather(String datatablename_weather) {
+		this.datatablename_weather = datatablename_weather;
+	}
+	public int getData_send_time() {
+		return data_send_time;
+	}
+	public void setData_send_time(int data_send_time) {
+		this.data_send_time = data_send_time;
+	}
+	
 	public List getSortedHeaders() {
 		return sortedHeaders;
 	}
@@ -150,6 +311,12 @@ private String domain_role;
 	}
 	public void setId_employee(int id_employee) {
 		this.id_employee = id_employee;
+	}
+	public String getHash_id() {
+		return hash_id;
+	}
+	public void setHash_id(String hash_id) {
+		this.hash_id = hash_id;
 	}
 	public String getSite_name() {
 		return site_name;
