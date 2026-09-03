@@ -395,7 +395,7 @@
             WHEN dg.table_name = 'model_protection_relay_v2' AND d.field_value_default = 'Metering_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_InaccessPPCV1' AND d.field_value_default = 'ANALOG_INPUT_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_IDEC_PLCV1' AND d.field_value_default = 'POA_IRRADIANCE' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
-            WHEN dg.table_name = 'model_OrionMX_Automation_Platform' AND d.field_value_default = 'AI_FEED_1_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_OrionMX_Automation_Platform' AND d.field_value_default = 'AI_HI_WINDING_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_MVPS_HUAWEI' AND d.field_value_default = 'AI_LV_Panel_A_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_Huawei_Smartlogger_V1' AND d.field_value_default = 'Total_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             
@@ -435,6 +435,13 @@
             WHEN dg.table_name = 'model_ABB_Central_Inverter_PVS800570630kWB' AND d.field_value_default = 'ActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_Meter_Satec_PM175' AND d.field_value_default = 'RealPowerImportAccumulatedDemand' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             
+            WHEN dg.table_name = 'model_ADAM_6050_FLOAT' AND d.field_value_default = 'Vacuum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_Smartlogger_Solis_S3' AND d.field_value_default = 'TotalActivePowerofINVs' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_cell_modem_wan_ip' AND d.field_value_default = 'WAN_IP' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", IF(d.field_value1 = 1, "Online", "Offline"), "" )))
+            WHEN dg.table_name = 'model_IMT_WIND_AMBIENT' AND d.field_value_default = 'Irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            WHEN dg.table_name = 'model_Sungrow_SG100KC_Inverter' AND d.field_value_default = 'ACActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_EDMIMeterMK6Genius' AND d.field_value_default = 'TotalKW' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             
 
 			ELSE "-"
@@ -723,7 +730,7 @@
             WHEN dg.table_name = 'model_protection_relay_v2' AND d.field_value_default = 'Metering_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_InaccessPPCV1' AND d.field_value_default = 'ANALOG_INPUT_ACTIVE_POWER_FEEDBACK' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_IDEC_PLCV1' AND d.field_value_default = 'POA_IRRADIANCE' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
-            WHEN dg.table_name = 'model_OrionMX_Automation_Platform' AND d.field_value_default = 'AI_FEED_1_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_OrionMX_Automation_Platform' AND d.field_value_default = 'AI_HI_WINDING_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_MVPS_HUAWEI' AND d.field_value_default = 'AI_LV_Panel_A_P' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_Huawei_Smartlogger_V1' AND d.field_value_default = 'Total_Active_Power' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             
@@ -762,6 +769,14 @@
             
             WHEN dg.table_name = 'model_ABB_Central_Inverter_PVS800570630kWB' AND d.field_value_default = 'ActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
             WHEN dg.table_name = 'model_Meter_Satec_PM175' AND d.field_value_default = 'RealPowerImportAccumulatedDemand' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            
+            WHEN dg.table_name = 'model_ADAM_6050_FLOAT' AND d.field_value_default = 'Vacuum' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "" )))
+            WHEN dg.table_name = 'model_Smartlogger_Solis_S3' AND d.field_value_default = 'TotalActivePowerofINVs' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+            WHEN dg.table_name = 'model_cell_modem_wan_ip' AND d.field_value_default = 'WAN_IP' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", IF(d.field_value1 = 1, "Online", "Offline"), "" )))
+            WHEN dg.table_name = 'model_IMT_WIND_AMBIENT' AND d.field_value_default = 'Irradiance' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "W/m²" )))
+            
+            WHEN dg.table_name = 'model_Sungrow_SG100KC_Inverter' AND d.field_value_default = 'ACActivePower' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
+			WHEN dg.table_name = 'model_EDMIMeterMK6Genius' AND d.field_value_default = 'TotalKW' THEN  (IF(d.field_value1 = -1 or d.field_value1 IS NULL, "-", CONCAT_WS(" ", FORMAT(ROUND(d.field_value1, 2),2), "kW" )))
 
 			ELSE "Z"
 			
@@ -853,13 +868,16 @@
 	<sql id="timeGroupBy">
 		<choose>
 			<when test="${interval} == 8">
-				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 60  )* 60, '%Y-%m-%d %H:%i' )
+				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 60   )* 60, '%Y-%m-%d %H:%i' )
 			</when>
 			<when test="${interval} == 1">
 				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 300  )* 300, '%Y-%m-%d %H:%i' )
 			</when>
 			<when test="${interval} == 2">
 				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 900  )* 900, '%Y-%m-%d %H:%i' )
+			</when>
+			<when test="${interval} == 9">
+				FROM_UNIXTIME(( UNIX_TIMESTAMP( ${time} ) DIV 1800 )* 1800, '%Y-%m-%d %H:%i' )
 			</when>
 			<when test="${interval} == 3">
 				DATE_FORMAT( ${time}, '%Y-%m-%d %H:00' )

@@ -5,20 +5,28 @@
 *********************************************************/
 package com.nwm.api.services.building;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +34,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.entities.HVACFieldEntity;
 import com.nwm.api.entities.HVACGatewayEntity;
 import com.nwm.api.entities.building.ChartConsumptionEntity;
 import com.nwm.api.entities.building.HVACMappingPointEntity;
@@ -36,6 +45,8 @@ import com.nwm.api.utils.Lib;
 
 @Service
 public class SitesOverviewHVACService extends DB {
+	@Autowired
+	SitesAnalyticsService sitesAnalyticsService;
 	
 	/**
 	 * @description Save mapping points
@@ -122,7 +133,6 @@ public class SitesOverviewHVACService extends DB {
 	 */
 	public List<ChartConsumptionEntity> getFieldChart(SitesOverviewHVACFieldChartEntity obj) {
 		try {
-			SitesAnalyticsService sitesAnalyticsService = new SitesAnalyticsService();
 			DateTimeFormatter inputDateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
 			DateTimeFormatter isoDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 			LocalDateTime startDate = LocalDateTime.parse(obj.getStart_date(), inputDateFormat).withHour(0).withMinute(0).withSecond(0);
@@ -168,8 +178,8 @@ public class SitesOverviewHVACService extends DB {
 		return new ArrayList<>();
 	}
 	
-	private static final Map<String, Map<String, String>> fieldCache = new HashMap<>();
-	private static final List<Map<String, String>> updatingFieldList = new ArrayList<>();
+	private static final Map<String, HVACFieldEntity> fieldCache = new HashMap<>();
+	private static final List<HVACFieldEntity> updatingFieldList = new ArrayList<>();
 	
 	public Map<String, Object> getCacheStatistics() {
 		Map<String, Object> stats = new HashMap<>();
@@ -218,12 +228,12 @@ public class SitesOverviewHVACService extends DB {
 		
 		fieldCache.entrySet().removeIf(entry -> {
 			try {
-				String timestamp = entry.getValue().get("ts");
+				String timestamp = entry.getValue().getTs();
 				if (timestamp == null) return true;
 				LocalDateTime entryTime = LocalDateTime.parse(timestamp, formatter);
 				
 				// if value in cache is no longer updated for more than __ minutes, remove it
-				return entryTime.isBefore(LocalDateTime.now().minusMinutes(minutesToCache));
+				return entryTime.isBefore(ZonedDateTime.now(ZoneOffset.UTC).minusMinutes(minutesToCache).toLocalDateTime());
 			} catch (Exception e) {
 				return true;
 			}
@@ -238,8 +248,9 @@ public class SitesOverviewHVACService extends DB {
 	 * @param message MQTT message
 	 */
 	public void saveFieldData(Message<?> message) {
+		SqlSession session = this.beginTransaction();
 		try {
-			int maxBatchSize = 500;
+			int maxBatchSize = 5000;
 			int minutesToCache = 5; 
 			ObjectMapper mapper = new ObjectMapper();
 			
@@ -262,44 +273,56 @@ public class SitesOverviewHVACService extends DB {
 				List<Map<String, String>> values = (List<Map<String, String>>) telemetry.get(0).get("values");
 				if (values == null || values.size() == 0) continue;
 				
-				Map<String, String> value = (Map<String, String>) values.get(0);
-				LocalDateTime updatedDateTime = LocalDateTime.parse(value.get("ts").toString(), DateTimeFormatter.ISO_DATE_TIME);
-				value.put("id", id);
-				value.put("id_gateway", id_gateway);
-				value.put("ts", updatedDateTime.format(formatter));
+				LocalDateTime updatedDateTime = LocalDateTime.parse(values.get(0).get("ts"), DateTimeFormatter.ISO_DATE_TIME);
+				HVACFieldEntity field = new HVACFieldEntity();
+				field.setId(id);
+				field.setId_gateway(id_gateway);
+				field.setValue(Objects.isNull(values.get(0).get("value")) ? null : String.valueOf(values.get(0).get("value")));
+				field.setTs(updatedDateTime.format(formatter));
 				
-				if (fieldCache.get(id) != null) {
-					LocalDateTime lastDateTime = LocalDateTime.parse(((Map<String, String>) fieldCache.get(id)).get("ts").toString(), formatter);
-					if (ChronoUnit.MINUTES.between(lastDateTime, updatedDateTime) < minutesToCache) continue;
-				}
-				
-				fieldCache.put(id, value);
-				updatingFieldList.add(value);
+				fieldCache.compute(id.concat(id_gateway), (key, value) -> {
+					if (Objects.isNull(value)) {
+						updatingFieldList.add(field);
+						return field;
+					} else {
+						LocalDateTime lastDateTime = LocalDateTime.parse(value.getTs(), formatter);
+						
+						if (updatedDateTime.minusMinutes(minutesToCache).isBefore(lastDateTime)) {
+							return value;
+						} else {
+							updatingFieldList.add(field);
+							return field;
+						}
+					}
+				});
 			}
 			
 			if (updatingFieldList.size() > maxBatchSize) {
-				List<Map<String, String>> insertData = new ArrayList<>(updatingFieldList);
-				CompletableFuture.runAsync(() -> {
-					SqlSession session = sqlMap.openSession(ExecutorType.BATCH, false);
-					
-					try {
-						List<Map<String, String>> dataList = session.selectList("SitesOverviewHVAC.getLastestFieldData", insertData);
-						for (int i = 0; i < dataList.size(); i++) {
-							session.insert("SitesOverviewHVAC.insertFieldData", dataList.get(i));
-							if (i % 100 == 0) session.flushStatements();
-						}
-						session.commit();
-					} catch (Exception ex) {
-						log.error("SitesOverviewHVAC.saveFieldData", ex);
-						session.rollback();
-					} finally {
-						session.close();
-					}
-				});
+				List<HVACFieldEntity> insertData = updatingFieldList.stream()
+						.map(item -> {
+							HVACFieldEntity map = new HVACFieldEntity();
+							map.setId(item.getId());
+							map.setId_gateway(item.getId_gateway());
+							map.setValue(item.getValue());
+							map.setTs(item.getTs());
+							
+							return map;
+						})
+						.collect(Collectors.toList());
+				
 				updatingFieldList.clear();
+				
+				List<Map<String, String>> dataList = session.selectList("SitesOverviewHVAC.getLastestFieldData", insertData);
+				Path file = writeToTempCSVFile(dataList);
+				session.insert("SitesOverviewHVAC.insertFieldData", file.toAbsolutePath().toString());
+				session.commit();
+				Files.deleteIfExists(file);
 			}
 		} catch (Exception ex) {
 			log.error("SitesOverviewHVAC.saveFieldData", ex);
+			session.rollback();
+		} finally {
+			session.close();
 		}
 	}
 	
@@ -321,5 +344,23 @@ public class SitesOverviewHVACService extends DB {
                 return null;
             }
     }
-	
+
+	private Path writeToTempCSVFile(List<Map<String, String>> data) {
+		String filePathString = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SS")) + ".csv";
+		Path path = Paths.get(filePathString);
+		
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePathString), 65536)) {
+			StringBuilder sb = new StringBuilder();
+			
+			for (Map<String, String> item: data) {
+				sb.setLength(0); // Clear and reuse the same builder to avoid garbage collection pressure
+				sb.append(item.get("id")).append(",").append(item.get("id_gateway")).append(",").append(item.get("value")).append(",").append(item.get("ts")).append("\n");
+	            writer.write(sb.toString());
+	        }
+	    } catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return path;
+	}
 }

@@ -3,131 +3,6 @@
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="SitesAnalytics">
-	<select id="getListDeviceBySite" resultType="Map">
-		SELECT
-			d.id,
-			d.id_site,
-			d.devicename AS name,
-			d.id_device_group,
-			d.datatablename,
-			d.view_tablename,
-			dg.id_device_type,
-			d.hidden,
-			d.reverse_poa,
-			dg.group_name,
-			d.is_weather_to_calculate_expected,
-			IFNULL(dt.title_trans, "N/A") AS type_title_trans,
-			IFNULL(dg.title_trans, "N/A") AS group_title_trans,
-			dg.table_name,
-			dt.name AS device_type_name,
-			dt.order,
-            s.table_data_virtual,
-			JSON_ARRAYAGG(JSON_OBJECT(
-				'id', dp.id,
-				'name', <include refid="com.nwm.common.deviceParameterName"/>,
-				'slug', dp.slug,
-				'id_device_group', d.id_device_group,
-				'unit', dp.unit,
-				'is_checked', dp.is_checked,
-				'id_generic_parameter', gp.id,
-				'generic_parameter_name', gp.name,
-				'id_generic_parameter_type', gp.id_generic_parameter_type,
-				'value_chart_tool', dp.value_chart_tool,
-				'min_value', dpf.min_value,
-				'max_value', dpf.max_value,
-				'rounding_decimals', dp.rounding_decimals,
-				'is_energy', dp.is_energy,
-				'is_user_defined', dp.is_user_defined,
-				'slug_accumulated_energy', im.slug
-			)) AS parameters,
-			0 AS checked
-		FROM
-			device d
-			JOIN device_group dg ON d.id_device_group = dg.id
-			JOIN device_type dt ON dt.id = dg.id_device_type
-			JOIN site s ON d.id_site = s.id
-			JOIN time_zone t ON t.id = s.id_time_zone
-			JOIN device_parameters dp ON dp.id_device_group = dg.id
-			LEFT JOIN (
-				SELECT
-					dp.slug,
-					im.id_interval_energy_parameter
-				FROM
-					interval_accumulated_energy_parameter_map im
-					JOIN device_parameters dp ON dp.id = im.id_accumulated_energy_parameter
-				WHERE
-					dp.status = 1
-					AND dp.is_delete = 0
-					AND dp.is_filter = 1
-					AND dp.is_energy = 1
-					AND dp.is_user_defined = 0
-			) im ON im.id_interval_energy_parameter = dp.id
-			LEFT JOIN device_parameter_filter dpf ON dp.id = dpf.id_device_parameter AND d.id = dpf.id_device
-			LEFT JOIN generic_parameters gp ON gp.id = dp.id_generic_parameter
-		WHERE
-			SHA1(d.id_site) = #{hash_id_site}
-			AND d.status = 1
-			AND d.is_delete = 0
-			AND dg.id_device_type != 5
-			AND s.status = 1
-			AND s.is_delete = 0
-			AND dp.status = 1
-			AND dp.is_delete = 0
-			AND dp.is_filter = 1
-			AND (CONVERT_TZ(NOW(), 'UTC', t.value) <![CDATA[ < ]]> s.expiration OR s.expiration IS NULL)
-			<include refid="com.nwm.common.deviceByDomainCondition"/>
-	        
-		GROUP BY
-			d.id
-		ORDER BY
-			dt.order ASC, d.devicename ASC
-	</select>
-	
-	<select id="getSiteById" parameterType="int" resultType="com.nwm.api.entities.SiteEntity">
-		SELECT
-			s.data_send_time,
-			DATE_FORMAT(s.commissioning, '%Y-%m-%d %H:%i:%s') AS commissioning,
-			DATE_FORMAT(s.built_since, '%Y-%m-%d %H:%i:%s') AS built_since,
-			s.ac_capacity,
-			s.dc_capacity,
-			s.minimum_energy_value,
-			s.interval_energy_threshold,
-			s.pv_model,
-			s.global_solar_irradiance_at_stc,
-			s.pv_module_temperature_coeff,
-			s.stc_temperature,
-			s.system_loss,
-			s.inverter_efficiency,
-			s.annual_pv_module_degradation,
-			s.soiling,
-			s.cable_losses,
-			s.transformer_losses,
-			s.other_losses,
-			s.min_irradiance_limit,
-			s.clip,
-			s.t_avg,
-			t.value AS time_zone_value
-		FROM
-			site s
-			JOIN time_zone t ON t.id = s.id_time_zone
-		WHERE
-			s.status = 1
-			AND s.is_delete = 0
-			AND s.id = #{id}
-	</select>
-	
-	<select id="getHiddenDataListByDevice" resultType="Map">
-		SELECT
-			date_from,
-			date_to
-		FROM
-			hidden_data
-		WHERE
-			id_device = #{id}
-			AND status = 1
-			AND is_delete = 0
-	</select>
-	
 	<select id="getDeviceGroupsList" resultType="Map">
 		SELECT
 			table_name
@@ -211,7 +86,6 @@
 				<property name="time" value="CONVERT_TZ( dv.time, 'UTC', t.value )" />
 				<property name="interval" value="data_send_time" />
 			</include> AS time_full,
-			FROM_UNIXTIME((UNIX_TIMESTAMP(CONVERT_TZ( dv.time, 'UTC', t.value )) DIV <include refid="com.nwm.common.uploadingDataIntervalCondition"/>)* <include refid="com.nwm.common.uploadingDataIntervalCondition"/>, '%Y-%m-%d %H:%i') AS time_full_by_site_uploading_interval,
 			<foreach collection="parameters" item="param" separator=",">
 				<choose>
 					<when test="param.is_energy == true and param.is_user_defined == true">
@@ -261,7 +135,7 @@
 			JOIN time_zone t ON t.id = s.id_time_zone
 		WHERE
 			dv.id_device = #{id}
-			AND dv.time BETWEEN CONVERT_TZ(#{start_date}, t.value, 'UTC') AND CONVERT_TZ(#{end_date}, t.value, 'UTC')
+			AND dv.time BETWEEN CONVERT_TZ(#{start_date}, t.value, 'UTC') AND DATE_ADD(CONVERT_TZ(#{end_date}, t.value, 'UTC'), INTERVAL <include refid="com.nwm.common.uploadingDataIntervalCondition"/> SECOND)
 			<foreach item="item" index="index" collection="hidden_data_list" open=" AND " separator=" AND ">
 				dv.time NOT BETWEEN CONVERT_TZ(#{item.date_from}, t.value, 'UTC') AND CONVERT_TZ(#{item.date_to}, t.value, 'UTC')
 			</foreach>
@@ -317,14 +191,16 @@
 			id_employee,
 			id_site,
 			params,
-			DATE_FORMAT(created_date, "%m/%d/%Y %H:%i:%s") AS created_date,
 			name,
-			is_favorite
+			apply_to_portfolio,
+			favorite,
+			last_used
 		FROM
 			employee_chart_filter
 		WHERE
 			id_employee = #{id_employee}
-			AND SHA1(id_site) = #{hash_id_site}
+			AND (SHA1(id_site) = #{hash_id_site} OR apply_to_portfolio)
+			AND name IS NOT NULL
 		ORDER BY id DESC
 	</select>
 	
@@ -333,17 +209,19 @@
 			`id_employee`,
 			`id_site`,
 			`params`,
-			`created_date`,
 			`name`,
-			`is_favorite`
+			`apply_to_portfolio`,
+			`favorite`,
+			`last_used`
 		)
 		SELECT
 			#{id_employee} AS id_employee,
 			id AS id_site,
 			#{params} AS params,
-			#{created_date} AS created_date,
 			#{name} AS name,
-			#{is_favorite} AS is_favorite
+			#{apply_to_portfolio} AS apply_to_portfolio,
+			#{favorite} AS favorite,
+			UTC_TIMESTAMP() AS last_used
 		FROM
 			site
 		WHERE
@@ -354,7 +232,10 @@
 		UPDATE
 			employee_chart_filter
 		SET
-			name = #{name}
+			name = #{name},
+			apply_to_portfolio = #{apply_to_portfolio},
+			favorite = #{favorite},
+			last_used = IF(#{addToFavorite}, last_used, UTC_TIMESTAMP())
 		WHERE
 			id = #{id}
 	</update>
@@ -365,27 +246,6 @@
 	 		id = #{id}
 	</delete>
   	
-  	<delete id="deleteOldRecentFilter">
-  		WITH cte AS (
-			SELECT
-				id,
-				ROW_NUMBER() OVER (ORDER BY id DESC) AS row_num
-			FROM
-				employee_chart_filter
-			WHERE
-				id_employee = #{id_employee}
-				AND SHA1(id_site) = #{hash_id_site}
-				AND is_favorite = #{is_favorite}
-		)
-		
-  		DELETE FROM employee_chart_filter
-	 	WHERE
-	 		id_employee = #{id_employee}
-	 		AND SHA1(id_site) = #{hash_id_site}
-	 		AND is_favorite = #{is_favorite}
-	 		AND id IN (SELECT id FROM cte WHERE row_num > 10)
-	</delete>
-	
 	<select id="getDeviceEnergyBySite" parameterType="com.nwm.api.entities.DeviceEntity" resultType="com.nwm.api.entities.DeviceEnergyBySiteDTO">
 		SELECT
 			DATE_FORMAT(CONVERT_TZ(time, 'UTC', t.value), '%H:00') AS categories_time,

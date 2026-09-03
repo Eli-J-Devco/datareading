@@ -236,7 +236,7 @@
 			AND d.serial_number = #{serial_number}
 			AND e.id IS NOT NULL
 			
-			AND d.id = 4252
+			<!-- AND d.id = 4252 -->
 			
 		GROUP BY d.id
 	</select>
@@ -373,7 +373,7 @@
 			        LEFT JOIN site s ON s.id = d.id_site
 			        LEFT JOIN time_zone t ON t.id = s.id_time_zone
 			        WHERE dv.error = 0 
-			        AND (HOUR(CONVERT_TZ(dv.time, "UTC", t.`value`)) <![CDATA[>=]]> s.cf_start_time AND HOUR(CONVERT_TZ(dv.time, "UTC", t.`value`)) <![CDATA[<=]]> s.cf_end_time)  
+			        <!-- AND (HOUR(CONVERT_TZ(dv.time, "UTC", t.`value`)) <![CDATA[>=]]> s.cf_start_time AND HOUR(CONVERT_TZ(dv.time, "UTC", t.`value`)) <![CDATA[<=]]> s.cf_end_time) -->  
 			        
 			        AND dv.time > #{start_date}
 			        ORDER BY dv.time ASC
@@ -541,22 +541,22 @@
 			AND s.`is_delete` = 0
 			AND s.cf_start_time IS NOT NULL
 			AND s.cf_end_time IS NOT NULL
-			<!--AND (
+			AND (
 				(s.cf_start_time <![CDATA[<]]> s.cf_end_time
-					AND HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) >= s.cf_start_time + 2
-					AND HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) <![CDATA[<=]]> s.cf_end_time - 2)
+					AND HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) >= s.cf_start_time
+					AND HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) <![CDATA[<=]]> s.cf_end_time)
 				OR
 				(s.cf_start_time > s.cf_end_time
 					AND (
-						HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) >= s.cf_start_time + 2
-						OR HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) <![CDATA[<=]]> s.cf_end_time - 2
+						HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) >= s.cf_start_time
+						OR HOUR(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', t.`value`)) <![CDATA[<=]]> s.cf_end_time
 					))
 			)
 			AND s.run_on_server IN
 			<foreach item="item" collection="serverIds" open="(" separator="," close=")">
 				#{item}
-			</foreach> -->
-			AND s.id    IN(560)
+			</foreach>
+			<!-- AND s.id    IN(393) -->
 			 <!-- AND s.id IN(290,519,616,618,684,673,674,675,676,681,566,339,340,638,637,680) -->
 		GROUP BY s.id
 	</select>

@@ -251,6 +251,11 @@
 		<mapper resource="mybatis/map/ModelPhoenixContactSCKM8S20A.xml"/>
 		<mapper resource="mybatis/map/ModelABBCentralInverterPVS800570630kWB.xml"/>
 		<mapper resource="mybatis/map/ModelMeterSatecPM175.xml"/>
+		<mapper resource="mybatis/map/ModelADAM6050FLOAT.xml"/>
+		<mapper resource="mybatis/map/ModelSmartloggerSolisS3.xml"/>
+		<mapper resource="mybatis/map/ModelIMTWINDAMBIENT.xml"/>
+		<mapper resource="mybatis/map/ModelSungrowSG100KCInverter.xml"/>
+		<mapper resource="mybatis/map/ModelEDMIMeterMK6Genius.xml"/>
 		
 		
 		
@@ -295,6 +300,7 @@
 		 <mapper resource="mybatis/map/Control.xml" />
 		 <mapper resource="mybatis/map/AccountStatus.xml" />
 		 <mapper resource="mybatis/map/AuditingLogs.xml" />
+		 <mapper resource="mybatis/map/AnalyticalReportTracker.xml" />
 		 <mapper resource="mybatis/map/FieldValueDefault.xml" />
 		 <mapper resource="mybatis/map/VirtualDevice.xml" />
 		 <mapper resource="mybatis/map/CalculationMeasuredProduction.xml" />
@@ -354,8 +360,11 @@
 		<mapper resource="mybatis/map/ModelSolarEdgeAPIInverter.xml"/>
 		<mapper resource="mybatis/map/ModelSolarEdgeAPIMeter.xml"/>
 		<mapper resource="mybatis/map/ModelSolarEdgeAPIWeather.xml"/>
+		<mapper resource="mybatis/map/ProcessLogs.xml"/>
+		
 
 		<mapper resource="mybatis/map/Datalogger.xml"/>
-		
+		<mapper resource="mybatis/map/DeviceWorkHour.xml"/>
+
 	</mappers>
 </configuration>

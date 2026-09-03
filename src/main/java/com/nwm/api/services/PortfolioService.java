@@ -10,6 +10,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,19 +20,25 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 
 import org.apache.ibatis.session.SqlSession;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
 
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.ClientMonthlyDateEntity;
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.entities.DeviceParameterEntity;
 import com.nwm.api.entities.DevicesByTypeEntity;
 import com.nwm.api.entities.EnergyEntity;
-import com.nwm.api.entities.PerformanceDataChartItemEntity;
 import com.nwm.api.entities.PortfolioEntity;
 import com.nwm.api.entities.SiteEnergyEntity;
 import com.nwm.api.entities.SiteEntity;
@@ -40,8 +48,22 @@ import com.nwm.api.utils.Constants;
 import com.nwm.api.utils.Lib;
 import com.nwm.api.utils.Constants.ChartingFilter;
 import com.nwm.api.utils.Constants.ChartingGranularity;
+import com.nwm.api.utils.Constants.UploadingDataIntervals;
 
+@Service
 public class PortfolioService extends DB {
+	@Autowired
+	SitesAnalyticsService sitesAnalyticsService;
+	@Autowired
+	CustomerViewService customerViewService;
+	@Autowired
+	DeviceService deviceService;
+	@Autowired
+	@Qualifier("deviceDataExecutor")
+	Executor deviceDataExecutor;
+	@Autowired
+	@Qualifier("siteExecutor")
+	Executor siteExecutor;
 
 	/**
 	 * @description get list portfolio by array(id_site)
@@ -352,8 +374,7 @@ public class PortfolioService extends DB {
 							data.setActual(energy.getActual());
 							data.setExpected(energy.getExpected());
 						} else {
-							CustomerViewService customerViewService = new CustomerViewService();
-							DevicesByTypeEntity devices = customerViewService.getDevicesBySite(site);
+							DevicesByTypeEntity devices = deviceService.getDevicesBySite(site);
 							List<DeviceEntity> meters = devices.getMeter();
 							List<DeviceEntity> inverters = devices.getInverter();
 							List<DeviceEntity> irradiances = devices.getIrradiance();
@@ -394,74 +415,72 @@ public class PortfolioService extends DB {
 	public List<SiteEnergyEntity> getSitesMetricsActualVsExpected(PortfolioEntity obj) {
 		try {
 			List<SiteEntity> sites = getSites(obj);
-			if (sites.size() == 0) return new ArrayList<>();
+			if (sites.isEmpty()) return new ArrayList<>();
 			
-			CustomerViewService customerViewService = new CustomerViewService();
-			List<CompletableFuture<SiteEnergyEntity>> futureList = new ArrayList<CompletableFuture<SiteEnergyEntity>>();
-			for (int i = 0; i < sites.size(); i++) {
-				SiteEntity site = sites.get(i);
-				site.setStart_date(obj.getStart_date());
-				site.setEnd_date(obj.getEnd_date());
-				site.setFilterBy(obj.getId_filter());
-				
-				int data_send_time = 0;
-				switch (ChartingFilter.fromValue(obj.getId_filter())) {
-					case TODAY:
-						data_send_time = ChartingGranularity._1_DAY.getValue();
-						break;
-					case THIS_MONTH:
-						data_send_time = ChartingGranularity._1_MONTH.getValue();
-						break;
-					default:
-						break;
-				}
-				site.setData_send_time(data_send_time);
-
-				CompletableFuture<SiteEnergyEntity> future = CompletableFuture.supplyAsync(() -> {
-					SiteEnergyEntity item = new SiteEnergyEntity();
-					item.setName(site.getName());
-					item.setId(site.getId_site());
-					item.setHash_id(site.getHash_id());
-					item.setLast_updated(site.getLast_updated());
-					item.setOverPerformingActualExpected(site.getOverPerformingActualExpected());
-					item.setOnTargetBetweenActualExpected(site.getOnTargetBetweenActualExpected());
-					item.setOnTargetAndActualExpected(site.getOnTargetAndActualExpected());
-					item.setUnderPerformingActualExpected(site.getUnderPerformingActualExpected());
+			LocalDateTime start = LocalDateTime.parse(obj.getStart_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).withHour(0).withMinute(0).withSecond(0);
+			LocalDateTime end = LocalDateTime.parse(obj.getEnd_date(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).withHour(23).withMinute(59).withSecond(59);
+            ChartingGranularity chartingGranularity = ChartingFilter.fromValue(obj.getId_filter()) == ChartingFilter.THIS_MONTH ? ChartingGranularity._1_MONTH :  ChartingFilter.fromValue(obj.getId_filter()) == ChartingFilter.TODAY ? ChartingGranularity._1_DAY : ChartingGranularity._7_DAYS;
+			ChartingFilter chartingFilter = ChartingFilter.fromValue(obj.getId_filter());
+			
+			List<CompletableFuture<SiteEnergyEntity>> siteFutures = sites.stream()
+				.map(site -> CompletableFuture.supplyAsync(() -> {
+					UploadingDataIntervals siteUploadingInterval = UploadingDataIntervals.fromValue(site.getData_send_time());
+					SiteEnergyEntity siteEnergyEntity = new SiteEnergyEntity();
+					siteEnergyEntity.setName(site.getName());
+					siteEnergyEntity.setId(site.getId_site());
+					siteEnergyEntity.setHash_id(site.getHash_id());
+					siteEnergyEntity.setLast_updated(site.getLast_updated());
+					siteEnergyEntity.setOverPerformingActualExpected(site.getOverPerformingActualExpected());
+					siteEnergyEntity.setOnTargetBetweenActualExpected(site.getOnTargetBetweenActualExpected());
+					siteEnergyEntity.setOnTargetAndActualExpected(site.getOnTargetAndActualExpected());
+					siteEnergyEntity.setUnderPerformingActualExpected(site.getUnderPerformingActualExpected());
 					
 					try {
-						List<PerformanceDataChartItemEntity> data = customerViewService.getChartDataPerformance(site);
+						DevicesByTypeEntity devices = deviceService.getDevicesBySite(site);
+						List<DeviceEntity> powerDevices = !devices.getMeter().isEmpty() ? devices.getMeter() : devices.getInverter();
 						
-						for (PerformanceDataChartItemEntity entity : data) {
-							if (entity.getData_energy().size() == 0) continue;
-							ClientMonthlyDateEntity siteEnergyData = entity.getData_energy().get(0);
+						List<CompletableFuture<Double>> futures = powerDevices.stream()
+							.map(device -> CompletableFuture.supplyAsync(() -> {
+								List<Map<String, Object>> data = sitesAnalyticsService.getDeviceData(device, start, end, chartingGranularity, chartingFilter);
+								
+								List<DeviceParameterEntity> parameters = device.getParameters();
+								Optional<DeviceParameterEntity> intervalEnergyParameter = parameters.stream().filter(parameter -> parameter.isIs_energy() && parameter.isIs_user_defined()).findFirst();
+								if (!intervalEnergyParameter.isPresent()) return null;
+								
+								Optional<Double> energy = data.stream().findAny().map(item -> (Double) item.get(intervalEnergyParameter.get().getSlug()));
+								return energy.isPresent() ? energy.get() : null;
+							}, deviceDataExecutor))
+							.collect(Collectors.toList());
+						
+						Supplier<DoubleStream> powerStream = () -> futures.stream().map(CompletableFuture::join).filter(Objects::nonNull).mapToDouble(Double::doubleValue);
+						
+						if (powerStream.get().findAny().isPresent()) siteEnergyEntity.setActualEnergy(powerStream.get().sum());
+						
+						List<DeviceEntity> irradianceDevices = devices.getIrradiance();
+						
+						if (!irradianceDevices.isEmpty()) {
+							List<ClientMonthlyDateEntity> expected = irradianceDevices.size() == 1 ?
+								customerViewService.getIrradianceByDevice(start, end, irradianceDevices.get(0), chartingGranularity, chartingFilter, false, siteUploadingInterval)
+								:
+								customerViewService.getExpectedBySelectedPOA(start, end, site.getId_site(), chartingGranularity, chartingFilter, irradianceDevices);
 							
-							if (entity.getType().equals("chart_energy_kwh")) {
-								item.setActualPower(siteEnergyData.getNvmActivePower());
-								item.setActualEnergy(siteEnergyData.getNvmActiveEnergy());
-							} else if (entity.getType().equals("expected_power") || entity.getType().equals("expected_energy")) {
-								item.setExpectedPower(siteEnergyData.getExpected_power());
-								item.setExpectedEnergy(siteEnergyData.getExpected_energy());
-							} else if (entity.getType().equals("nvm_irradiance")) {
-								item.setIrradiance(siteEnergyData.getNvm_irradiance());						
-							}
+							expected.stream().findAny().ifPresent(item -> siteEnergyEntity.setExpectedEnergy(item.getExpected_energy()));
 						}
 						
-						if (Objects.nonNull(item.getActualEnergy()) && Objects.nonNull(item.getExpectedEnergy()) && item.getExpectedEnergy() > 0) {
-							item.setVariance((item.getActualEnergy() - item.getExpectedEnergy()) / item.getExpectedEnergy());
-							item.setAe(Math.round(item.getActualEnergy() / item.getExpectedEnergy() * 1000.0) / 1000.0);
+						if (Objects.nonNull(siteEnergyEntity.getActualEnergy()) && Objects.nonNull(siteEnergyEntity.getExpectedEnergy()) && siteEnergyEntity.getExpectedEnergy() > 0) {
+							siteEnergyEntity.setVariance((siteEnergyEntity.getActualEnergy() - siteEnergyEntity.getExpectedEnergy()) / siteEnergyEntity.getExpectedEnergy());
+							siteEnergyEntity.setAe(Math.round(siteEnergyEntity.getActualEnergy() / siteEnergyEntity.getExpectedEnergy() * 1000.0) / 1000.0);
 						}
 						
-						return item;
+						return siteEnergyEntity;
 					} catch (Exception e) {
-						e.printStackTrace();
-						return item;
+						log.error("getSitesMetricsActualVsExpected", e);
+						return siteEnergyEntity;
 					}
-				});
-				futureList.add(future);
-			}
+				}, siteExecutor))
+				.collect(Collectors.toList());
 			
-			List<SiteEnergyEntity> dataList = futureList.stream().map(future -> future.join()).collect(Collectors.toList());
-			return dataList;
+			return siteFutures.stream().map(CompletableFuture::join).collect(Collectors.toList());
 		} catch (Exception ex) {
 			return new ArrayList<>();
 		}
@@ -478,7 +497,6 @@ public class PortfolioService extends DB {
 			List<SiteEntity> sites = getSites(obj);
 			if (sites.size() == 0) return new ArrayList<>();
 			
-			CustomerViewService customerViewService = new CustomerViewService();
 			List<CompletableFuture<List<ClientMonthlyDateEntity>>> futureList = new ArrayList<CompletableFuture<List<ClientMonthlyDateEntity>>>();
 			
 			for (int i = 0; i < sites.size(); i++) {

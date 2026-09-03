@@ -52,6 +52,8 @@ public class UploadFilesController extends BaseController {
 	
 	@Autowired
 	private UploadFilesService uploadFilesService;
+	@Autowired
+	private DeviceService deviceService;
 	public static String message = "";
 	
 	/**
@@ -191,13 +193,12 @@ public class UploadFilesController extends BaseController {
 							FileReader fr = new FileReader(readFile); // reads the file
 							BufferedReader br = new BufferedReader(fr); // creates a buffering character input stream
 							String line;
-							DeviceService serviceD = new DeviceService();
 							DeviceEntity deviceE = new DeviceEntity();
 							deviceE.setSerial_number(serialnumber);
 							deviceE.setModbusdevicenumber(modbusdevice);
 							
 							// Update datalogger info 
-							List<DeviceEntity> dataloggers = serviceD.getDataloggerBySerialNumber(deviceE);
+							List<DeviceEntity> dataloggers = deviceService.getDataloggerBySerialNumber(deviceE);
 							if(dataloggers.size() > 0) {
 								// Set last update for datalogger 
 								Date now = new Date();
@@ -210,7 +211,7 @@ public class UploadFilesController extends BaseController {
 								
 								for (DeviceEntity dataloggerItem : dataloggers) {
 									deviceUpdateE.setId(dataloggerItem.getId());
-									serviceD.updateLastUpdated(deviceUpdateE);
+									deviceService.updateLastUpdated(deviceUpdateE);
 									
 									// Save to datalogger
 									ModelDataloggerEntity dataloggerEntity = new ModelDataloggerEntity();
@@ -235,14 +236,14 @@ public class UploadFilesController extends BaseController {
 								}
 							}
 							
-							List<DeviceEntity> dataDevice = serviceD.getDeviceListBySerialNumber(deviceE);
+							List<DeviceEntity> dataDevice = deviceService.getDeviceListBySerialNumber(deviceE);
 							if (dataDevice.size() > 0) {
 								
 								for (int i = 0; i < dataDevice.size(); i++) {
 									DeviceEntity item = dataDevice.get(i);
 							        
 									if( modbusdevice.equals(item.getModbusdevicenumber())) {
-										List<DeviceEntity> scaledDeviceParameters = serviceD.getListScaledDeviceParameter(item);
+										List<DeviceEntity> scaledDeviceParameters = deviceService.getListScaledDeviceParameter(item);
 										ModelBaseEntity baseEntity = null;
 										
 										switch (item.getDevice_group_table()) {
@@ -3494,10 +3495,7 @@ public class UploadFilesController extends BaseController {
     													item.setField_value2(dataEntity.getGlobalsuntrackingsetpoint() != 0.001 ? dataEntity.getGlobalsuntrackingsetpoint() : null);
     													// Actual Angle
     													item.setField_value3(dataEntity.getSunAngle() != 0.001 ? dataEntity.getSunAngle() : null);
-    													
-    													item.setField_value2(null);
-                                                        item.setField_value3(null);
-    													
+    												   													
     													serviceModelPVHMaster.insertModelPVHMaster(dataEntity);
     													
     													baseEntity = dataEntity;
@@ -3792,6 +3790,28 @@ public class UploadFilesController extends BaseController {
     											}
     											break;
     											
+                                            case "model_Smartlogger_Solis_S3":
+                                            	ModelSmartloggerSolisS3Service serviceModelSmartloggerSolisS3 = new ModelSmartloggerSolisS3Service();
+    											while ((line = br.readLine()) != null) {
+    													ModelSmartloggerSolisS3Entity dataEntity = serviceModelSmartloggerSolisS3.setModelSmartloggerSolisS3(line);
+    													dataEntity.setDeviceDetail(item.getId(), item.getDatatablename(), item.getView_tablename(), item.getJob_tablename(), item.getOffset_data_old(), item.getEnable_alert(), item.getTimezone_value());
+    													
+    													uploadFilesService.scalingDeviceParameters(scaledDeviceParameters, dataEntity);
+    													
+    													item.setLast_value(dataEntity.getTotalActivePowerofINVs() != 0.001 ? dataEntity.getTotalActivePowerofINVs() : null);
+    													item.setField_value1(dataEntity.getTotalActivePowerofINVs() != 0.001 ? dataEntity.getTotalActivePowerofINVs() : null);
+    													item.setField_value2(null);
+    													item.setField_value3(null);
+    													
+    													uploadFilesService.handleEnergyField(item, dataEntity, "TotalGenerationofINVs");
+    													
+    													serviceModelSmartloggerSolisS3.insertModelSmartloggerSolisS3(dataEntity);
+    													
+    													baseEntity = dataEntity;
+    											}
+    											break;
+    											
+    											
                                             case "model_Meter_Satec_PM175":
                                             	ModelMeterSatecPM175Service serviceModelMeterSatecPM175 = new ModelMeterSatecPM175Service();
     											while ((line = br.readLine()) != null) {
@@ -3808,6 +3828,94 @@ public class UploadFilesController extends BaseController {
     													uploadFilesService.handleEnergyField(item, dataEntity, "ActiveEnergyImport");
     													
     													serviceModelMeterSatecPM175.insertModelMeterSatecPM175(dataEntity);
+    													
+    													baseEntity = dataEntity;
+    											}
+    											break;
+    											
+    											
+                                            case "model_ADAM_6050_FLOAT":
+                                            	ModelADAM6050FLOATService serviceModelADAM6050 = new ModelADAM6050FLOATService();
+    											while ((line = br.readLine()) != null) {
+    												ModelADAM6050FLOATEntity dataEntity = serviceModelADAM6050.setModelADAM6050FLOAT(line);
+    													dataEntity.setDeviceDetail(item.getId(), item.getDatatablename(), item.getView_tablename(), item.getJob_tablename(), item.getOffset_data_old(), item.getEnable_alert(), item.getTimezone_value());
+    													
+    													uploadFilesService.scalingDeviceParameters(scaledDeviceParameters, dataEntity);
+    													
+    													item.setLast_value(dataEntity.getVacuum() != 0.001 ? dataEntity.getVacuum() : null);
+    													item.setField_value1(dataEntity.getVacuum() != 0.001 ? dataEntity.getVacuum() : null);
+    													item.setField_value2(null);
+    													item.setField_value3(null);
+    													
+    													serviceModelADAM6050.insertModelADAM6050FLOAT(dataEntity);
+    													
+    													baseEntity = dataEntity;
+    											}
+    											break;
+    											
+                                            case "model_IMT_WIND_AMBIENT":
+                                            	ModelIMTWINDAMBIENTService serviceModelIMTWINDAMBIENT = new ModelIMTWINDAMBIENTService();
+    											while ((line = br.readLine()) != null) {
+    													ModelIMTWINDAMBIENTEntity dataEntity = serviceModelIMTWINDAMBIENT.setModelIMTWINDAMBIENT(line);
+    													dataEntity.setDeviceDetail(item.getId(), item.getDatatablename(), item.getView_tablename(), item.getJob_tablename(), item.getOffset_data_old(), item.getEnable_alert(), item.getTimezone_value());
+    													
+    													uploadFilesService.scalingDeviceParameters(scaledDeviceParameters, dataEntity);
+    													
+    													// sensor1_data
+    													item.setLast_value(dataEntity.getIrradiance() != 0.001 ? dataEntity.getIrradiance() : null);
+    													item.setField_value1(dataEntity.getIrradiance() != 0.001 ? dataEntity.getIrradiance() : null);
+    													
+    													// panel_temperature
+    													item.setField_value2(dataEntity.getCellTemperature() != 0.001 ? dataEntity.getCellTemperature() : null);
+    													
+    													// value 3
+    													item.setField_value3(null);
+    													
+    													serviceModelIMTWINDAMBIENT.insertModelIMTWINDAMBIENT(dataEntity);
+    													
+    													baseEntity = dataEntity;
+    											}
+    											
+    											
+    											break;
+    											
+                                            case "model_Sungrow_SG100KC_Inverter":
+                                            	ModelSungrowSG100KCInverterService serviceModelKC = new ModelSungrowSG100KCInverterService();
+    											while ((line = br.readLine()) != null) {
+    												ModelSungrowSG100KCInverterEntity dataEntity = serviceModelKC.setModelSungrowSG100KCInverter(line);
+    													dataEntity.setDeviceDetail(item.getId(), item.getDatatablename(), item.getView_tablename(), item.getJob_tablename(), item.getOffset_data_old(), item.getEnable_alert(), item.getTimezone_value());
+    													
+    													uploadFilesService.scalingDeviceParameters(scaledDeviceParameters, dataEntity);
+    													
+    													item.setLast_value(dataEntity.getACActivePower() != 0.001 ? dataEntity.getACActivePower() : null);
+    													item.setField_value1(dataEntity.getACActivePower() != 0.001 ? dataEntity.getACActivePower() : null);
+    													item.setField_value2(null);
+    													item.setField_value3(null);
+    													
+    													uploadFilesService.handleEnergyField(item, dataEntity, "TotalEnergy");
+    													
+    													serviceModelKC.insertModelSungrowSG100KCInverter(dataEntity);
+    													
+    													baseEntity = dataEntity;
+    											}
+    											break;
+    											
+                                            case "model_EDMIMeterMK6Genius":
+                                            	ModelEDMIMeterMK6GeniusService serviceModelEDMIMeterMK6Genius = new ModelEDMIMeterMK6GeniusService();
+    											while ((line = br.readLine()) != null) {
+    												ModelEDMIMeterMK6GeniusEntity dataEntity = serviceModelEDMIMeterMK6Genius.setModelEDMIMeterMK6Genius(line);
+    													dataEntity.setDeviceDetail(item.getId(), item.getDatatablename(), item.getView_tablename(), item.getJob_tablename(), item.getOffset_data_old(), item.getEnable_alert(), item.getTimezone_value());
+    													
+    													uploadFilesService.scalingDeviceParameters(scaledDeviceParameters, dataEntity);
+    													
+    													item.setLast_value(dataEntity.getTotalKW() != 0.001 ? dataEntity.getTotalKW() : null);
+    													item.setField_value1(dataEntity.getTotalKW() != 0.001 ? dataEntity.getTotalKW() : null);
+    													item.setField_value2(null);
+    													item.setField_value3(null);
+    													
+    													uploadFilesService.handleEnergyField(item, dataEntity, "ImportTotalKWH");
+    													
+    													serviceModelEDMIMeterMK6Genius.insertModelEDMIMeterMK6Genius(dataEntity);
     													
     													baseEntity = dataEntity;
     											}
@@ -3969,10 +4077,9 @@ public class UploadFilesController extends BaseController {
 							StringBuffer sb = new StringBuffer(); // constructs a string buffer with no characters
 							
 
-							DeviceService serviceD = new DeviceService();
 							DeviceEntity deviceE = new DeviceEntity();
 							deviceE.setSerial_number(serialnumber);
-							List<DeviceEntity> dataDevice = serviceD.getDeviceListBySerialNumber(deviceE);
+							List<DeviceEntity> dataDevice = deviceService.getDeviceListBySerialNumber(deviceE);
 							
 							String remoteAddr = null;
 							String line;

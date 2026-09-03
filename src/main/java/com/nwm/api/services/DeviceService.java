@@ -7,18 +7,99 @@
 package com.nwm.api.services;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.apache.ibatis.session.SqlSession;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
 
 import com.nwm.api.DBManagers.DB;
 import com.nwm.api.entities.DeviceEntity;
+import com.nwm.api.entities.DeviceParameterEntity;
+import com.nwm.api.entities.DevicesByTypeEntity;
+import com.nwm.api.utils.Constants.DeviceType;
 
 
+@Service
 public class DeviceService extends DB {
+	
+	public DeviceEntity getDeviceDetail(int id, String domain) {
+		try {
+			DeviceEntity params = new DeviceEntity();
+			params.setId(id);
+			params.setDomain(domain);
+			
+			return Optional.ofNullable((DeviceEntity) queryForObject("Device.getDeviceDetail", params))
+					.map(item -> {
+						DeviceEntity device = new DeviceEntity(item);
+						
+						if (EnumSet.of(DeviceType.PRODUCTION_METER, DeviceType.LOAD_METER, DeviceType.CONSUMPTION_METER).contains(DeviceType.fromValue(item.getId_device_type())) && !item.isIs_excluded_meter() && Optional.ofNullable(item.getMeter_type()).orElse(3).intValue() == 3) {
+							device.setParameters(item.getParameters().stream().filter(parameter -> (parameter.isIs_energy() && parameter.isIs_user_defined() && Optional.ofNullable(parameter.getMain_energy()).orElse(true)) || parameter.isIs_active_power()).collect(Collectors.toList()));
+						} else if (EnumSet.of(DeviceType.PV_SYSTEM_INVERTER).contains(DeviceType.fromValue(item.getId_device_type()))) {
+							device.setParameters(item.getParameters().stream().filter(parameter -> (parameter.isIs_energy() && parameter.isIs_user_defined() && Optional.ofNullable(parameter.getMain_energy()).orElse(true)) || parameter.isIs_active_power()).collect(Collectors.toList()));
+						} else if (EnumSet.of(DeviceType.WEATHER_STATION, DeviceType.VIRTUAL_WEATHER_STATION).contains(DeviceType.fromValue(item.getId_device_type())) && item.getReverse_poa() == 0) {
+							device.setParameters(item.getParameters().stream().filter(parameter -> parameter.isIs_irradiance() || parameter.isIs_temperature()).collect(Collectors.toList()));
+						}
+						
+						return device;
+					})
+					.orElse(new DeviceEntity());
+		} catch (Exception e) {
+			return new DeviceEntity();
+		}
+	}
+	
+	@Cacheable(value = "devices", key = "#obj.hash_id != null ? #obj.hash_id : #obj.id_site")
+	public <T> DevicesByTypeEntity getDevicesBySite(T obj) {
+		try {
+			List<DeviceEntity> devices = Optional.ofNullable(queryForList("Device.getDevicesBySite", obj)).orElse(new ArrayList<>());
+			
+			List<DeviceEntity> meterDevices = devices.stream()
+				.filter(item -> EnumSet.of(DeviceType.PRODUCTION_METER, DeviceType.LOAD_METER, DeviceType.CONSUMPTION_METER).contains(DeviceType.fromValue(item.getId_device_type())) && !item.isIs_excluded_meter() && Optional.ofNullable(item.getMeter_type()).orElse(3).intValue() == 3)
+				.map(item -> {
+					DeviceEntity device = new DeviceEntity(item);
+					device.setParameters(item.getParameters().stream().filter(parameter -> (parameter.isIs_energy() && parameter.isIs_user_defined() && Optional.ofNullable(parameter.getMain_energy()).orElse(true)) || parameter.isIs_active_power()).collect(Collectors.toList()));
+					return device;
+				})
+				.collect(Collectors.toList());
+			
+			List<DeviceEntity> inverterDevices = devices.stream()
+				.filter(item -> EnumSet.of(DeviceType.PV_SYSTEM_INVERTER).contains(DeviceType.fromValue(item.getId_device_type())))
+				.map(item -> {
+					DeviceEntity device = new DeviceEntity(item);
+					device.setParameters(item.getParameters().stream().filter(parameter -> (parameter.isIs_energy() && parameter.isIs_user_defined() && Optional.ofNullable(parameter.getMain_energy()).orElse(true)) || parameter.isIs_active_power()).collect(Collectors.toList()));
+					return device;
+				})
+				.collect(Collectors.toList());
+			
+			List<DeviceEntity> irradianceDevices = devices.stream()
+				.filter(item -> EnumSet.of(DeviceType.WEATHER_STATION, DeviceType.VIRTUAL_WEATHER_STATION).contains(DeviceType.fromValue(item.getId_device_type())) && item.getReverse_poa() == 0)
+				.map(item -> {
+					DeviceEntity device = new DeviceEntity(item);
+					device.setParameters(item.getParameters().stream().filter(parameter -> parameter.isIs_irradiance() || parameter.isIs_temperature()).collect(Collectors.toList()));
+					
+					DeviceParameterEntity expectedPowerParameter = new DeviceParameterEntity();
+					expectedPowerParameter.setSlug("expected_power");
+					expectedPowerParameter.setRounding_decimals(2);
+					expectedPowerParameter.setValue_chart_tool("avg");
+					
+					device.getParameters().add(expectedPowerParameter);
+					
+					return device;
+				})
+				.collect(Collectors.toList());
+			
+			return new DevicesByTypeEntity(devices, meterDevices, inverterDevices, irradianceDevices);
+		} catch (Exception e) {
+			return new DevicesByTypeEntity(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+		}
+	}
 
 	/**
 	 * @description get list site for page employee manage site
@@ -286,6 +367,7 @@ public class DeviceService extends DB {
 	 * @author long.pham
 	 * @since 2021-01-12
 	 */
+	@CacheEvict(value = "devices", allEntries = true)
 	public boolean updateDevice(DeviceEntity obj){
 		SqlSession session = this.beginTransaction();
 		try {
@@ -347,17 +429,13 @@ public class DeviceService extends DB {
 	 * @param id_device
 	 * @return array
 	 */
-	
-	public List getListHiddenDataByDevice(DeviceEntity obj) {
-		List dataList = new ArrayList();
+	@Cacheable(value = "hiddenDataByDevice", key = "#deviceId")
+	public List<Map<String, String>> getHiddenDataListByDevice(int deviceId) {
 		try {
-			dataList = queryForList("Device.getListHiddenDataByDevice", obj);
-			if (dataList == null)
-				return new ArrayList();
-		} catch (Exception ex) {
-			return new ArrayList();
+			return Optional.ofNullable(queryForList("Device.getHiddenDataListByDevice", deviceId)).orElse(new ArrayList<>());
+		} catch (Exception e) {
+			return new ArrayList<>();
 		}
-		return dataList;
 	}
 	
 	/**
@@ -366,6 +444,7 @@ public class DeviceService extends DB {
 	 * @since 2023-08-03
 	 * @param id
 	 */
+	@CacheEvict(value = "hiddenDataByDevice", key = "#obj.id_device")
 	public boolean deleteHiddenData(DeviceEntity obj) {
 		try {
 			return update("Device.deleteHiddenData", obj) > 0;
@@ -381,6 +460,7 @@ public class DeviceService extends DB {
 	 * @author Hung.Bui
 	 * @since 2023-08-03
 	 */
+	@CacheEvict(value = "hiddenDataByDevice", key = "#obj.id", beforeInvocation = true)
 	public DeviceEntity insertHiddenData(DeviceEntity obj) 
 	{
 		try
