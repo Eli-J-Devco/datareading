@@ -827,7 +827,8 @@
 			c.onTargetAndActualExpected,
 			c.underPerformingActualExpected,
 			w.last_updated,
-            t.value as time_zone_value
+            t.value as time_zone_value,
+            s.dc_capacity
 		FROM
 			site s
 			JOIN time_zone t ON t.id = s.id_time_zone
@@ -930,6 +931,17 @@
 			LEFT JOIN site s ON s.id = d.id_site 
 		WHERE
 			time BETWEEN DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY) AND UTC_TIMESTAMP()
+	</select>
+	
+	<select id="getV0SitesMetricsActualBySiteDataReport" resultType="Double">
+		SELECT
+			SUM(sdr.ActualGeneration)
+		FROM
+			${table_data_report} sdr
+			JOIN device d ON d.id = sdr.id_device
+		WHERE
+			sdr.time BETWEEN #{start_date} AND #{end_date}
+			AND IF(#{totalMeter} > 0, d.id_device_type IN (3,7,9) AND !d.is_excluded_meter AND (d.meter_type IS NULL OR d.meter_type = 3), d.id_device_type = 1)
 	</select>
 	
 </mapper>

@@ -95,6 +95,8 @@ public class DeviceEntity {
 	private Double field_value1;
 	private Double field_value2;
 	private Double field_value3;
+	
+	private Integer last_error_code = 0;
 	private String ssh_host;
 	private String ssh_user;
 	private String ssh_pass;
@@ -192,6 +194,19 @@ public class DeviceEntity {
     private String group_title_trans;
     private String type_title_trans;
     
+    private DeviceWorkHourEntity work_hour;
+    
+    
+    
+	public Integer getLast_error_code() {
+		return last_error_code;
+	}
+
+	public void setLast_error_code(Integer last_error_code) {
+		this.last_error_code = last_error_code;
+	}
+
+
 	public DeviceEntity() {}
 	
 	public DeviceEntity(DeviceEntity other) {
@@ -204,6 +219,9 @@ public class DeviceEntity {
 		this.is_excluded_meter = other.is_excluded_meter;
 		this.reverse_poa = other.reverse_poa;
 		this.is_weather_to_calculate_expected = other.is_weather_to_calculate_expected;
+		this.is_excluded_in_report = other.is_excluded_in_report;
+		this.is_excluded_irradiance_in_report = other.is_excluded_irradiance_in_report;
+		this.is_excluded_temp_in_report = other.is_excluded_temp_in_report;
 		this.meter_type = other.meter_type;
 		this.hidden = other.hidden;
 		this.id_device_type = other.id_device_type;
@@ -214,6 +232,8 @@ public class DeviceEntity {
 		this.order = other.order;
 		this.table_data_virtual = other.table_data_virtual;
 		this.timezone_value = other.timezone_value;
+		this.rating_ac_power = other.rating_ac_power;
+		this.work_hour = other.work_hour != null ? new DeviceWorkHourEntity(other.work_hour) : null;
 		this.parameters = other.parameters.stream().map(DeviceParameterEntity::new).collect(Collectors.toList());
 	}
 
@@ -1278,6 +1298,12 @@ public class DeviceEntity {
 	}
 	public void setType_title_trans(String type_title_trans) {
 		this.type_title_trans = type_title_trans;
+	}	
+	public DeviceWorkHourEntity getWork_hour() {
+	    return work_hour;
+	}
+	public void setWork_hour(DeviceWorkHourEntity work_hour) {
+	    this.work_hour = work_hour;
 	}
 
 }
